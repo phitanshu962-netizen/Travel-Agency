@@ -1,0 +1,87 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isApprovedUser() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true;
+    }
+
+    function isAgency() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agency';
+    }
+
+    // Users collection - users can read/write their own data, admins can read all
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || (isAdmin() && request.auth.uid != userId);
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Listings collection - approved users can read, agencies can manage their own, admins can manage all
+    match /listings/{listingId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin() ||
+                      (isAgency() && resource.data.agencyId == request.auth.uid) ||
+                      (request.auth != null && !exists(/databases/$(database)/documents/listings/$(listingId)));
+      allow create: if isApprovedUser() && request.auth.uid == request.resource.data.agencyId;
+    }
+
+    // Chat messages - users can read/write messages they're involved in
+    match /chat_messages/{messageId} {
+      allow read: if isAuthenticated() &&
+                     (request.auth.uid == resource.data.from_user_id ||
+                      request.auth.uid == resource.data.to_user_id);
+      allow write: if isAuthenticated() &&
+                      request.auth.uid == request.resource.data.from_user_id;
+      allow create: if isAuthenticated() &&
+                       request.auth.uid == request.resource.data.from_user_id;
+    }
+
+    // Messages collection - authenticated users can read/write messages they're involved in
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() &&
+                     (request.auth.uid == resource.data.sender ||
+                      request.auth.uid == resource.data.receiverId);
+      allow write: if isAuthenticated() &&
+                      request.auth.uid == request.resource.data.sender;
+      allow create: if isAuthenticated() &&
+                       request.auth.uid == request.resource.data.sender;
+    }
+
+    // Bookings collection - users can create bookings, agencies can read their own bookings, admins can read all
+    match /bookings/{bookingId} {
+      allow read: if isAdmin() ||
+                     (isAgency() && resource.data.agencyId == request.auth.uid) ||
+                     (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow write: if isAdmin() ||
+                      (isAgency() && resource.data.agencyId == request.auth.uid);
+    }
+
+    // Allow read access to public data for authenticated users
+    match /{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Deny all other writes by default
+    }
+  }
+}
