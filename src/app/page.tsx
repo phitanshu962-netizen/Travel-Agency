@@ -65,6 +65,47 @@ export default function Home() {
     preferences: [] as string[]
   });
   const [agencyBookings, setAgencyBookings] = useState<any[]>([]);
+  const [userBookings, setUserBookings] = useState<any[]>([]);
+  const [showJourneyModal, setShowJourneyModal] = useState(false);
+  const [selectedJourneyBooking, setSelectedJourneyBooking] = useState<any>(null);
+  // User Experience Enhancements
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    priceRange: [0, 10000],
+    duration: '',
+    type: '',
+    rating: 0,
+    destination: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [wishlist, setWishlist] = useState<string[]>([]);
+  const [comparisonList, setComparisonList] = useState<any[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
+  // Reviews & Ratings
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [newReview, setNewReview] = useState({
+    listingId: '',
+    rating: 5,
+    comment: '',
+    photos: [] as string[]
+  });
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewListing, setReviewListing] = useState<any>(null);
+
+  useEffect(() => {
+    // Fetch user's bookings
+    if (user && userData?.role === 'user') {
+      const fetchUserBookings = async () => {
+        const userBookingsQuery = query(collection(db, 'bookings'), where('userId', '==', user.uid));
+        const querySnapshot = await getDocs(userBookingsQuery);
+        const bookingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort bookings by createdAt in descending order (most recent first)
+        bookingsData.sort((a, b) => new Date((b as any).createdAt).getTime() - new Date((a as any).createdAt).getTime());
+        setUserBookings(bookingsData);
+      };
+      fetchUserBookings();
+    }
+  }, [user, userData]);
 
   useEffect(() => {
     if (userData?.role === 'admin') {
@@ -500,7 +541,7 @@ export default function Home() {
           {/* Sidebar */}
           <div className="w-64 bg-white shadow-lg">
             <div className="p-6 border-b">
-              <h2 className="text-2xl font-bold text-gray-800">TravelAgent Pro</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Travel Agency</h2>
               <p className="text-sm text-gray-600">Admin Dashboard</p>
             </div>
             <nav className="p-4">
@@ -553,7 +594,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                   🏖️ Listings
+                    Listings
                 </button>
                 <button
                   onClick={() => setActiveSection('settings')}
@@ -956,7 +997,7 @@ export default function Home() {
         <div className="flex h-screen bg-gray-100">
           <div className="w-64 bg-white shadow-lg">
             <div className="p-6 border-b">
-              <h2 className="text-2xl font-bold text-gray-800">TravelAgent Pro</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Travel Agency</h2>
               <p className="text-sm text-gray-600">User Dashboard</p>
             </div>
             <nav className="p-4">
@@ -969,7 +1010,17 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  🏖️ Travel Listings
+                   Travel Listings
+                </button>
+                <button
+                  onClick={() => setUserActiveSection('bookings')}
+                  className={`w-full text-left px-4 py-2 rounded-lg ${
+                    userActiveSection === 'bookings'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                    My Bookings
                 </button>
                 <button
                   onClick={() => setUserActiveSection('chat')}
@@ -979,7 +1030,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  💬 Chat with Agencies
+                   Chat with Agencies
                 </button>
               </div>
             </nav>
@@ -990,6 +1041,7 @@ export default function Home() {
               <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-gray-900">
                   {userActiveSection === 'listings' && 'Travel Listings'}
+                  {userActiveSection === 'bookings' && 'My Bookings'}
                   {userActiveSection === 'chat' && 'Chat with Agencies'}
                 </h1>
                 <div className="flex items-center space-x-4">
@@ -1006,6 +1058,126 @@ export default function Home() {
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Available Travel Packages</h2>
                     <p className="text-gray-600">Browse and book amazing travel experiences</p>
                   </div>
+
+                  {/* Advanced Search & Filters */}
+                  <Card className="mb-6">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col md:flex-row gap-4 mb-4">
+                        <div className="flex-1">
+                          <Input
+                            placeholder="Search destinations, packages..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowFilters(!showFilters)}
+                        >
+                           Filters {showFilters ? '▼' : '▶'}
+                        </Button>
+                      </div>
+
+                      {showFilters && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
+                          <div>
+                            <Label className="text-sm font-medium">Price Range</Label>
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                type="number"
+                                placeholder="Min"
+                                value={filters.priceRange[0]}
+                                onChange={(e) => setFilters({...filters, priceRange: [parseInt(e.target.value) || 0, filters.priceRange[1]]})}
+                                className="w-full"
+                              />
+                              <Input
+                                type="number"
+                                placeholder="Max"
+                                value={filters.priceRange[1]}
+                                onChange={(e) => setFilters({...filters, priceRange: [filters.priceRange[0], parseInt(e.target.value) || 10000]})}
+                                className="w-full"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium">Duration</Label>
+                            <select
+                              className="w-full p-2 border rounded-lg mt-1"
+                              value={filters.duration}
+                              onChange={(e) => setFilters({...filters, duration: e.target.value})}
+                            >
+                              <option value="">All Durations</option>
+                              <option value="1-3">1-3 days</option>
+                              <option value="4-7">4-7 days</option>
+                              <option value="8-14">1-2 weeks</option>
+                              <option value="15+">2+ weeks</option>
+                            </select>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium">Package Type</Label>
+                            <select
+                              className="w-full p-2 border rounded-lg mt-1"
+                              value={filters.type}
+                              onChange={(e) => setFilters({...filters, type: e.target.value})}
+                            >
+                              <option value="">All Types</option>
+                              <option value="adventure">Adventure</option>
+                              <option value="luxury">Luxury</option>
+                              <option value="budget">Budget</option>
+                              <option value="cultural">Cultural</option>
+                              <option value="family">Family</option>
+                              <option value="romantic">Romantic</option>
+                            </select>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium">Min Rating</Label>
+                            <select
+                              className="w-full p-2 border rounded-lg mt-1"
+                              value={filters.rating}
+                              onChange={(e) => setFilters({...filters, rating: parseInt(e.target.value)})}
+                            >
+                              <option value={0}>Any Rating</option>
+                              <option value={3}>3+ Stars</option>
+                              <option value={4}>4+ Stars</option>
+                              <option value={5}>5 Stars</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Comparison Bar */}
+                  {comparisonList.length > 0 && (
+                    <Card className="mb-6 bg-blue-50 border-blue-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Comparing {comparisonList.length} packages:</span>
+                            {comparisonList.map(listing => (
+                              <span key={listing.id} className="bg-blue-100 px-2 py-1 rounded text-xs">
+                                {listing.title.slice(0, 20)}...
+                              </span>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => setShowComparison(true)}>
+                              Compare ({comparisonList.length})
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setComparisonList([])}
+                            >
+                              Clear
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {listings.length === 0 ? (
                       <div className="col-span-full text-center py-12">
@@ -1015,9 +1187,75 @@ export default function Home() {
                         <p className="text-gray-500">No travel packages available yet.</p>
                       </div>
                     ) : (
-                      listings.map((listing) => (
-                        <Card key={listing.id} className="hover:shadow-lg transition-shadow">
+                      listings
+                        .filter(listing => {
+                          // Apply search filter
+                          if (searchTerm && !listing.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                              !listing.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                              !listing.destination.toLowerCase().includes(searchTerm.toLowerCase())) {
+                            return false;
+                          }
+
+                          // Apply price filter
+                          const price = parseFloat(listing.price);
+                          if (price < filters.priceRange[0] || price > filters.priceRange[1]) {
+                            return false;
+                          }
+
+                          // Apply duration filter
+                          if (filters.duration) {
+                            const duration = parseInt(listing.duration);
+                            if (filters.duration === '1-3' && (duration < 1 || duration > 3)) return false;
+                            if (filters.duration === '4-7' && (duration < 4 || duration > 7)) return false;
+                            if (filters.duration === '8-14' && (duration < 8 || duration > 14)) return false;
+                            if (filters.duration === '15+' && duration < 15) return false;
+                          }
+
+                          // Apply type filter
+                          if (filters.type && listing.type !== filters.type) return false;
+
+                          // Apply rating filter
+                          if (filters.rating > 0 && listing.rating < filters.rating) return false;
+
+                          return true;
+                        })
+                        .map((listing) => (
+                        <Card key={listing.id} className="hover:shadow-lg transition-shadow relative">
                           <CardHeader className="pb-3">
+                            {/* Wishlist and Compare buttons */}
+                            <div className="absolute top-2 right-2 flex gap-1 z-10">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className={`p-1 h-8 w-8 ${wishlist.includes(listing.id) ? 'bg-red-100 text-red-600' : 'bg-white'}`}
+                                onClick={() => {
+                                  if (wishlist.includes(listing.id)) {
+                                    setWishlist(wishlist.filter(id => id !== listing.id));
+                                  } else {
+                                    setWishlist([...wishlist, listing.id]);
+                                  }
+                                }}
+                              >
+                                {wishlist.includes(listing.id) ? '❤️' : '🤍'}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="p-1 h-8 w-8 bg-white"
+                                onClick={() => {
+                                  if (comparisonList.find(item => item.id === listing.id)) {
+                                    setComparisonList(comparisonList.filter(item => item.id !== listing.id));
+                                  } else if (comparisonList.length < 3) {
+                                    setComparisonList([...comparisonList, listing]);
+                                  } else {
+                                    alert('You can compare maximum 3 packages at once');
+                                  }
+                                }}
+                              >
+                                {comparisonList.find(item => item.id === listing.id) ? '✅' : '⚖️'}
+                              </Button>
+                            </div>
+
                             {listing.photos && listing.photos.length > 0 && (
                               <div className="w-full h-48 bg-gray-100 rounded-lg mb-4 overflow-hidden">
                                 <img
@@ -1027,7 +1265,14 @@ export default function Home() {
                                 />
                               </div>
                             )}
-                            <CardTitle className="text-lg">{listing.title}</CardTitle>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              {listing.title}
+                              {listing.agencyData?.verified && (
+                                <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">
+                                  ✅ Verified
+                                </span>
+                              )}
+                            </CardTitle>
                             <CardDescription className="flex items-center space-x-2">
                               <span>{listing.type}</span>
                               <span>•</span>
@@ -1326,6 +1571,39 @@ export default function Home() {
                         <p className="text-gray-600">{viewingListing.description}</p>
                       </div>
                     </div>
+                    {/* Reviews Section */}
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold text-lg mb-4">Customer Reviews</h3>
+                      {viewingListing.reviewsCount > 0 ? (
+                        <div className="space-y-4 mb-4">
+                          {/* Sample reviews - in real app, fetch from database */}
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">John Doe</span>
+                                <span className="text-yellow-500">★★★★★</span>
+                              </div>
+                              <span className="text-sm text-gray-500">2 weeks ago</span>
+                            </div>
+                            <p className="text-gray-700">"Amazing experience! The itinerary was perfectly planned and our guide was excellent."</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 mb-4">No reviews yet. Be the first to review this package!</p>
+                      )}
+
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setReviewListing(viewingListing);
+                          setShowReviewModal(true);
+                        }}
+                        className="w-full"
+                      >
+                        ✍️ Write a Review
+                      </Button>
+                    </div>
+
                     <div className="flex space-x-4">
                       <Button onClick={() => {
                         setCurrentChatAgency(viewingListing.agencyId);
@@ -1343,6 +1621,119 @@ export default function Home() {
                 </Card>
               )}
 
+              {userActiveSection === 'bookings' && (
+                <div className="space-y-6">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">My Bookings</h2>
+                    <p className="text-gray-600">Track your travel bookings and get journey details</p>
+                  </div>
+
+                  {userBookings.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-12 text-center">
+                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <span className="text-3xl">📅</span>
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">No Bookings Yet</h3>
+                        <p className="text-gray-600">
+                          When you book travel packages, they will appear here with all journey details and confirmations.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-6">
+                      {userBookings.map((booking) => (
+                        <Card key={booking.id} className="hover:shadow-lg transition-shadow">
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle className="text-xl">{booking.listingTitle}</CardTitle>
+                                <CardDescription>By {booking.agencyName}</CardDescription>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                              </span>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium text-gray-600">Booking Reference:</span>
+                                <p className="font-mono">{booking.bookingReference}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-600">Travel Date:</span>
+                                <p>{booking.travelDate || 'Not specified'}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-600">Travelers:</span>
+                                <p>{booking.travelers} {booking.travelers === 1 ? 'person' : 'people'}</p>
+                              </div>
+                            </div>
+
+                            <div className="border-t pt-4">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <span className="font-medium text-gray-600">Total Amount:</span>
+                                  <p className="text-2xl font-bold text-green-600">${booking.totalAmount}</p>
+                                </div>
+                                {(booking.status === 'confirmed' || booking.status === 'pending') && (
+                                  <Button
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => {
+                                      console.log('Button clicked for booking:', booking);
+                                      // For now, show journey details in alert since modal has CSS issues
+                                      const journeyInfo = booking.journeyDetails
+                                        ? `Flight: ${booking.journeyDetails.flight || 'Not provided'}\nHotel: ${booking.journeyDetails.hotel || 'Not provided'}\nItinerary: ${booking.journeyDetails.itinerary || 'Not provided'}`
+                                        : 'Journey details will be shared soon by your agency.';
+                                      alert(`Journey Details for ${booking.listingTitle}:\n\n${journeyInfo}\n\nReference: ${booking.bookingReference}\nTravelers: ${booking.travelers}\nTotal: $${booking.totalAmount}`);
+                                    }}
+                                  >
+                                    📋 View Journey Details
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            {booking.status === 'confirmed' && booking.journeyDetails && (
+                              <div className="border-t pt-4">
+                                <h4 className="font-semibold mb-3">Journey Details</h4>
+                                <div className="bg-green-50 p-4 rounded-lg space-y-3">
+                                  <div>
+                                    <span className="font-medium">Flight Details:</span>
+                                    <p className="text-sm">{booking.journeyDetails.flight || 'Flight details will be shared soon'}</p>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Hotel Booking:</span>
+                                    <p className="text-sm">{booking.journeyDetails.hotel || 'Hotel details will be shared soon'}</p>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Itinerary:</span>
+                                    <p className="text-sm">{booking.journeyDetails.itinerary || 'Complete itinerary will be shared soon'}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {booking.status === 'pending' && (
+                              <div className="bg-yellow-50 p-4 rounded-lg">
+                                <p className="text-sm text-yellow-800">
+                                  Your booking is being reviewed by the agency. You'll receive confirmation and journey details within 24 hours.
+                                </p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {userActiveSection === 'chat' && (
                 <Card>
                   <CardHeader>
@@ -1355,10 +1746,12 @@ export default function Home() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-96 bg-gray-50 rounded-lg p-4 flex flex-col">
+                      <div className="h-96 bg-gray-50 rounded-lg p-4 flex flex-col">
                       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-                        {chatMessages.map((msg, index) => (
-                          <div key={index} className={`flex ${msg.sender === user?.uid ? 'justify-end' : 'justify-start'}`}>
+                        {[...chatMessages]
+                          .sort((a, b) => a.timestamp - b.timestamp)
+                          .map((msg, index) => (
+                          <div key={msg.id || index} className={`flex ${msg.sender === user?.uid ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-xs px-3 py-2 rounded-lg ${msg.sender === user?.uid ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}>
                               <p className="text-sm">{msg.text}</p>
                               <p className="text-xs opacity-75">{new Date(msg.timestamp).toLocaleTimeString()}</p>
@@ -1389,7 +1782,7 @@ export default function Home() {
         <div className="flex h-screen bg-gray-100">
           <div className="w-64 bg-white shadow-lg">
             <div className="p-6 border-b">
-              <h2 className="text-2xl font-bold text-gray-800">TravelAgent Pro</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Travel Agency</h2>
               <p className="text-sm text-gray-600">{userData.companyName}</p>
             </div>
             <nav className="p-4">
@@ -1402,7 +1795,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  📊 Overview
+                   Overview
                 </button>
                 <button
                   onClick={() => setAgencyActiveSection('listings')}
@@ -1412,7 +1805,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  🏖️ Listings
+                   Listings
                 </button>
                 <button
                   onClick={() => setAgencyActiveSection('analytics')}
@@ -1422,7 +1815,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  📈 Analytics
+                   Analytics
                 </button>
                 <button
                   onClick={() => setAgencyActiveSection('bookings')}
@@ -1432,7 +1825,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  📅 Bookings
+                   Bookings
                 </button>
                 <button
                   onClick={() => setAgencyActiveSection('revenue')}
@@ -1442,7 +1835,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  💰 Revenue
+                   Revenue
                 </button>
                 <button
                   onClick={() => setAgencyActiveSection('chat')}
@@ -1452,7 +1845,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  💬 Customer Chat
+                   Customer Chat
                 </button>
                 <button
                   onClick={() => setAgencyActiveSection('settings')}
@@ -1462,7 +1855,7 @@ export default function Home() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  ⚙️ Settings
+                   Settings
                 </button>
               </div>
             </nav>
@@ -1725,25 +2118,138 @@ export default function Home() {
 
                   {agencyActiveSection === 'analytics' && (
                     <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <Card>
+                          <CardContent className="p-6">
+                            <div className="flex items-center">
+                              <div className="p-2 bg-green-100 rounded-lg">
+                                <span className="text-2xl">💰</span>
+                              </div>
+                              <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                                <p className="text-2xl font-bold text-gray-900">
+                                  ${agencyBookings.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0).toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="p-6">
+                            <div className="flex items-center">
+                              <div className="p-2 bg-blue-100 rounded-lg">
+                                <span className="text-2xl">📊</span>
+                              </div>
+                              <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                                <p className="text-2xl font-bold text-gray-900">
+                                  {agencyBookings.length > 0 ? ((agencyBookings.filter(b => b.status === 'confirmed').length / agencyBookings.length) * 100).toFixed(1) : 0}%
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="p-6">
+                            <div className="flex items-center">
+                              <div className="p-2 bg-purple-100 rounded-lg">
+                                <span className="text-2xl">⭐</span>
+                              </div>
+                              <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Avg Rating</p>
+                                <p className="text-2xl font-bold text-gray-900">
+                                  {agencyListings.length > 0 ?
+                                    (agencyListings.reduce((sum, l) => sum + (l.rating || 0), 0) / agencyListings.length).toFixed(1) :
+                                    'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="p-6">
+                            <div className="flex items-center">
+                              <div className="p-2 bg-orange-100 rounded-lg">
+                                <span className="text-2xl">👥</span>
+                              </div>
+                              <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                                <p className="text-2xl font-bold text-gray-900">
+                                  {new Set(agencyBookings.map(b => b.userId)).size}
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card>
                           <CardHeader>
-                            <CardTitle>Booking Trends</CardTitle>
+                            <CardTitle>📍 Popular Destinations</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                              <p className="text-gray-500">📈 Booking Chart Coming Soon</p>
+                            <div className="space-y-3">
+                              {agencyListings.length > 0 ? (
+                                // Group listings by destination and count
+                                Object.entries(
+                                  agencyListings.reduce((acc: Record<string, number>, listing) => {
+                                    const dest = listing.destination || 'Unknown';
+                                    acc[dest] = (acc[dest] || 0) + 1;
+                                    return acc;
+                                  }, {} as Record<string, number>)
+                                )
+                                .sort(([,a], [,b]) => b - a)
+                                .slice(0, 5)
+                                .map(([destination, count]) => (
+                                  <div key={destination} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span className="font-medium">{destination}</span>
+                                    <span className="text-sm text-gray-600">{count} listings</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-gray-500 text-center py-8">No listings yet</p>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
 
                         <Card>
                           <CardHeader>
-                            <CardTitle>Popular Destinations</CardTitle>
+                            <CardTitle>📈 Performance Metrics</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                              <p className="text-gray-500">📊 Analytics Coming Soon</p>
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                                <div>
+                                  <p className="font-medium">Approved Listings</p>
+                                  <p className="text-sm text-gray-600">Ready for customers</p>
+                                </div>
+                                <span className="text-lg font-bold text-green-600">
+                                  {agencyListings.filter(l => l.approved).length}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                                <div>
+                                  <p className="font-medium">Pending Listings</p>
+                                  <p className="text-sm text-gray-600">Awaiting approval</p>
+                                </div>
+                                <span className="text-lg font-bold text-yellow-600">
+                                  {agencyListings.filter(l => !l.approved).length}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                                <div>
+                                  <p className="font-medium">Active Chats</p>
+                                  <p className="text-sm text-gray-600">Customer conversations</p>
+                                </div>
+                                <span className="text-lg font-bold text-blue-600">
+                                  {agencyConversations.length}
+                                </span>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -1755,13 +2261,31 @@ export default function Home() {
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                              <div>
-                                <p className="font-medium">No Recent Bookings</p>
-                                <p className="text-sm text-gray-600">Booking system integration pending</p>
+                            {agencyBookings.length > 0 ? (
+                              agencyBookings.slice(0, 5).map((booking) => (
+                                <div key={booking.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                  <div>
+                                    <p className="font-medium">{booking.listingTitle}</p>
+                                    <p className="text-sm text-gray-600">
+                                      {booking.userName} • ${booking.totalAmount} • {booking.status}
+                                    </p>
+                                  </div>
+                                  <span className="text-xs text-gray-500">
+                                    {new Date(booking.createdAt?.toDate?.() || booking.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-8">
+                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <span className="text-3xl">📊</span>
+                                </div>
+                                <h3 className="text-lg font-semibold mb-2">No Activity Yet</h3>
+                                <p className="text-gray-600">
+                                  Your booking and customer activity will appear here once you start receiving inquiries.
+                                </p>
                               </div>
-                              <span className="text-gray-600 font-semibold">Coming Soon</span>
-                            </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -2023,11 +2547,11 @@ export default function Home() {
                             {selectedConversation ? (
                               <div className="h-96 bg-gray-50 rounded-lg p-4 flex flex-col">
                                 <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-                                  {agencyChatMessages
+                                  {[...agencyChatMessages]
                                     .filter(msg => msg.chatId === selectedConversation.chatId)
                                     .sort((a, b) => a.timestamp - b.timestamp)
                                     .map((msg, index) => (
-                                      <div key={index} className={`flex ${msg.sender === user?.uid ? 'justify-end' : 'justify-start'}`}>
+                                      <div key={msg.id || index} className={`flex ${msg.sender === user?.uid ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-xs px-3 py-2 rounded-lg ${msg.sender === user?.uid ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}>
                                           <p className="text-sm">{msg.text}</p>
                                           <p className="text-xs opacity-75">{new Date(msg.timestamp).toLocaleTimeString()}</p>
@@ -2137,6 +2661,121 @@ export default function Home() {
       );
     }
   }
+
+  // Journey Details Modal Component
+  const JourneyDetailsModal = ({ booking, onClose }: { booking: any; onClose: () => void }) => {
+    console.log('Modal component rendering with booking:', booking);
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Journey Details</h2>
+              <Button variant="outline" size="sm" onClick={onClose}>✕</Button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Booking Info */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3">📅 Booking Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Package:</span>
+                    <p className="text-blue-600 font-semibold">{booking.listingTitle}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Reference:</span>
+                    <p className="font-mono">{booking.bookingReference}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Travel Date:</span>
+                    <p>{booking.travelDate || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Travelers:</span>
+                    <p>{booking.travelers} {booking.travelers === 1 ? 'person' : 'people'}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Agency:</span>
+                    <p>{booking.agencyName}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Total Amount:</span>
+                    <p className="text-green-600 font-semibold">${booking.totalAmount}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Journey Details */}
+              {booking.journeyDetails ? (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 flex items-center">
+                      ✈️ Flight Information
+                    </h3>
+                    <p className="text-blue-800">{booking.journeyDetails.flight || 'Flight details will be shared soon'}</p>
+                  </div>
+
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 flex items-center">
+                      🏨 Hotel Accommodation
+                    </h3>
+                    <p className="text-green-800">{booking.journeyDetails.hotel || 'Hotel details will be shared soon'}</p>
+                  </div>
+
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 flex items-center">
+                      📋 Complete Itinerary
+                    </h3>
+                    <div className="text-purple-800 whitespace-pre-line">
+                      {booking.journeyDetails.itinerary || 'Complete itinerary will be shared soon'}
+                    </div>
+                  </div>
+
+                  {booking.journeyDetails.additionalNotes && (
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-3 flex items-center">
+                        📝 Additional Notes
+                      </h3>
+                      <p className="text-yellow-800">{booking.journeyDetails.additionalNotes}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-2xl">⏳</span>
+                  </div>
+                  <h3 className="font-semibold mb-2">Journey Details Coming Soon</h3>
+                  <p className="text-yellow-800">
+                    Your agency is preparing your complete travel itinerary. You'll receive flight, hotel, and activity details within 24 hours.
+                  </p>
+                </div>
+              )}
+
+              {/* Contact Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3">📞 Emergency Contact</h3>
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-medium">Agency:</span> {booking.agencyName}</p>
+                  {booking.journeyDetails?.emergencyContact && (
+                    <p><span className="font-medium">Phone:</span> {booking.journeyDetails.emergencyContact}</p>
+                  )}
+                  <p className="text-xs text-gray-600 mt-2">
+                    Keep this information handy during your travels. Contact your agency for any assistance.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6 pt-4 border-t">
+              <Button onClick={onClose}>Close</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-gray-50">
@@ -2249,6 +2888,186 @@ export default function Home() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Journey Details Modal */}
+      {showJourneyModal && selectedJourneyBooking && (
+        <JourneyDetailsModal
+          booking={selectedJourneyBooking}
+          onClose={() => {
+            setShowJourneyModal(false);
+            setSelectedJourneyBooking(null);
+          }}
+        />
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && reviewListing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <span className="mr-2">⭐</span>
+                Write a Review for {reviewListing.title}
+              </CardTitle>
+              <CardDescription>
+                Share your experience to help other travelers
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Rating */}
+              <div>
+                <Label className="text-base font-medium">Your Rating</Label>
+                <div className="flex gap-1 mt-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setNewReview({...newReview, rating: star})}
+                      className={`text-2xl ${newReview.rating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                    >
+                      ⭐
+                    </button>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  {newReview.rating === 0 ? 'Select a rating' :
+                   newReview.rating === 1 ? 'Poor' :
+                   newReview.rating === 2 ? 'Fair' :
+                   newReview.rating === 3 ? 'Good' :
+                   newReview.rating === 4 ? 'Very Good' : 'Excellent'}
+                </p>
+              </div>
+
+              {/* Review Text */}
+              <div>
+                <Label htmlFor="reviewComment">Your Review</Label>
+                <textarea
+                  id="reviewComment"
+                  className="w-full p-3 border rounded-lg mt-1"
+                  rows={4}
+                  value={newReview.comment}
+                  onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
+                  placeholder="Tell others about your experience..."
+                />
+              </div>
+
+              {/* Photo Upload */}
+              <div>
+                <Label htmlFor="reviewPhotos">Add Photos (Optional)</Label>
+                <Input
+                  id="reviewPhotos"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => {
+                    // Handle photo upload here
+                    console.log('Photos selected:', e.target.files);
+                  }}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Share photos from your trip to help others visualize the experience
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={() => {
+                    // Submit review logic
+                    alert('Review submitted successfully!');
+                    setShowReviewModal(false);
+                    setNewReview({ listingId: '', rating: 5, comment: '', photos: [] });
+                    setReviewListing(null);
+                  }}
+                  disabled={newReview.rating === 0 || !newReview.comment.trim()}
+                  className="flex-1"
+                >
+                  Submit Review
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setNewReview({ listingId: '', rating: 5, comment: '', photos: [] });
+                    setReviewListing(null);
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Comparison Modal */}
+      {showComparison && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <span className="mr-2">⚖️</span>
+                Package Comparison
+              </CardTitle>
+              <CardDescription>
+                Compare travel packages side by side to find your perfect match
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {comparisonList.map((listing) => (
+                  <Card key={listing.id} className="border-2 border-blue-200">
+                    <CardHeader className="pb-3">
+                      {listing.photos && listing.photos.length > 0 && (
+                        <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+                          <img
+                            src={listing.photos[0]}
+                            alt={listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <CardTitle className="text-lg">{listing.title}</CardTitle>
+                      <CardDescription>By {listing.agencyName}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><strong>Duration:</strong> {listing.duration} days</div>
+                        <div><strong>Price:</strong> ${listing.price}</div>
+                        <div><strong>Type:</strong> {listing.type}</div>
+                        <div><strong>Rating:</strong> {listing.rating > 0 ? `${listing.rating} ⭐` : 'No rating'}</div>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button size="sm" className="flex-1" onClick={() => startBooking(listing)}>
+                          Book Now
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setComparisonList(comparisonList.filter(item => item.id !== listing.id));
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex justify-center mt-6 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowComparison(false)}
+                >
+                  Close Comparison
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
