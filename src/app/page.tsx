@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc, deleteDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { getDbInstance, getStorageInstance } from '@/lib/firebase';
 import { compressMultipleImages, isValidImageFile, validateFileSize } from '@/lib/imageUtils';
 
 export default function Home() {
@@ -69,26 +69,32 @@ export default function Home() {
   useEffect(() => {
     if (userData?.role === 'admin') {
       const fetchPending = async () => {
-        const q = query(collection(db, 'users'), where('approved', '==', false), where('role', '==', 'agency'));
+        const dbInstance = getDbInstance();
+        if (!dbInstance) return;
+        const q = query(collection(dbInstance, 'users'), where('approved', '==', false), where('role', '==', 'agency'));
         const querySnapshot = await getDocs(q);
         const agencies = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setPendingAgencies(agencies);
       };
 
       const fetchAllAgencies = async () => {
-        const q = query(collection(db, 'users'), where('role', '==', 'agency'));
+        const dbInstance = getDbInstance();
+        if (!dbInstance) return;
+        const q = query(collection(dbInstance, 'users'), where('role', '==', 'agency'));
         const querySnapshot = await getDocs(q);
         const agencies = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setAllAgencies(agencies);
       };
 
       const fetchPendingListings = async () => {
-        const q = query(collection(db, 'listings'), where('approved', '==', false));
+        const dbInstance = getDbInstance();
+        if (!dbInstance) return;
+        const q = query(collection(dbInstance, 'listings'), where('approved', '==', false));
         const querySnapshot = await getDocs(q);
         const listings = await Promise.all(querySnapshot.docs.map(async (docSnapshot) => {
           const listingData = docSnapshot.data() as any;
           // Get agency name
-          const agencyDoc = await getDoc(doc(db, 'users', listingData.agencyId));
+          const agencyDoc = await getDoc(doc(dbInstance, 'users', listingData.agencyId));
           const agencyName = agencyDoc.exists() ? (agencyDoc.data() as any).companyName : 'Unknown Agency';
           return { id: docSnapshot.id, ...listingData, agencyName };
         }));
@@ -103,9 +109,11 @@ export default function Home() {
 
   useEffect(() => {
     if (user && userData?.role === 'user') {
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
       const chatId = `${user.uid}_${currentChatAgency}`;
       const messagesQuery = query(
-        collection(db, 'messages'),
+        collection(dbInstance, 'messages'),
         where('chatId', '==', chatId)
       );
 
@@ -125,8 +133,10 @@ export default function Home() {
 
   useEffect(() => {
     if (user && userData?.role === 'agency') {
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
       // Agencies listen for messages where they are either sender or receiver
-      const unsubscribe = onSnapshot(collection(db, 'messages'), (snapshot) => {
+      const unsubscribe = onSnapshot(collection(dbInstance, 'messages'), (snapshot) => {
         const messages: any[] = [];
         snapshot.forEach((doc) => {
           const msgData = doc.data();
@@ -156,7 +166,7 @@ export default function Home() {
               if (!conversationsMap.has(otherUserId)) {
                 try {
                   // Fetch user name
-                  const userDoc = await getDoc(doc(db, 'users', otherUserId));
+                  const userDoc = await getDoc(doc(getDbInstance()!, 'users', otherUserId));
                   const userName = userDoc.exists() ? (userDoc.data() as any).name || 'Unknown User' : 'Unknown User';
 
                   conversationsMap.set(otherUserId, {
@@ -204,12 +214,14 @@ export default function Home() {
     // Fetch listings for users - only when user is authenticated
     if (user) {
       const fetchListings = async () => {
-        const listingsQuery = query(collection(db, 'listings'), where('approved', '==', true));
+        const dbInstance = getDbInstance();
+        if (!dbInstance) return;
+        const listingsQuery = query(collection(dbInstance, 'listings'), where('approved', '==', true));
         const querySnapshot = await getDocs(listingsQuery);
         const listingsData = await Promise.all(querySnapshot.docs.map(async (docSnapshot) => {
           const listingData = docSnapshot.data() as any;
           // Get agency name
-          const agencyDoc = await getDoc(doc(db, 'users', listingData.agencyId));
+          const agencyDoc = await getDoc(doc(dbInstance, 'users', listingData.agencyId));
           const agencyData = agencyDoc.exists() ? agencyDoc.data() as any : null;
           const agencyName = agencyData?.companyName || 'Unknown Agency';
           return { id: docSnapshot.id, ...listingData, agencyName, agencyData };
@@ -224,7 +236,9 @@ export default function Home() {
     // Fetch agency's own listings
     if (user && userData?.role === 'agency') {
       const fetchAgencyListings = async () => {
-        const agencyListingsQuery = query(collection(db, 'listings'), where('agencyId', '==', user.uid));
+        const dbInstance = getDbInstance();
+        if (!dbInstance) return;
+        const agencyListingsQuery = query(collection(dbInstance, 'listings'), where('agencyId', '==', user.uid));
         const querySnapshot = await getDocs(agencyListingsQuery);
         const listingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setAgencyListings(listingsData);
@@ -237,7 +251,9 @@ export default function Home() {
     // Fetch agency's bookings
     if (user && userData?.role === 'agency') {
       const fetchAgencyBookings = async () => {
-        const bookingsQuery = query(collection(db, 'bookings'), where('agencyId', '==', user.uid));
+        const dbInstance = getDbInstance();
+        if (!dbInstance) return;
+        const bookingsQuery = query(collection(dbInstance, 'bookings'), where('agencyId', '==', user.uid));
         const querySnapshot = await getDocs(bookingsQuery);
         const bookingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         // Sort bookings by createdAt in descending order (most recent first)
@@ -250,10 +266,12 @@ export default function Home() {
 
   const approveAgency = async (id: string) => {
     try {
-      await updateDoc(doc(db, 'users', id), { approved: true });
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
+      await updateDoc(doc(dbInstance, 'users', id), { approved: true });
       setPendingAgencies(prev => prev.filter(agency => agency.id !== id));
       // Refresh all agencies data
-      const q = query(collection(db, 'users'), where('role', '==', 'agency'));
+      const q = query(collection(dbInstance, 'users'), where('role', '==', 'agency'));
       const querySnapshot = await getDocs(q);
       const agencies = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAllAgencies(agencies);
@@ -266,7 +284,9 @@ export default function Home() {
 
   const approveListing = async (id: string) => {
     try {
-      await updateDoc(doc(db, 'listings', id), { approved: true });
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
+      await updateDoc(doc(dbInstance, 'listings', id), { approved: true });
       setPendingListings(prev => prev.filter(listing => listing.id !== id));
       alert('Listing approved successfully!');
     } catch (error) {
@@ -302,7 +322,9 @@ export default function Home() {
       chatId: `${user.uid}_${currentChatAgency}`,
       timestamp: Date.now(),
     };
-    await addDoc(collection(db, 'messages'), messageData);
+    const dbInstance = getDbInstance();
+    if (!dbInstance) return;
+    await addDoc(collection(dbInstance, 'messages'), messageData);
     setChatInput('');
   };
 
@@ -319,7 +341,9 @@ export default function Home() {
       timestamp: Date.now(),
     };
 
-    await addDoc(collection(db, 'messages'), messageData);
+    const dbInstance = getDbInstance();
+    if (!dbInstance) return;
+    await addDoc(collection(dbInstance, 'messages'), messageData);
     setAgencyChatInput('');
   };
 
@@ -333,15 +357,19 @@ export default function Home() {
       // Upload photos if any
       const photoUrls: string[] = [];
       if (tempPhotoFiles.length > 0) {
+        const storageInstance = getStorageInstance();
+        if (!storageInstance) return;
         for (const file of tempPhotoFiles) {
-          const storageRef = ref(storage, `listings/${user.uid}/${Date.now()}_${file.name}`);
+          const storageRef = ref(storageInstance, `listings/${user.uid}/${Date.now()}_${file.name}`);
           await uploadBytes(storageRef, file);
           const downloadURL = await getDownloadURL(storageRef);
           photoUrls.push(downloadURL);
         }
       }
 
-      await addDoc(collection(db, 'listings'), {
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
+      await addDoc(collection(dbInstance, 'listings'), {
         ...newListing,
         photos: photoUrls,
         agencyId: user.uid,
@@ -352,7 +380,7 @@ export default function Home() {
       setTempPhotoFiles([]);
       setShowListingForm(false);
       // Refresh listings
-      const agencyListingsQuery = query(collection(db, 'listings'), where('agencyId', '==', user.uid));
+      const agencyListingsQuery = query(collection(dbInstance, 'listings'), where('agencyId', '==', user.uid));
       const querySnapshot = await getDocs(agencyListingsQuery);
       const listingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAgencyListings(listingsData);
@@ -382,7 +410,9 @@ export default function Home() {
   const handleUpdateListing = async () => {
     if (!editingListing || !newListing.title.trim()) return;
     try {
-      await updateDoc(doc(db, 'listings', editingListing.id), {
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
+      await updateDoc(doc(dbInstance, 'listings', editingListing.id), {
         ...newListing,
         updatedAt: new Date(),
       });
@@ -390,7 +420,7 @@ export default function Home() {
       setNewListing({ title: '', description: '', price: '', duration: '', destination: '', type: 'adventure', photos: [], rating: 0, reviewsCount: 0 });
       setShowListingForm(false);
       // Refresh listings
-      const agencyListingsQuery = query(collection(db, 'listings'), where('agencyId', '==', user?.uid));
+      const agencyListingsQuery = query(collection(dbInstance, 'listings'), where('agencyId', '==', user?.uid));
       const querySnapshot = await getDocs(agencyListingsQuery);
       const listingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAgencyListings(listingsData);
@@ -404,9 +434,11 @@ export default function Home() {
   const handleDeleteListing = async (listingId: string) => {
     if (!confirm('Are you sure you want to delete this listing?')) return;
     try {
-      await deleteDoc(doc(db, 'listings', listingId));
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
+      await deleteDoc(doc(dbInstance, 'listings', listingId));
       // Refresh listings
-      const agencyListingsQuery = query(collection(db, 'listings'), where('agencyId', '==', user?.uid));
+      const agencyListingsQuery = query(collection(dbInstance, 'listings'), where('agencyId', '==', user?.uid));
       const querySnapshot = await getDocs(agencyListingsQuery);
       const listingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAgencyListings(listingsData);
@@ -468,7 +500,9 @@ export default function Home() {
         bookingReference: `BK${Date.now().toString().slice(-6)}`,
       };
 
-      await addDoc(collection(db, 'bookings'), bookingDoc);
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
+      await addDoc(collection(dbInstance, 'bookings'), bookingDoc);
 
       alert(`Booking submitted successfully! Reference: ${bookingDoc.bookingReference}`);
       setShowBookingForm(false);
@@ -1883,7 +1917,9 @@ export default function Home() {
                                           size="sm"
                                           onClick={async () => {
                                             try {
-                                              await updateDoc(doc(db, 'bookings', booking.id), { status: 'confirmed' });
+                                              const dbInstance = getDbInstance();
+                                              if (!dbInstance) return;
+                                              await updateDoc(doc(dbInstance, 'bookings', booking.id), { status: 'confirmed' });
                                               // Refresh bookings
                                               const updatedBookings = agencyBookings.map(b =>
                                                 b.id === booking.id ? { ...b, status: 'confirmed' } : b

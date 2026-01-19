@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "travel-agent-management-29c27"
-  }
+    "default": "travel-agent-management-29c27",
+    "staging": "travel-agent-management-29c27"
+  },
+  "targets": {},
+  "etags": {}
 }

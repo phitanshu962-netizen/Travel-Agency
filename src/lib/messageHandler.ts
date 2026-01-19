@@ -2,7 +2,8 @@ import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageService, messageService } from './messageService';
 import { UserService, userService } from './userService';
-import { WebSocketMessage, MessageType, MessageResponse, AuthResponse, HistoryResponsePayload, ErrorPayload } from './types';
+import { MessageSyncService, messageSyncService } from './messageSyncService';
+import { WebSocketMessage, MessageType, MessageResponse, AuthResponse, HistoryResponsePayload, ErrorPayload, SyncResponsePayload } from './types';
 
 export class MessageHandler {
   private connections = new Map<WebSocket, string>(); // ws -> userId
@@ -244,6 +245,47 @@ export class MessageHandler {
     } catch (error) {
       console.error('Error handling history request:', error);
       this.sendError(ws, 'Failed to retrieve message history');
+    }
+  }
+
+  async handleSyncRequest(ws: WebSocket, message: WebSocketMessage): Promise<void> {
+    const userId = this.connections.get(ws);
+    if (!userId) {
+      this.sendError(ws, 'Connection not authenticated');
+      return;
+    }
+
+    try {
+      const payload = message.payload as { lastSyncTimestamp: number; limit?: number };
+      if (!payload.lastSyncTimestamp) {
+        this.sendError(ws, 'Invalid sync request payload');
+        return;
+      }
+
+      const messages = await messageSyncService.getMissedMessages({
+        userId,
+        lastSyncTimestamp: payload.lastSyncTimestamp,
+        limit: payload.limit
+      });
+
+      const syncResponse: SyncResponsePayload = {
+        messages,
+        syncTimestamp: messageSyncService.getCurrentTimestamp(),
+        hasMore: messages.length === (payload.limit || 50)
+      };
+
+      const responseMessage: WebSocketMessage = {
+        type: MessageType.SYNC_RESPONSE,
+        payload: syncResponse,
+        timestamp: Date.now()
+      };
+      this.sendToWebSocket(ws, responseMessage);
+
+      console.log(`Synced ${messages.length} messages for user ${userId}`);
+
+    } catch (error) {
+      console.error('Error handling sync request:', error);
+      this.sendError(ws, 'Failed to sync messages');
     }
   }
 

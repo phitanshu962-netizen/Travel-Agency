@@ -87,13 +87,29 @@ class MessageHandler {
                 result = await auth.handleAuthMessage(message);
             }
             if (result) {
-                // Create or update user in database
-                const dbUser = await this.userService.createOrUpdateUser({
-                    id: result.userId,
-                    email: result.user.email,
-                    displayName: result.user.displayName,
-                    isAnonymous: result.user.isAnonymous
-                });
+                let dbUser;
+                // For demo users, skip database operations to avoid Firebase auth issues
+                if (result.user.isAnonymous && (result.userId.includes('demo') || token.includes('guest'))) {
+                    console.log('Demo user - skipping database operations');
+                    dbUser = {
+                        id: result.userId,
+                        display_name: result.user.displayName,
+                        email: result.user.email,
+                        avatar_url: '',
+                        bio: '',
+                        is_online: true,
+                        last_seen: new Date()
+                    };
+                }
+                else {
+                    // Create or update user in database for real users
+                    dbUser = await this.userService.createOrUpdateUser({
+                        id: result.userId,
+                        email: result.user.email,
+                        displayName: result.user.displayName,
+                        isAnonymous: result.user.isAnonymous
+                    });
+                }
                 // Check if user is already connected
                 const existingConnection = this.userConnections.get(result.userId);
                 if (existingConnection) {

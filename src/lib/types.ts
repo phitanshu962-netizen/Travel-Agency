@@ -11,6 +11,8 @@ export enum MessageType {
   ACK = 'ACK',
   HISTORY_REQUEST = 'HISTORY_REQUEST',
   HISTORY_RESPONSE = 'HISTORY_RESPONSE',
+  SYNC_REQUEST = 'SYNC_REQUEST',
+  SYNC_RESPONSE = 'SYNC_RESPONSE',
   PING = 'PING',
   PONG = 'PONG',
   ERROR = 'ERROR'
@@ -61,6 +63,17 @@ export interface HistoryRequestPayload {
 export interface HistoryResponsePayload {
   withUserId: string;
   messages: MessageResponse[];
+  hasMore?: boolean;
+}
+
+export interface SyncRequestPayload {
+  lastSyncTimestamp: number;
+  limit?: number;
+}
+
+export interface SyncResponsePayload {
+  messages: MessageResponse[];
+  syncTimestamp: number;
   hasMore?: boolean;
 }
 

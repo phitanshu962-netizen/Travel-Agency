@@ -43,13 +43,28 @@ nextApp.prepare().then(async () => {
   const app = express();
   const server = createServer(app);
 
-// Initialize WebSocket server
+// Initialize WebSocket server without automatic server handling
 wss = new WebSocket.Server({
-    server,
-    path: '/ws'
+    noServer: true
 });
 
-console.log('WebSocket server initialized on path /ws');
+console.log('WebSocket server initialized');
+
+// Handle WebSocket upgrade manually to ensure it works with Cloud Run
+server.on('upgrade', (request, socket, head) => {
+  console.log('Upgrade request received:', request.url);
+
+  if (request.url === '/api/chat/websocket') {
+    console.log('Handling WebSocket upgrade for /api/chat/websocket');
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      console.log('WebSocket upgrade successful');
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    console.log('Rejecting upgrade for non-WebSocket path:', request.url);
+    socket.destroy();
+  }
+});
 
   // Clean up old messages every hour
   setInterval(() => {
@@ -69,16 +84,20 @@ console.log('WebSocket server initialized on path /ws');
     }, 30000); // Ping every 30 seconds
 
     ws.on('message', async (data) => {
+      console.log('Received WebSocket message:', data.toString());
       try {
         const message = JSON.parse(data.toString());
+        console.log('Parsed message:', JSON.stringify(message));
 
         if (!messageHandler) {
+          console.log('Message handler not ready');
           sendError(ws, 'Server not ready');
           return;
         }
 
         switch (message.type) {
           case 'AUTH':
+            console.log('Handling AUTH message');
             await messageHandler.handleAuth(ws, message);
             break;
 
@@ -92,6 +111,10 @@ console.log('WebSocket server initialized on path /ws');
 
           case 'HISTORY_REQUEST':
             await messageHandler.handleHistoryRequest(ws, message);
+            break;
+
+          case 'SYNC_REQUEST':
+            await messageHandler.handleSyncRequest(ws, message);
             break;
 
           case 'PING':

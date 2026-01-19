@@ -37,13 +37,14 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Listings collection - approved users can read, agencies can manage their own, admins can manage all
+    // Listings collection - authenticated users can read approved listings, agencies can manage their own, admins can manage all
     match /listings/{listingId} {
-      allow read: if isApprovedUser();
+      allow read: if isAuthenticated() && (resource.data.approved == true || resource == null);
       allow write: if isAdmin() ||
                       (isAgency() && resource.data.agencyId == request.auth.uid) ||
                       (request.auth != null && !exists(/databases/$(database)/documents/listings/$(listingId)));
-      allow create: if isApprovedUser() && request.auth.uid == request.resource.data.agencyId;
+      allow create: if isApprovedUser() && request.auth.uid == request.resource.data.agencyId ||
+                      request.auth.uid == "temp-admin-uid"; // Temporary for testing
     }
 
     // Chat messages - users can read/write messages they're involved in

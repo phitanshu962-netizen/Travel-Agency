@@ -14,18 +14,14 @@ IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:latest"
 echo "🚀 Starting Travel Agency Backend Deployment"
 echo "=============================================="
 
-# Step 1: Enable Docker Buildx
-echo "📦 Setting up Docker Buildx..."
-docker buildx create --use --name multi-platform-builder || docker buildx use multi-platform-builder
-
-# Step 2: Build and push Docker image with proper architecture
-echo "🏗️  Building Docker image for linux/amd64..."
+# Step 1: Build Docker image locally
+echo "🏗️  Building Docker image..."
 cd "$(dirname "$0")"
-docker buildx build \
-  --platform=linux/amd64 \
-  -t "${IMAGE_NAME}" \
-  --push \
-  .
+docker build -t "${IMAGE_NAME}" .
+
+# Step 2: Push Docker image to Google Container Registry
+echo "📤 Pushing Docker image to Google Container Registry..."
+docker push "${IMAGE_NAME}"
 
 echo "✅ Docker image built and pushed successfully"
 
