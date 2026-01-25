@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "travel-agent-management-29c27",
+  "private_key_id": "378a6232878d58b0af992d313cd69b66255638ce",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3gCqYhckMj8T+\nOMfBlpoJb3KhrY52L3JYE2gDhmOMIkK13s6LyHDhLN9ybZR/rXrhtwg1SRBgIPJ0\nYYCB/mMkbKKVeX4aRFsqZ9BBRwKALq0bcgAx/p0+rQWsBKVHLYU0xTvHuxBvqDAP\nxJuW9qRgFSVSxKtg+spa22WpbkVTvQs0gEItNx4WZporYieb3bdh3kApcoDWZtzh\nhr1giACDsFRR0wR1fJUHh/YQqCrvOuJqUBac1jyKV7RsrV7Jf2ot0o5eBbYwyZ/f\nM02susBwAAVSNN5NqJJMDphOD1UeocRXZnO2k0pZ32C+diQGR8KlYpUx4Xvg2QAE\nkyMVMAI1AgMBAAECggEAC960jVffdiU5VEs5ULfR5a5Z4e98zv7+tzJ6K1A0JvUd\nukSxY7ARl99JN6Oy/sIADZMYwCmmb4bHaD6DtjpNu3tzgOvHpndUK7K6G/Q19d4P\nFeln7dP54/tZPz6wWkxYLjOxTELjgKAxNl6SGfqBDjNlTgH+0Vp9CyeKCfhiGlUn\ndoL/5xxbWQ+pnGyA2OszAmFbGm8UqmDSwvLKoetzI5wJ9qdeJfpy3PW4KY7x0Tn5\nOvF4SuLEJUu7iwp8X6KouEm/2nEvOUzn0X3uTUAkJuJkCcsvXFagJPoUkr0Fl2jT\noKQGZ0k/SmxnmP0ldYzburARPGD5vmoMDVhf4blLeQKBgQDk/CA32v7gHoqbhiYM\nqaGxNQmsU7hUn0n9S/UAQpj0rvev+HKDxWAUxgk/Y4/AJLXVeBIjFIpY6iLyLOyo\nLWAdg86WZVBRv//70FCZNUDidZ6WELCpU8L7KZHN5c53ixAUsPUZ+6gAy0CCdpmY\nymnu8WPRbKf5nNPezPxKKyXi3wKBgQDNJk/KlhQu/LW1iCljmzv8+0A30WiVhboh\n5x5YOlnTpb/qCLNDxubJUcOl2glwS8zscWopDc7oFzc+jxlv1EKLP4uWxwIF91ys\n+K2oUWfTz7b3mSoe3PPFsmVY84eoxbSG8Psrt3pejSZBHDee1nAMAtUaN6pDilz8\nDjf3Q0KxawKBgQCFUr83hkzMFTxC3VKeIM5CLU1ahsxWiQA9eNJHun7wSEdyr8eN\nLYiJz9xmigOSrk0o42Y8AqOirYB3XOzV5sWFqc7JBmhDkPTsmxeyfK0wracOXN1f\nWaO3NTbtmRYjyFYulfG/lST2gWEoFQHNUl1ngCjMMOWEkmlR2iwyyvieJQKBgGyV\nWqZfyU8VcxgiecW+5IGCevsQW8rIfTx0mBsax3C+ylWVRU0aeg0UufmO7nABrvV3\nEjmolVtC7nquQ0htkMsjVz73FpsR0nu7JC9y5wG1b6Kd7y1mxaBeTEZIoAU0n9jM\ntCTveFWTYCwWQ1pPJf81gJXf4L7e/VhsLjMx5psBAoGBAIoSzytXyuMdntqiKlKK\nqa7HZwh1T9OuHtv1qphzP4no7c5E/z1QvX4FRo75to/LHJLbbLQvsKWlMeMIA7Os\nuaua8QuztjiDa+N+TWnuzZ1tKR2s1FNW7CKPROFG6dhfTAuZelW0Ddhjk6AKIx/1\nu7DG0POSlzflqMVklaNB2f3n\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@travel-agent-management-29c27.iam.gserviceaccount.com",
+  "client_id": "104888079712983045828",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40travel-agent-management-29c27.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

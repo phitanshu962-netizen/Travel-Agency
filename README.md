@@ -1,5 +1,52 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Firebase Project Setup Checklist
+
+Before deploying, ensure your Firebase project is properly configured:
+
+### 1. Authentication Settings
+- Go to Firebase Console → Authentication → Sign-in method
+- Enable Email/Password authentication
+- Enable Google authentication
+- Add your production domain to authorized domains: `https://travel-agent-management-29c27.web.app`
+
+### 2. Firestore Database
+- Create a Firestore database in production mode
+- Security rules are configured in `firestore.rules`
+
+### 3. Storage (if using file uploads)
+- Enable Firebase Storage
+- Configure storage rules in `storage.rules`
+
+### 4. Environment Variables
+- Copy `.env.example` to `.env`
+- Fill in all required Firebase configuration values
+- Ensure `NEXT_PUBLIC_API_URL` points to your Cloud Run service URL
+
+## Deployment
+
+1. **Deploy Backend (Cloud Run)**:
+   ```bash
+   cd TravelAgency/Untitled
+   ./deploy.sh
+   ```
+
+2. **Update Frontend Environment**:
+   - Update `NEXT_PUBLIC_API_URL` in `.env` with the Cloud Run service URL
+   - Update `NEXT_PUBLIC_ADMIN_EMAIL` if needed
+
+3. **Deploy Frontend (Firebase Hosting)**:
+   ```bash
+   firebase deploy --only hosting
+   ```
+
+## Troubleshooting
+
+- If authentication fails, check browser console for detailed error messages
+- Verify all environment variables are set correctly
+- Ensure Firebase project has proper permissions
+- Check that Firestore security rules allow authenticated access
+
 ## Getting Started
 
 First, run the development server:

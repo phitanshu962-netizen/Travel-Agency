@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, db, storage } from '@/lib/firebase';
+import { getAuthInstance, getDbInstance, getStorageInstance } from '@/lib/firebase';
 
 interface UserData {
   role: 'admin' | 'agency' | 'user';
@@ -39,13 +39,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
+    const authInstance = getAuthInstance();
+    if (!authInstance) return;
+
+    const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser: User | null) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         // Fetch user data from Firestore
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUserData(userDoc.data() as UserData);
+        const dbInstance = getDbInstance();
+        if (dbInstance) {
+          const userDoc = await getDoc(doc(dbInstance, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data() as UserData);
+          }
         }
       } else {
         setUser(null);
@@ -58,32 +64,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    console.log('User UID:', userCredential.user.uid);
-    const userDocRef = doc(db, 'users', userCredential.user.uid);
-    console.log('Looking for document:', userDocRef.path);
-    const userDoc = await getDoc(userDocRef);
-    console.log('Document exists:', userDoc.exists());
-    if (userDoc.exists()) {
-      const data = userDoc.data() as UserData;
-      console.log('User data:', data);
-      if (!data.approved) {
-        throw new Error('Account not approved yet. Please wait for admin approval.');
+    try {
+      console.log('🔐 Starting sign-in process for:', email);
+
+      const authInstance = getAuthInstance();
+      if (!authInstance) {
+        console.error('❌ Auth instance not initialized');
+        throw new Error('Authentication service not available. Please check your connection.');
       }
-      setUserData(data);
-    } else {
-      console.log('Available docs in users collection:');
-      // Try to list all docs (this might not work in test mode, but let's see)
-      throw new Error('User data not found.');
+
+      console.log('🔄 Attempting Firebase authentication...');
+      const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+      console.log('✅ Firebase auth successful for user:', userCredential.user.uid);
+
+      const dbInstance = getDbInstance();
+      if (!dbInstance) {
+        console.error('❌ Database instance not initialized');
+        throw new Error('Database service not available. Please try again later.');
+      }
+
+      const userDocRef = doc(dbInstance, 'users', userCredential.user.uid);
+      console.log('🔍 Fetching user document:', userDocRef.path);
+
+      const userDoc = await getDoc(userDocRef);
+      console.log('📄 User document exists:', userDoc.exists());
+
+      if (userDoc.exists()) {
+        const data = userDoc.data() as UserData;
+        console.log('👤 User data retrieved:', { role: data.role, approved: data.approved, name: data.name });
+
+        if (!data.approved) {
+          console.warn('⚠️ User account not approved yet');
+          throw new Error('Account not approved yet. Please wait for admin approval.');
+        }
+
+        setUserData(data);
+        console.log('✅ Sign-in process completed successfully');
+      } else {
+        console.error('❌ User document not found in database');
+        throw new Error('User profile not found. Please contact support.');
+      }
+    } catch (error: any) {
+      console.error('❌ Sign-in failed:', error);
+
+      // Re-throw with more user-friendly messages
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No account found with this email address.');
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      } else if (error.code === 'auth/user-disabled') {
+        throw new Error('This account has been disabled. Please contact support.');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many failed attempts. Please try again later.');
+      } else if (error.code === 'unavailable') {
+        throw new Error('Service temporarily unavailable. Please check your connection.');
+      }
+
+      throw error;
     }
   };
 
   const signInWithGoogle = async () => {
     try {
+      const authInstance = getAuthInstance();
+      if (!authInstance) throw new Error('Auth not initialized');
+
       const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
+      const userCredential = await signInWithPopup(authInstance, provider);
       console.log('Google User UID:', userCredential.user.uid);
-      const userDocRef = doc(db, 'users', userCredential.user.uid);
+
+      const dbInstance = getDbInstance();
+      if (!dbInstance) throw new Error('Database not initialized');
+
+      const userDocRef = doc(dbInstance, 'users', userCredential.user.uid);
       console.log('Looking for document:', userDocRef.path);
       const userDoc = await getDoc(userDocRef);
       console.log('Document exists:', userDoc.exists());
@@ -118,24 +173,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    const authInstance = getAuthInstance();
+    if (authInstance) {
+      await firebaseSignOut(authInstance);
+    }
   };
 
   const register = async (email: string, password: string, role: 'agency' | 'user', userDataInput: Omit<UserData, 'role' | 'approved'>, file?: File) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const authInstance = getAuthInstance();
+      if (!authInstance) throw new Error('Auth not initialized');
+
+      const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
       const user = userCredential.user;
 
       let proofUrl = null;
       // Upload file if provided
       if (file) {
-        const storageRef = ref(storage, `proofs/${user.uid}/${file.name}`);
-        await uploadBytes(storageRef, file);
-        proofUrl = await getDownloadURL(storageRef);
+        const storageInstance = getStorageInstance();
+        if (storageInstance) {
+          const storageRef = ref(storageInstance, `proofs/${user.uid}/${file.name}`);
+          await uploadBytes(storageRef, file);
+          proofUrl = await getDownloadURL(storageRef);
+        }
       }
 
+      const dbInstance = getDbInstance();
+      if (!dbInstance) throw new Error('Database not initialized');
+
       // Save to Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      await setDoc(doc(dbInstance, 'users', user.uid), {
         ...userDataInput,
         role,
         approved: role === 'user', // Users are auto-approved
