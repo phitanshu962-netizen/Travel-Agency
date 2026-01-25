@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Upload } from 'lucide-react';
-import { db, storage } from '@/lib/firebase';
+import { getDbInstance, getStorageInstance } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -143,16 +143,21 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
 
   const uploadImages = async (files: File[]): Promise<string[]> => {
     const urls: string[] = [];
-    
+    const storageInstance = getStorageInstance();
+
+    if (!storageInstance) {
+      throw new Error('Storage instance not available');
+    }
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const storageRef = ref(storage, `listings/${agencyId}/${Date.now()}_${file.name}`);
-      
+      const storageRef = ref(storageInstance, `listings/${agencyId}/${Date.now()}_${file.name}`);
+
       try {
         const snapshot = await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(snapshot.ref);
         urls.push(downloadURL);
-        
+
         // Update progress
         setUploadProgress(prev => ({
           ...prev,
@@ -163,25 +168,25 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
         throw new Error(`Failed to upload image: ${file.name}`);
       }
     }
-    
+
     return urls;
   };
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    
+
     try {
       // Upload all images first
       const allImages = placesCovered.flatMap(place => place.images);
       const imageUrls = await uploadImages(allImages);
-      
+
       // Organize images by place
       const placesWithImages = placesCovered.map(place => {
         const placeImages = place.images.map(img => {
           const url = imageUrls.find(url => url.includes(img.name));
           return url || '';
         }).filter(Boolean);
-        
+
         return {
           ...place,
           imageUrls: placeImages,
@@ -191,10 +196,10 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
 
       // Prepare the listing data - ensure no File objects are included
       // Extract main photo from first place for backward compatibility
-      const mainPhoto = placesWithImages.length > 0 && placesWithImages[0].imageUrls.length > 0 
-        ? placesWithImages[0].imageUrls[0] 
+      const mainPhoto = placesWithImages.length > 0 && placesWithImages[0].imageUrls.length > 0
+        ? placesWithImages[0].imageUrls[0]
         : '';
-      
+
       const listingData = {
         ...data,
         placesCovered: placesWithImages,
@@ -206,13 +211,19 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
         updatedAt: new Date()
       };
 
+      const dbInstance = getDbInstance();
+      
+      if (!dbInstance) {
+        throw new Error('Database instance not available');
+      }
+
       if (initialData?.id) {
         // Update existing listing
-        await updateDoc(doc(db, 'listings', initialData.id), listingData);
+        await updateDoc(doc(dbInstance, 'listings', initialData.id), listingData);
         alert('Listing updated successfully!');
       } else {
         // Create new listing
-        await addDoc(collection(db, 'listings'), listingData);
+        await addDoc(collection(dbInstance, 'listings'), listingData);
         alert('Listing submitted for approval!');
       }
 

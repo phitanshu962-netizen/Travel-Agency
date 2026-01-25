@@ -113,7 +113,9 @@ export default function Home() {
     // Fetch user's bookings
     if (user && userData?.role === 'user') {
       const fetchUserBookings = async () => {
-        const userBookingsQuery = query(collection(db, 'bookings'), where('userId', '==', user.uid));
+        const dbInstance = getDbInstance();
+        if (!dbInstance) return;
+        const userBookingsQuery = query(collection(dbInstance, 'bookings'), where('userId', '==', user.uid));
         const querySnapshot = await getDocs(userBookingsQuery);
         const bookingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         // Sort bookings by createdAt in descending order (most recent first)
@@ -1300,14 +1302,14 @@ export default function Home() {
                           }
 
                           // Apply price filter
-                          const price = parseFloat(listing.price);
+                          const price = parseFloat(listing.price || listing.cost || '0');
                           if (price < filters.priceRange[0] || price > filters.priceRange[1]) {
                             return false;
                           }
 
                           // Apply duration filter
                           if (filters.duration) {
-                            const duration = parseInt(listing.duration);
+                            const duration = parseInt(listing.duration || '0');
                             if (filters.duration === '1-3' && (duration < 1 || duration > 3)) return false;
                             if (filters.duration === '4-7' && (duration < 4 || duration > 7)) return false;
                             if (filters.duration === '8-14' && (duration < 8 || duration > 14)) return false;
@@ -1318,7 +1320,7 @@ export default function Home() {
                           if (filters.type && listing.type !== filters.type) return false;
 
                           // Apply rating filter
-                          if (filters.rating > 0 && listing.rating < filters.rating) return false;
+                          if (filters.rating > 0 && (listing.rating || 0) < filters.rating) return false;
 
                           return true;
                         })
@@ -2100,7 +2102,9 @@ export default function Home() {
                             setViewingListing(null);
                             // Refresh listings
                             const fetchAgencyListings = async () => {
-                              const agencyListingsQuery = query(collection(db, 'listings'), where('agencyId', '==', user?.uid));
+                              const dbInstance = getDbInstance();
+                              if (!dbInstance) return;
+                              const agencyListingsQuery = query(collection(dbInstance, 'listings'), where('agencyId', '==', user?.uid));
                               const querySnapshot = await getDocs(agencyListingsQuery);
                               const listingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                               setAgencyListings(listingsData);
