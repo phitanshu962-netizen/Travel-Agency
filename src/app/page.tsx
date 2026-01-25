@@ -11,6 +11,7 @@ import SearchFilters from '@/components/SearchFilters';
 import { collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc, deleteDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getDbInstance, getStorageInstance } from '@/lib/firebase';
+import { getFirestore } from 'firebase/firestore';
 import { compressMultipleImages, isValidImageFile, validateFileSize } from '@/lib/imageUtils';
 
 export default function Home() {
@@ -84,6 +85,7 @@ export default function Home() {
   });
   const [agencyBookings, setAgencyBookings] = useState<any[]>([]);
   const [userBookings, setUserBookings] = useState<any[]>([]);
+  const [userConversations, setUserConversations] = useState<any[]>([]);
   const [showJourneyModal, setShowJourneyModal] = useState(false);
   const [selectedJourneyBooking, setSelectedJourneyBooking] = useState<any>(null);
   // User Experience Enhancements
@@ -172,41 +174,129 @@ export default function Home() {
     if (user && userData?.role === 'user') {
       const dbInstance = getDbInstance();
       if (!dbInstance) return;
-      const chatId = `${user.uid}_${currentChatAgency}`;
-      const messagesQuery = query(
-        collection(dbInstance, 'messages'),
-        where('chatId', '==', chatId)
-      );
 
-      const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-        const messages: any[] = [];
-        snapshot.forEach((doc) => {
-          messages.push({ id: doc.id, ...doc.data() });
-        });
-        // Sort messages by timestamp in JavaScript
+      // Function to process messages and update conversations
+      const processMessages = async (messages: any[]) => {
+        // Sort messages by timestamp
         messages.sort((a, b) => a.timestamp - b.timestamp);
         setChatMessages(messages);
+
+        // Create conversations list with agencies the user has chatted with
+        const conversationsMap = new Map();
+        const fetchConversations = async () => {
+          for (const msg of messages) {
+            try {
+              // For user conversations, we want the other party (agency)
+              const otherUserId = msg.sender === user.uid ? msg.receiverId : msg.sender;
+
+              // Skip messages with invalid user IDs
+              if (!otherUserId || typeof otherUserId !== 'string' || otherUserId.trim() === '') {
+                console.warn('Skipping message with invalid user ID:', msg);
+                continue;
+              }
+
+              if (!conversationsMap.has(otherUserId)) {
+                try {
+                  // Fetch agency name
+                  const agencyDoc = await getDoc(doc(getDbInstance()!, 'users', otherUserId));
+                  const agencyData = agencyDoc.exists() ? agencyDoc.data() as any : null;
+                  const agencyName = agencyData?.companyName || 'Unknown Agency';
+
+                  conversationsMap.set(otherUserId, {
+                    agencyId: otherUserId,
+                    agencyName,
+                    chatId: msg.chatId,
+                    lastMessage: msg.text,
+                    lastMessageTime: msg.timestamp,
+                    unreadCount: 0, // Could implement read status
+                  });
+                } catch (error) {
+                  console.warn('Error fetching agency data for conversation:', error);
+                  // Still add conversation with default name
+                  conversationsMap.set(otherUserId, {
+                    agencyId: otherUserId,
+                    agencyName: 'Unknown Agency',
+                    chatId: msg.chatId,
+                    lastMessage: msg.text,
+                    lastMessageTime: msg.timestamp,
+                    unreadCount: 0,
+                  });
+                }
+              }
+            } catch (error) {
+              console.warn('Error processing message for conversation:', error, msg);
+              continue;
+            }
+          }
+          const conversations = Array.from(conversationsMap.values());
+          setUserConversations(conversations);
+        };
+        fetchConversations();
+      };
+
+      // Listen to web app messages collection
+      const unsubscribeWebMessages = onSnapshot(collection(dbInstance, 'messages'), (snapshot) => {
+        const webMessages: any[] = [];
+        snapshot.forEach((doc) => {
+          const msgData = doc.data();
+          // Include messages where user is sender OR receiver
+          if (msgData.sender === user.uid || msgData.receiverId === user.uid) {
+            webMessages.push({ id: doc.id, ...msgData });
+          }
+        });
+        processMessages(webMessages);
       });
 
-      return () => unsubscribe();
+      // Also listen to mobile app messages collection (chat_messages)
+      const unsubscribeMobileMessages = onSnapshot(collection(dbInstance, 'chat_messages'), (snapshot) => {
+        const mobileMessages: any[] = [];
+        snapshot.forEach((doc) => {
+          const msgData = doc.data();
+          // Convert mobile app format to web app format
+          // Include messages where user is sender OR receiver
+          if (msgData.from_user_id === user.uid || msgData.to_user_id === user.uid) {
+            // Create consistent chatId by sorting user IDs
+            const chatId = [msgData.from_user_id, msgData.to_user_id].sort().join('_');
+            const convertedMessage = {
+              id: doc.id,
+              text: msgData.content,
+              sender: msgData.from_user_id,
+              receiverId: msgData.to_user_id,
+              chatId: chatId,
+              timestamp: msgData.timestamp,
+              status: msgData.status
+            };
+            mobileMessages.push(convertedMessage);
+          }
+        });
+
+        // Combine with existing messages if any
+        setChatMessages(currentMessages => {
+          const combined = [...currentMessages, ...mobileMessages];
+          // Remove duplicates based on id
+          const unique = combined.filter((msg, index, self) =>
+            index === self.findIndex(m => m.id === msg.id)
+          );
+          processMessages(unique);
+          return unique;
+        });
+      });
+
+      return () => {
+        unsubscribeWebMessages();
+        unsubscribeMobileMessages();
+      };
     }
-  }, [user, userData, currentChatAgency]);
+  }, [user, userData]);
 
   useEffect(() => {
     if (user && userData?.role === 'agency') {
       const dbInstance = getDbInstance();
       if (!dbInstance) return;
-      // Agencies listen for messages where they are either sender or receiver
-      const unsubscribe = onSnapshot(collection(dbInstance, 'messages'), (snapshot) => {
-        const messages: any[] = [];
-        snapshot.forEach((doc) => {
-          const msgData = doc.data();
-          // Include messages where agency is sender OR receiver
-          if (msgData.sender === user.uid || msgData.receiverId === user.uid) {
-            messages.push({ id: doc.id, ...msgData });
-          }
-        });
-        // Sort messages by timestamp in JavaScript
+
+      // Function to process messages and update state
+      const processMessages = async (messages: any[]) => {
+        // Sort messages by timestamp
         messages.sort((a, b) => a.timestamp - b.timestamp);
         setAgencyChatMessages(messages);
 
@@ -265,9 +355,60 @@ export default function Home() {
           }
         };
         fetchConversations();
+      };
+
+      // Listen to web app messages collection
+      const unsubscribeWebMessages = onSnapshot(collection(dbInstance, 'messages'), (snapshot) => {
+        const webMessages: any[] = [];
+        snapshot.forEach((doc) => {
+          const msgData = doc.data();
+          // Include messages where agency is sender OR receiver
+          if (msgData.sender === user.uid || msgData.receiverId === user.uid) {
+            webMessages.push({ id: doc.id, ...msgData });
+          }
+        });
+        processMessages(webMessages);
       });
 
-      return () => unsubscribe();
+      // Also listen to mobile app messages collection (chat_messages)
+      const unsubscribeMobileMessages = onSnapshot(collection(dbInstance, 'chat_messages'), (snapshot) => {
+        const mobileMessages: any[] = [];
+        snapshot.forEach((doc) => {
+          const msgData = doc.data();
+          // Convert mobile app format to web app format
+          // Include messages where agency is sender OR receiver
+          if (msgData.from_user_id === user.uid || msgData.to_user_id === user.uid) {
+            // Create consistent chatId by sorting user IDs
+            const chatId = [msgData.from_user_id, msgData.to_user_id].sort().join('_');
+            const convertedMessage = {
+              id: doc.id,
+              text: msgData.content,
+              sender: msgData.from_user_id,
+              receiverId: msgData.to_user_id,
+              chatId: chatId,
+              timestamp: msgData.timestamp,
+              status: msgData.status
+            };
+            mobileMessages.push(convertedMessage);
+          }
+        });
+
+        // Combine with existing messages if any
+        setAgencyChatMessages(currentMessages => {
+          const combined = [...currentMessages, ...mobileMessages];
+          // Remove duplicates based on id
+          const unique = combined.filter((msg, index, self) =>
+            index === self.findIndex(m => m.id === msg.id)
+          );
+          processMessages(unique);
+          return unique;
+        });
+      });
+
+      return () => {
+        unsubscribeWebMessages();
+        unsubscribeMobileMessages();
+      };
     }
   }, [user, userData, selectedConversation]);
 
@@ -422,35 +563,37 @@ export default function Home() {
 
   const sendMessage = async () => {
     if (!chatInput.trim() || !user) return;
+
+    // Send to mobile app's "chat_messages" collection with correct format
     const messageData = {
-      text: chatInput,
-      sender: user.uid,
-      receiverId: currentChatAgency,
-      chatId: `${user.uid}_${currentChatAgency}`,
+      from_user_id: user.uid,
+      to_user_id: currentChatAgency,
+      content: chatInput,
       timestamp: Date.now(),
+      status: 'sent'
     };
+
     const dbInstance = getDbInstance();
     if (!dbInstance) return;
-    await addDoc(collection(dbInstance, 'messages'), messageData);
+    await addDoc(collection(dbInstance, 'chat_messages'), messageData);
     setChatInput('');
   };
 
   const sendAgencyMessage = async () => {
     if (!agencyChatInput.trim() || !user || !selectedConversation) return;
 
-    // For agency replies, we need to send to the user's chatId
-    // The selectedConversation should have the user's chatId
+    // Send to mobile app's "chat_messages" collection with correct format
     const messageData = {
-      text: agencyChatInput,
-      sender: user.uid,
-      receiverId: selectedConversation.userId,
-      chatId: selectedConversation.chatId,
+      from_user_id: user.uid,
+      to_user_id: selectedConversation.userId,
+      content: agencyChatInput,
       timestamp: Date.now(),
+      status: 'sent'
     };
 
     const dbInstance = getDbInstance();
     if (!dbInstance) return;
-    await addDoc(collection(dbInstance, 'messages'), messageData);
+    await addDoc(collection(dbInstance, 'chat_messages'), messageData);
     setAgencyChatInput('');
   };
 
@@ -1864,42 +2007,101 @@ export default function Home() {
               )}
 
               {userActiveSection === 'chat' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <span className="mr-2">💬</span>
-                      Chat with {currentChatAgencyName}
-                    </CardTitle>
-                    <CardDescription>
-                      Ask questions about packages and get personalized recommendations
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <div className="h-96 bg-gray-50 rounded-lg p-4 flex flex-col">
-                      <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-                        {[...chatMessages]
-                          .sort((a, b) => a.timestamp - b.timestamp)
-                          .map((msg, index) => (
-                          <div key={msg.id || index} className={`flex ${msg.sender === user?.uid ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-xs px-3 py-2 rounded-lg ${msg.sender === user?.uid ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}>
-                              <p className="text-sm">{msg.text}</p>
-                              <p className="text-xs opacity-75">{new Date(msg.timestamp).toLocaleTimeString()}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Conversations List */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <span className="mr-2">🏢</span>
+                        Agencies
+                      </CardTitle>
+                      <CardDescription>
+                        Agencies you've contacted
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {userConversations.length === 0 ? (
+                          <p className="text-gray-500 text-center py-4">No conversations yet</p>
+                        ) : (
+                          userConversations.map((conversation) => (
+                            <div
+                              key={conversation.agencyId}
+                              onClick={() => {
+                                setCurrentChatAgency(conversation.agencyId);
+                                setCurrentChatAgencyName(conversation.agencyName);
+                              }}
+                              className={`p-3 rounded-lg cursor-pointer border ${
+                                currentChatAgency === conversation.agencyId
+                                  ? 'bg-blue-50 border-blue-200'
+                                  : 'bg-gray-50 hover:bg-gray-100'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                  <span className="text-sm">🏢</span>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{conversation.agencyName}</p>
+                                  <p className="text-xs text-gray-600 truncate">{conversation.lastMessage}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Chat Messages */}
+                  <div className="md:col-span-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <span className="mr-2">💬</span>
+                          {currentChatAgencyName ? `Chat with ${currentChatAgencyName}` : 'Select an agency'}
+                        </CardTitle>
+                        <CardDescription>
+                          {currentChatAgencyName ? 'Ask questions about packages and get personalized recommendations' : 'Choose an agency from the list to start chatting'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {currentChatAgency ? (
+                          <div className="h-96 bg-gray-50 rounded-lg p-4 flex flex-col">
+                            <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+                              {[...chatMessages]
+                                .filter(msg => msg.chatId === [user?.uid, currentChatAgency].sort().join('_'))
+                                .sort((a, b) => a.timestamp - b.timestamp)
+                                .map((msg, index) => (
+                                  <div key={msg.id || index} className={`flex ${msg.sender === user?.uid ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-xs px-3 py-2 rounded-lg ${msg.sender === user?.uid ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}>
+                                      <p className="text-sm">{msg.text}</p>
+                                      <p className="text-xs opacity-75">{new Date(msg.timestamp).toLocaleTimeString()}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                            <div className="flex space-x-2">
+                              <Input
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                placeholder="Type your message..."
+                                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                              />
+                              <Button onClick={sendMessage} disabled={!chatInput.trim()}>
+                                Send
+                              </Button>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                      <div className="flex space-x-2">
-                        <Input
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          placeholder="Type your message..."
-                          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                        />
-                        <Button onClick={sendMessage}>Send</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                        ) : (
+                          <div className="h-96 bg-gray-50 rounded-lg p-4 flex items-center justify-center">
+                            <p className="text-gray-500">Select an agency to start chatting</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               )}
             </main>
           </div>
