@@ -12,7 +12,7 @@ exports.defaultCompressionOptions = {
     quality: 0.8, // Image quality (0.8 = 80%)
 };
 const compressImage = async (file, options = {}) => {
-    const finalOptions = { ...exports.defaultCompressionOptions, ...options };
+    const finalOptions = Object.assign(Object.assign({}, exports.defaultCompressionOptions), options);
     try {
         console.log('Compressing image:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
         const compressedFile = await (0, browser_image_compression_1.default)(file, finalOptions);

@@ -141,64 +141,73 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
     setValue('itinerary', newItinerary);
   };
 
-  const uploadImages = async (files: File[]): Promise<string[]> => {
-    const urls: string[] = [];
+  const uploadImages = async (places: Place[]): Promise<Place[]> => {
     const storageInstance = getStorageInstance();
 
     if (!storageInstance) {
       throw new Error('Storage instance not available');
     }
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const storageRef = ref(storageInstance, `listings/${agencyId}/${Date.now()}_${file.name}`);
+    const updatedPlaces = [...places];
 
-      try {
-        const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        urls.push(downloadURL);
+    for (let placeIndex = 0; placeIndex < places.length; placeIndex++) {
+      const place = places[placeIndex];
+      const placeImages = place.images;
 
-        // Update progress
-        setUploadProgress(prev => ({
-          ...prev,
-          [file.name]: Math.round((i + 1) / files.length * 100)
-        }));
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        throw new Error(`Failed to upload image: ${file.name}`);
+      if (placeImages.length > 0) {
+        const imageUrls: string[] = [];
+
+        for (let imgIndex = 0; imgIndex < placeImages.length; imgIndex++) {
+          const file = placeImages[imgIndex];
+          const storageRef = ref(storageInstance, `listings/${agencyId}/${Date.now()}_${placeIndex}_${imgIndex}_${file.name}`);
+
+          try {
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            imageUrls.push(downloadURL);
+
+            // Update progress
+            const totalProgress = Math.round(((placeIndex * 100) + ((imgIndex + 1) / placeImages.length * 100)) / places.length);
+            setUploadProgress(prev => ({
+              ...prev,
+              [`${place.name}-${file.name}`]: totalProgress
+            }));
+          } catch (error) {
+            console.error('Error uploading image:', error);
+            throw new Error(`Failed to upload image: ${file.name}`);
+          }
+        }
+
+        // Update the place with image URLs
+        updatedPlaces[placeIndex] = {
+          ...place,
+          imageUrls,
+          images: [] // Clear File objects to avoid Firebase error
+        };
       }
     }
 
-    return urls;
+    return updatedPlaces;
   };
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
 
     try {
-      // Upload all images first
-      const allImages = placesCovered.flatMap(place => place.images);
-      const imageUrls = await uploadImages(allImages);
+      // Upload images and get updated places with image URLs
+      const placesWithImages = await uploadImages(placesCovered);
 
-      // Organize images by place
-      const placesWithImages = placesCovered.map(place => {
-        const placeImages = place.images.map(img => {
-          const url = imageUrls.find(url => url.includes(img.name));
-          return url || '';
-        }).filter(Boolean);
-
-        return {
-          ...place,
-          imageUrls: placeImages,
-          images: [] // Clear the File objects to avoid Firebase error
-        };
-      });
+      // Debug: Log the placesWithImages structure
+      console.log('Places with images:', placesWithImages);
+      console.log('First place image URLs:', placesWithImages[0]?.imageUrls);
 
       // Prepare the listing data - ensure no File objects are included
       // Extract main photo from first place for backward compatibility
       const mainPhoto = placesWithImages.length > 0 && placesWithImages[0].imageUrls.length > 0
         ? placesWithImages[0].imageUrls[0]
         : '';
+
+      console.log('Main photo URL:', mainPhoto);
 
       const listingData = {
         ...data,
@@ -210,6 +219,9 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
         createdAt: new Date(),
         updatedAt: new Date()
       };
+
+      // Debug: Log the final listing data
+      console.log('Final listing data:', listingData);
 
       const dbInstance = getDbInstance();
       
@@ -250,6 +262,7 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+
             {/* 1. Package Type */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">1. Package Type</h3>
@@ -389,12 +402,13 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
                     {tourCategories.map((category) => (
                       <label key={category} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                         <Checkbox
-                          checked={field.value.includes(category)}
+                          checked={(field.value || []).includes(category)}
                           onChange={(e) => {
                             const checked = e.target.checked;
+                            const currentCategories = field.value || [];
                             const newCategories = checked
-                              ? [...field.value, category]
-                              : field.value.filter((c: string) => c !== category);
+                              ? [...currentCategories, category]
+                              : currentCategories.filter((c: string) => c !== category);
                             field.onChange(newCategories);
                           }}
                         />

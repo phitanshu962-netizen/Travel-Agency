@@ -43,23 +43,24 @@ const app_1 = require("firebase-admin/app");
 // Initialize Firebase Admin
 let firebaseApp = null;
 function initializeFirebase() {
+    var _a;
     if (!admin.apps.length) {
         // For Cloud Run, use service account credentials from environment
         const serviceAccount = {
             type: "service_account",
-            project_id: process.env.FB_PROJECT_ID,
-            private_key_id: process.env.FB_PRIVATE_KEY_ID,
-            private_key: process.env.FB_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-            client_email: process.env.FB_CLIENT_EMAIL,
-            client_id: process.env.FB_CLIENT_ID,
-            auth_uri: process.env.FB_AUTH_URI,
-            token_uri: process.env.FB_TOKEN_URI,
-            auth_provider_x509_cert_url: process.env.FB_AUTH_PROVIDER_X509_CERT_URL,
-            client_x509_cert_url: process.env.FB_CLIENT_X509_CERT_URL
+            project_id: process.env.FIREBASE_PROJECT_ID || process.env.FB_PROJECT_ID,
+            private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || process.env.FB_PRIVATE_KEY_ID,
+            private_key: (_a = (process.env.FIREBASE_PRIVATE_KEY || process.env.FB_PRIVATE_KEY)) === null || _a === void 0 ? void 0 : _a.replace(/\\n/g, '\n'),
+            client_email: process.env.FIREBASE_CLIENT_EMAIL || process.env.FB_CLIENT_EMAIL,
+            client_id: process.env.FIREBASE_CLIENT_ID || process.env.FB_CLIENT_ID,
+            auth_uri: process.env.FIREBASE_AUTH_URI || process.env.FB_AUTH_URI,
+            token_uri: process.env.FIREBASE_TOKEN_URI || process.env.FB_TOKEN_URI,
+            auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL || process.env.FB_AUTH_PROVIDER_X509_CERT_URL,
+            client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL || process.env.FB_CLIENT_X509_CERT_URL
         };
         firebaseApp = admin.initializeApp({
             credential: (0, app_1.cert)(serviceAccount),
-            projectId: process.env.FB_PROJECT_ID
+            projectId: process.env.FIREBASE_PROJECT_ID || process.env.FB_PROJECT_ID
         });
     }
     else {
@@ -76,6 +77,7 @@ async function verifyToken(token) {
     }
 }
 async function handleAuthMessage(message) {
+    var _a;
     // This function handles WebSocket authentication messages
     // It expects a token in the payload
     console.log('handleAuthMessage called with message:', JSON.stringify(message));
@@ -108,7 +110,7 @@ async function handleAuthMessage(message) {
             user: {
                 id: decodedToken.uid,
                 email: decodedToken.email,
-                displayName: decodedToken.name || decodedToken.email?.split('@')[0],
+                displayName: decodedToken.name || ((_a = decodedToken.email) === null || _a === void 0 ? void 0 : _a.split('@')[0]),
                 isAnonymous: false
             }
         };

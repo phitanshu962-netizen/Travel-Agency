@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageHandler = void 0;
 const ws_1 = __importDefault(require("ws"));
+const messageSyncService_1 = require("./messageSyncService");
 const types_1 = require("./types");
 class MessageHandler {
     constructor(messageService, userService) {
@@ -62,10 +63,11 @@ class MessageHandler {
         }
     }
     async handleAuth(ws, message) {
+        var _a;
         try {
             console.log('handleAuth called with message:', JSON.stringify(message));
             // For demo purposes, accept any token containing 'guest'
-            const token = message.payload?.token || '';
+            const token = ((_a = message.payload) === null || _a === void 0 ? void 0 : _a.token) || '';
             console.log('Auth token:', token);
             let result = null;
             if (token.includes('guest')) {
@@ -87,29 +89,13 @@ class MessageHandler {
                 result = await auth.handleAuthMessage(message);
             }
             if (result) {
-                let dbUser;
-                // For demo users, skip database operations to avoid Firebase auth issues
-                if (result.user.isAnonymous && (result.userId.includes('demo') || token.includes('guest'))) {
-                    console.log('Demo user - skipping database operations');
-                    dbUser = {
-                        id: result.userId,
-                        display_name: result.user.displayName,
-                        email: result.user.email,
-                        avatar_url: '',
-                        bio: '',
-                        is_online: true,
-                        last_seen: new Date()
-                    };
-                }
-                else {
-                    // Create or update user in database for real users
-                    dbUser = await this.userService.createOrUpdateUser({
-                        id: result.userId,
-                        email: result.user.email,
-                        displayName: result.user.displayName,
-                        isAnonymous: result.user.isAnonymous
-                    });
-                }
+                // Create or update user in database
+                const dbUser = await this.userService.createOrUpdateUser({
+                    id: result.userId,
+                    email: result.user.email,
+                    displayName: result.user.displayName,
+                    isAnonymous: result.user.isAnonymous
+                });
                 // Check if user is already connected
                 const existingConnection = this.userConnections.get(result.userId);
                 if (existingConnection) {
@@ -260,6 +246,41 @@ class MessageHandler {
         catch (error) {
             console.error('Error handling history request:', error);
             this.sendError(ws, 'Failed to retrieve message history');
+        }
+    }
+    async handleSyncRequest(ws, message) {
+        const userId = this.connections.get(ws);
+        if (!userId) {
+            this.sendError(ws, 'Connection not authenticated');
+            return;
+        }
+        try {
+            const payload = message.payload;
+            if (!payload.lastSyncTimestamp) {
+                this.sendError(ws, 'Invalid sync request payload');
+                return;
+            }
+            const messages = await messageSyncService_1.messageSyncService.getMissedMessages({
+                userId,
+                lastSyncTimestamp: payload.lastSyncTimestamp,
+                limit: payload.limit
+            });
+            const syncResponse = {
+                messages,
+                syncTimestamp: messageSyncService_1.messageSyncService.getCurrentTimestamp(),
+                hasMore: messages.length === (payload.limit || 50)
+            };
+            const responseMessage = {
+                type: types_1.MessageType.SYNC_RESPONSE,
+                payload: syncResponse,
+                timestamp: Date.now()
+            };
+            this.sendToWebSocket(ws, responseMessage);
+            console.log(`Synced ${messages.length} messages for user ${userId}`);
+        }
+        catch (error) {
+            console.error('Error handling sync request:', error);
+            this.sendError(ws, 'Failed to sync messages');
         }
     }
     handlePing(ws) {

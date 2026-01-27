@@ -10,11 +10,6 @@ class UserService {
         return await database_1.databaseService.getUserById(id);
     }
     async updateUserOnlineStatus(userId, isOnline) {
-        // Skip Firebase operations for demo users
-        if (userId.includes('demo') || userId.startsWith('user-')) {
-            console.log(`Demo user ${userId} - skipping online status update`);
-            return;
-        }
         await database_1.databaseService.updateUserOnlineStatus(userId, isOnline);
     }
     async getOnlineUsers() {

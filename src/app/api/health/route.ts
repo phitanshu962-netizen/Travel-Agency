@@ -1,3 +1,6 @@
+export const dynamic = 'force-static';
+export const revalidate = 60;
+
 export async function GET() {
   console.log('Health endpoint called');
   try {

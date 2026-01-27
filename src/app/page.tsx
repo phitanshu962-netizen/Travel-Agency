@@ -43,7 +43,7 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [allAgencies, setAllAgencies] = useState<any[]>([]);
   const [pendingListings, setPendingListings] = useState<any[]>([]);
-  const [agencyActiveSection, setAgencyActiveSection] = useState('overview');
+  const [agencyActiveSection, setAgencyActiveSection] = useState('listings');
   const [userActiveSection, setUserActiveSection] = useState('listings');
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -274,22 +274,40 @@ export default function Home() {
   useEffect(() => {
     // Fetch listings for users - only when user is authenticated
     if (user) {
-      const fetchListings = async () => {
-        const dbInstance = getDbInstance();
-        if (!dbInstance) return;
-        const listingsQuery = query(collection(dbInstance, 'listings'), where('approved', '==', true));
-        const querySnapshot = await getDocs(listingsQuery);
-        const listingsData = await Promise.all(querySnapshot.docs.map(async (docSnapshot) => {
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
+      
+      // Use real-time listener for listings to automatically update when admin approves
+      const listingsQuery = query(collection(dbInstance, 'listings'), where('approved', '==', true));
+      
+      const unsubscribe = onSnapshot(listingsQuery, async (snapshot) => {
+        const listingsData = await Promise.all(snapshot.docs.map(async (docSnapshot) => {
           const listingData = docSnapshot.data() as any;
           // Get agency name
           const agencyDoc = await getDoc(doc(dbInstance, 'users', listingData.agencyId));
           const agencyData = agencyDoc.exists() ? agencyDoc.data() as any : null;
           const agencyName = agencyData?.companyName || 'Unknown Agency';
+          
+          // Debug: Log the listing data structure
+          console.log('Listing data structure:', {
+            id: docSnapshot.id,
+            title: listingData.title,
+            packageType: listingData.packageType,
+            placesCovered: listingData.placesCovered,
+            photos: listingData.photos,
+            hasPlacesCovered: !!listingData.placesCovered,
+            placesCoveredLength: listingData.placesCovered?.length || 0,
+            firstPlaceHasImages: listingData.placesCovered?.[0]?.imageUrls?.length > 0 || false,
+            photosLength: listingData.photos?.length || 0
+          });
+          
           return { id: docSnapshot.id, ...listingData, agencyName, agencyData };
         }));
         setListings(listingsData);
-      };
-      fetchListings();
+      });
+
+      // Cleanup function to unsubscribe from the listener
+      return () => unsubscribe();
     }
   }, [user]);
 
@@ -647,24 +665,24 @@ export default function Home() {
             <nav className="p-4">
               <div className="space-y-2">
                 <button
-                  onClick={() => setActiveSection('dashboard')}
-                  className={`w-full text-left px-4 py-2 rounded-lg font-medium ${
-                    activeSection === 'dashboard'
+                  onClick={() => setAgencyActiveSection('listings')}
+                  className={`w-full text-left px-4 py-2 rounded-lg ${
+                    agencyActiveSection === 'listings'
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                   Dashboard
+                   Listings
                 </button>
                 <button
-                  onClick={() => setActiveSection('approvals')}
+                  onClick={() => setAgencyActiveSection('overview')}
                   className={`w-full text-left px-4 py-2 rounded-lg ${
-                    activeSection === 'approvals'
+                    agencyActiveSection === 'overview'
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                   Approvals
+                   Overview
                 </button>
                 <button
                   onClick={() => setActiveSection('analytics')}
@@ -1008,10 +1026,18 @@ export default function Home() {
                               </div>
                               <div>
                                 <h3 className="font-semibold">{listing.title}</h3>
-                                <p className="text-sm text-gray-600">
-                                  {listing.duration} days • ${listing.price} • {listing.destination}
+                                <p className="text-sm text-gray-600 font-semibold">
+                                  {listing.packageType === 'international' ? ' International' : ' Domestic'} • {listing.packageType === 'international' ? (listing.countryName || 'Country not specified') : (listing.stateName || 'State not specified')}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-sm text-gray-600">
+                                  {listing.itinerary?.length || 0} days • ${listing.cost || listing.price || 'N/A'}
+                                </p>
+                                {listing.placesCovered && listing.placesCovered.length > 0 && (
+                                  <p className="text-xs text-gray-500">
+                                    Places: {listing.placesCovered.map((place: any) => place.name).join(', ')}
+                                  </p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">
                                   By: {listing.agencyName}
                                 </p>
                               </div>
@@ -1020,7 +1046,11 @@ export default function Home() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {/* View details logic */}}
+                                onClick={() => {
+                                  // For now, show listing details in alert since modal has CSS issues
+                                  const details = `Title: ${listing.title}\nPackage Type: ${listing.packageType === 'international' ? 'International' : 'Domestic'}\nPlaces: ${listing.placesCovered?.map((place: any) => place.name).join(', ') || 'Not specified'}\nDuration: ${listing.itinerary?.length || 0} days\nCost: ${listing.cost || listing.price || 'N/A'}\nDescription: ${listing.description || 'Not provided'}`;
+                                  alert(`Listing Details:\n\n${details}`);
+                                }}
                               >
                                 View Details
                               </Button>
@@ -1294,10 +1324,14 @@ export default function Home() {
                             const title = listing.title || '';
                             const description = listing.description || '';
                             const destination = listing.destination || '';
+                            const stateName = listing.stateName || '';
+                            const countryName = listing.countryName || '';
                             
                             if (!title.toLowerCase().includes(searchTerm.toLowerCase()) &&
                                 !description.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                                !destination.toLowerCase().includes(searchTerm.toLowerCase())) {
+                                !destination.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                                !stateName.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                                !countryName.toLowerCase().includes(searchTerm.toLowerCase())) {
                               return false;
                             }
                           }
@@ -1362,18 +1396,41 @@ export default function Home() {
                               </Button>
                             </div>
 
-                            {/* Display package photos - get from first place's images */}
-                            {listing.placesCovered && listing.placesCovered.length > 0 && listing.placesCovered[0].imageUrls && listing.placesCovered[0].imageUrls.length > 0 && (
-                              <div className="w-full h-48 bg-gray-100 rounded-lg mb-4 overflow-hidden">
-                                <img
-                                  src={listing.placesCovered[0].imageUrls[0]}
-                                  alt={listing.placesCovered[0].name || 'Package Image'}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
+                            {/* Display package photos - try new placesCovered structure first, then fallback to old photos field */}
+                            {(() => {
+                              // Try new placesCovered structure first
+                              if (listing.placesCovered && listing.placesCovered.length > 0 && listing.placesCovered[0].imageUrls && listing.placesCovered[0].imageUrls.length > 0) {
+                                return (
+                                  <div className="w-full h-48 bg-gray-100 rounded-lg mb-4 overflow-hidden">
+                                    <img
+                                      src={listing.placesCovered[0].imageUrls[0]}
+                                      alt={listing.placesCovered[0].name || 'Package Image'}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                );
+                              }
+                              // Fallback to old photos field
+                              else if (listing.photos && listing.photos.length > 0) {
+                                return (
+                                  <div className="w-full h-48 bg-gray-100 rounded-lg mb-4 overflow-hidden">
+                                    <img
+                                      src={listing.photos[0]}
+                                      alt={listing.title || 'Package Image'}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                );
+                              }
+                              // No images available
+                              return (
+                                <div className="w-full h-48 bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
+                                  <span className="text-gray-500">No image available</span>
+                                </div>
+                              );
+                            })()}
                             <CardTitle className="text-lg flex items-center gap-2">
-                              {listing.title}
+                              {listing.title || `${listing.packageType === 'international' ? 'International' : 'Domestic'} Package`}
                               {listing.agencyData?.verified && (
                                 <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">
                                   ✅ Verified
@@ -1382,7 +1439,7 @@ export default function Home() {
                             </CardTitle>
                             <CardDescription className="flex items-center space-x-2">
                               <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm">
-                                {listing.packageType === 'international' ? '🌍 International' : '🏠 Domestic'}
+                                {listing.packageType === 'international' ? ' International' : ' Domestic'}
                               </span>
                               <span>•</span>
                               <span className="font-medium">
@@ -1395,6 +1452,12 @@ export default function Home() {
                           </CardHeader>
                           <CardContent className="pt-0">
                             <p className="text-sm text-gray-600 mb-4 line-clamp-2">{listing.description}</p>
+                            <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+                              <span>Duration: {listing.itinerary?.length || 0} days / {listing.itinerary && listing.itinerary.length > 0 ? listing.itinerary.length - 1 : 0} nights</span>
+                              <span className="font-semibold text-blue-600">
+                                Cost: {listing.packageType === 'international' ? '$' : '₹'}{listing.cost || 'N/A'}
+                              </span>
+                            </div>
                             <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
                               <span>By {listing.agencyName}</span>
                               {listing.rating > 0 && (
@@ -1402,12 +1465,6 @@ export default function Home() {
                                   ⭐ {listing.rating} ({listing.reviewsCount} reviews)
                                 </span>
                               )}
-                            </div>
-                            <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                              <span>Duration: {listing.itinerary?.length || 0} days / {listing.itinerary && listing.itinerary.length > 0 ? listing.itinerary.length - 1 : 0} nights</span>
-                              <span className="font-semibold text-blue-600">
-                                Cost: {listing.packageType === 'international' ? '$' : '₹'}{listing.cost || 'N/A'}
-                              </span>
                             </div>
                             <div className="flex space-x-2">
                               <Button
@@ -1678,7 +1735,7 @@ export default function Home() {
                       <div>
                         <h3 className="font-semibold text-lg mb-2">Package Details</h3>
                           <div className="space-y-2">
-                            <p><strong>Package Type:</strong> {viewingListing.packageType === 'international' ? '🌍 International' : '🏠 Domestic'}</p>
+                            <p><strong>Package Type:</strong> {viewingListing.packageType === 'international' ? ' International' : ' Domestic'}</p>
                             {viewingListing.packageType === 'international' && viewingListing.countryName && (
                               <p><strong>Country:</strong> {viewingListing.countryName}</p>
                             )}
@@ -1917,16 +1974,6 @@ export default function Home() {
             <nav className="p-4">
               <div className="space-y-2">
                 <button
-                  onClick={() => setAgencyActiveSection('overview')}
-                  className={`w-full text-left px-4 py-2 rounded-lg ${
-                    agencyActiveSection === 'overview'
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                   Overview
-                </button>
-                <button
                   onClick={() => setAgencyActiveSection('listings')}
                   className={`w-full text-left px-4 py-2 rounded-lg ${
                     agencyActiveSection === 'listings'
@@ -1935,6 +1982,16 @@ export default function Home() {
                   }`}
                 >
                    Listings
+                </button>
+                <button
+                  onClick={() => setAgencyActiveSection('overview')}
+                  className={`w-full text-left px-4 py-2 rounded-lg ${
+                    agencyActiveSection === 'overview'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                   Overview
                 </button>
                 <button
                   onClick={() => setAgencyActiveSection('analytics')}
@@ -2158,19 +2215,24 @@ export default function Home() {
                                       </div>
                                       <div>
                                         <h3 className="font-semibold">{listing.title}</h3>
+                                        {listing.packageType && (
+                                          <p className="text-sm text-gray-600 mb-1 font-semibold">
+                                            {listing.packageType === 'international' ? ' International' : ' Domestic'}
+                                            {listing.packageType === 'international' && listing.countryName && ` • ${listing.countryName}`}
+                                            {listing.packageType === 'domestic' && listing.stateName && ` • ${listing.stateName}`}
+                                          </p>
+                                        )}
                                         <p className="text-sm text-gray-600">
-                                          {listing.duration} days • ${listing.price} • {listing.destination}
+                                          {listing.itinerary?.length || 0} days • {listing.packageType === 'international' ? '$' : '₹'}{listing.cost || listing.price || 'N/A'}
                                           <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
                                             listing.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                                           }`}>
                                             {listing.approved ? 'Approved' : 'Pending'}
                                           </span>
                                         </p>
-                                        {listing.packageType && (
-                                          <p className="text-xs text-gray-500">
-                                            {listing.packageType === 'international' ? '🌍 International' : '🏠 Domestic'}
-                                            {listing.packageType === 'international' && listing.countryName && ` • ${listing.countryName}`}
-                                            {listing.packageType === 'domestic' && listing.stateName && ` • ${listing.stateName}`}
+                                        {listing.placesCovered && listing.placesCovered.length > 0 && (
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            Places: {listing.placesCovered.map((place: any) => place.name).join(', ')}
                                           </p>
                                         )}
                                       </div>

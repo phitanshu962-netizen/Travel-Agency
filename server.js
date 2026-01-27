@@ -2,23 +2,29 @@ const express = require('express');
 const next = require('next');
 const { createServer } = require('http');
 const WebSocket = require('ws');
+require('dotenv').config();
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
 const handle = nextApp.getRequestHandler();
 
 // Initialize services
-const { initializeFirebase } = require('./dist/src/lib/auth.js');
-const { databaseService } = require('./dist/src/lib/database.js');
-const { MessageHandler } = require('./dist/src/lib/messageHandler.js');
-const { messageService } = require('./dist/src/lib/messageService.js');
-const { userService } = require('./dist/src/lib/userService.js');
+const { initializeFirebase } = require('./dist/lib/auth.js');
+const { databaseService } = require('./dist/lib/database.js');
+const { MessageHandler } = require('./dist/lib/messageHandler.js');
+const { messageService } = require('./dist/lib/messageService.js');
+const { userService } = require('./dist/lib/userService.js');
 
 let messageHandler;
 let wss;
 
 async function initializeServices() {
   try {
+    // Debug: Check if environment variables are loaded
+    console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
+    console.log('FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL);
+    console.log('All env vars:', Object.keys(process.env).filter(k => k.includes('FIREBASE')));
+    
     // Initialize Firebase (includes Firestore)
     initializeFirebase();
     console.log('Firebase initialized');
@@ -60,6 +66,11 @@ server.on('upgrade', (request, socket, head) => {
       console.log('WebSocket upgrade successful');
       wss.emit('connection', ws, request);
     });
+  } else if (request.url && request.url.startsWith('/_next/webpack-hmr')) {
+    console.log('Allowing Next.js HMR WebSocket upgrade for:', request.url);
+    // Let Next.js handle its own HMR WebSocket connections
+    // Don't destroy the socket, let Next.js handle it
+    return;
   } else {
     console.log('Rejecting upgrade for non-WebSocket path:', request.url);
     socket.destroy();

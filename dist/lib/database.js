@@ -53,6 +53,7 @@ class DatabaseService {
         };
     }
     async getUserById(id) {
+        var _a, _b, _c;
         this.initializeFirebase();
         const userRef = this.db.collection('chat_users').doc(id);
         const userDoc = await userRef.get();
@@ -67,9 +68,9 @@ class DatabaseService {
             avatar_url: data.avatar_url,
             bio: data.bio,
             is_online: data.is_online || false,
-            last_seen: data.last_seen?.toDate() || new Date(),
-            created_at: data.created_at?.toDate() || new Date(),
-            updated_at: data.updated_at?.toDate() || new Date()
+            last_seen: ((_a = data.last_seen) === null || _a === void 0 ? void 0 : _a.toDate()) || new Date(),
+            created_at: ((_b = data.created_at) === null || _b === void 0 ? void 0 : _b.toDate()) || new Date(),
+            updated_at: ((_c = data.updated_at) === null || _c === void 0 ? void 0 : _c.toDate()) || new Date()
         };
     }
     async updateUserOnlineStatus(userId, isOnline) {
@@ -118,6 +119,7 @@ class DatabaseService {
         const snapshot = await query.get();
         const messages = [];
         snapshot.forEach(doc => {
+            var _a;
             const data = doc.data();
             messages.push({
                 id: data.id,
@@ -126,7 +128,7 @@ class DatabaseService {
                 content: data.content,
                 timestamp: data.timestamp,
                 status: data.status,
-                created_at: data.created_at?.toDate() || new Date()
+                created_at: ((_a = data.created_at) === null || _a === void 0 ? void 0 : _a.toDate()) || new Date()
             });
         });
         // Reverse to get chronological order (oldest first)
@@ -157,6 +159,7 @@ class DatabaseService {
             .get();
         const users = [];
         snapshot.forEach(doc => {
+            var _a, _b, _c;
             const data = doc.data();
             users.push({
                 id: data.id,
@@ -165,9 +168,9 @@ class DatabaseService {
                 avatar_url: data.avatar_url,
                 bio: data.bio,
                 is_online: data.is_online || false,
-                last_seen: data.last_seen?.toDate() || new Date(),
-                created_at: data.created_at?.toDate() || new Date(),
-                updated_at: data.updated_at?.toDate() || new Date()
+                last_seen: ((_a = data.last_seen) === null || _a === void 0 ? void 0 : _a.toDate()) || new Date(),
+                created_at: ((_b = data.created_at) === null || _b === void 0 ? void 0 : _b.toDate()) || new Date(),
+                updated_at: ((_c = data.updated_at) === null || _c === void 0 ? void 0 : _c.toDate()) || new Date()
             });
         });
         return users;
