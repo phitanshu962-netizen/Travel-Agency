@@ -32,7 +32,7 @@ interface FormData {
   stateName?: string;
   placesCovered: Place[];
   tourCategories: string[];
-  hotelType: 'budget' | 'deluxe' | 'premium';
+  hotelTypes: string[];
   mealPlan: 'no-meal' | 'breakfast' | 'breakfast-dinner' | 'all-meals';
   itinerary: ItineraryDay[];
   inclusions: string;
@@ -66,11 +66,92 @@ const mealPlans = [
   { value: 'all-meals', label: 'All Meals' }
 ];
 
+// List of Indian states
+const indianStates = [
+  // States (28)
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+
+  // Union Territories (8)
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry'
+];
+
+
+// List of countries
+const countries = [
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda',
+  'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
+  'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
+  'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil',
+  'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cabo Verde', 'Cambodia',
+  'Cameroon', 'Canada', 'Central African Republic', 'Chad', 'Chile', 'China',
+  'Colombia', 'Comoros', 'Congo', 'Costa Rica', "Cote d'Ivoire", 'Croatia',
+  'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica',
+  'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea',
+  'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France',
+  'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada',
+  'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras',
+  'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland',
+  'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya',
+  'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho',
+  'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar',
+  'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands',
+  'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco',
+  'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia',
+  'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger',
+  'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan',
+  'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru',
+  'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia',
+  'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines',
+  'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal',
+  'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia',
+  'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan',
+  'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria',
+  'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga',
+  'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu',
+  'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States',
+  'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+  'Yemen', 'Zambia', 'Zimbabwe'
+];
+
 export default function AgencyListingForm({ agencyId, onSuccess, initialData }: AgencyListingFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
 
-  const {
+const {
     control,
     handleSubmit,
     watch,
@@ -79,9 +160,11 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
   } = useForm<FormData>({
     defaultValues: initialData || {
       packageType: 'domestic',
+      countryName: '',
+      stateName: '',
       placesCovered: [],
       tourCategories: [],
-      hotelType: 'budget',
+      hotelTypes: [],
       mealPlan: 'no-meal',
       itinerary: [],
       inclusions: '',
@@ -90,9 +173,11 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
     }
   });
 
-  const packageType = watch('packageType');
+const packageType = watch('packageType');
   const placesCovered = watch('placesCovered') || [];
   const itinerary = watch('itinerary') || [];
+  const countryName = watch('countryName');
+  const stateName = watch('stateName');
 
   const addPlace = () => {
     const newPlace: Place = {
@@ -294,27 +379,63 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
                       </label>
                     </div>
 
-                    {field.value === 'international' && (
+{field.value === 'international' && (
                       <div className="space-y-2">
                         <Label htmlFor="countryName">Country Name</Label>
-                        <Input
-                          id="countryName"
-                          placeholder="Enter country name"
-                          onChange={(e) => setValue('countryName', e.target.value)}
-                          defaultValue={initialData?.countryName || ''}
-                        />
+                        <div className="relative">
+                          <Input
+                            id="countryName"
+                            placeholder="Enter country name"
+                            value={countryName}
+                            onChange={(e) => setValue('countryName', e.target.value)}
+                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                          {countryName && (
+                            <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                              {countries
+                                .filter(country => country.toLowerCase().includes(countryName.toLowerCase()))
+                                .map((country) => (
+                                  <div
+                                    key={country}
+                                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => setValue('countryName', country)}
+                                  >
+                                    {country}
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 
                     {field.value === 'domestic' && (
                       <div className="space-y-2">
                         <Label htmlFor="stateName">State Name</Label>
-                        <Input
-                          id="stateName"
-                          placeholder="Enter state name"
-                          onChange={(e) => setValue('stateName', e.target.value)}
-                          defaultValue={initialData?.stateName || ''}
-                        />
+                        <div className="relative">
+                          <Input
+                            id="stateName"
+                            placeholder="Enter state name"
+                            value={stateName}
+                            onChange={(e) => setValue('stateName', e.target.value)}
+                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                          {stateName && (
+                            <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                              {indianStates
+                                .filter(state => state.toLowerCase().includes(stateName.toLowerCase()))
+                                .map((state) => (
+                                  <div
+                                    key={state}
+                                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => setValue('stateName', state)}
+                                  >
+                                    {state}
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -394,14 +515,15 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
             {/* 3. Tour Category */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">3. Tour Category</h3>
-              <Controller
+<Controller
                 name="tourCategories"
                 control={control}
                 render={({ field }) => (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {tourCategories.map((category) => (
                       <label key={category} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                        <Checkbox
+                        <input
+                          type="checkbox"
                           checked={(field.value || []).includes(category)}
                           onChange={(e) => {
                             const checked = e.target.checked;
@@ -411,6 +533,7 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
                               : currentCategories.filter((c: string) => c !== category);
                             field.onChange(newCategories);
                           }}
+                          className="h-4 w-4 rounded border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                         />
                         <span>{category}</span>
                       </label>
@@ -421,29 +544,38 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
             </div>
 
             {/* 4. Hotel & Meal Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-b pb-2">4. Hotel Type</h3>
-                <Controller
-                  name="hotelType"
+<Controller
+                  name="hotelTypes"
                   control={control}
                   render={({ field }) => (
-                    <select
-                      {...field}
-                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">Select hotel type</option>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {hotelTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
+                        <label key={type.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                          <input
+                            type="checkbox"
+                            checked={(field.value || []).includes(type.value)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const currentTypes = field.value || [];
+                              const newTypes = checked
+                                ? [...currentTypes, type.value]
+                                : currentTypes.filter((t: string) => t !== type.value);
+                              field.onChange(newTypes);
+                            }}
+                            className="h-4 w-4 rounded border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                          />
+                          <span>{type.label}</span>
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   )}
                 />
               </div>
 
-              <div className="space-y-4">
+              {/* <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-b pb-2">5. Meal Plan</h3>
                 <Controller
                   name="mealPlan"
@@ -462,13 +594,13 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
                     </select>
                   )}
                 />
-              </div>
+              </div> */}
             </div>
 
             {/* 6. Itinerary Builder */}
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold border-b pb-2">6. Itinerary Builder</h3>
+                <h3 className="text-lg font-semibold border-b pb-2">5. Itinerary Builder</h3>
                 <Button type="button" onClick={addItineraryDay} className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
                   Add Day
@@ -525,8 +657,9 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
               )}
             </div>
 
-            {/* 6. Cost */}
-            <div className="space-y-4">
+
+
+            {/* <div className="space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">6. Package Cost</h3>
               <Controller
                 name="cost"
@@ -545,6 +678,7 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
                         step="0.01"
                       />
                     </div>
+                    
                     <div className="space-y-2">
                       <Label>Duration Summary</Label>
                       <div className="p-4 bg-gray-50 rounded-lg">
@@ -562,7 +696,36 @@ export default function AgencyListingForm({ agencyId, onSuccess, initialData }: 
                   </div>
                 )}
               />
-            </div>
+            </div> */}
+
+<div className="space-y-4">
+  <h3 className="text-lg font-semibold border-b pb-2">
+     6. Package Duration
+  </h3>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-2">
+      <Label>Duration Summary</Label>
+      <div className="p-4 bg-gray-50 rounded-lg">
+        <div className="text-sm text-gray-600 mb-2">
+          Calculated from itinerary:
+        </div>
+
+        <div className="flex justify-between font-medium">
+          <span>Total Days:</span>
+          <span>{itinerary.length}</span>
+        </div>
+
+        <div className="flex justify-between font-medium">
+          <span>Total Nights:</span>
+          <span>
+            {itinerary.length > 0 ? itinerary.length - 1 : 0}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
             {/* 7. Inclusions & Exclusions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

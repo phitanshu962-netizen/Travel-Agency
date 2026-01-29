@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import AgencyListingForm from '@/components/AgencyListingForm';
 import SearchFilters from '@/components/SearchFilters';
+import ListingCard from '@/components/ListingCard';
 import { collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc, deleteDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getDbInstance, getStorageInstance } from '@/lib/firebase';
@@ -81,8 +82,18 @@ export default function Home() {
     contactName: '',
     contactEmail: '',
     contactPhone: '',
-    preferences: [] as string[]
+    preferences: [] as string[],
+    paymentMethod: 'pay_later',
+    insurance: false,
+    termsAccepted: false,
+    emergencyContact: '',
+    dietaryRestrictions: '',
+    accessibilityNeeds: '',
+    bookingNotes: ''
   });
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [agencyBookings, setAgencyBookings] = useState<any[]>([]);
   const [userBookings, setUserBookings] = useState<any[]>([]);
   const [userConversations, setUserConversations] = useState<any[]>([]);
@@ -727,9 +738,20 @@ export default function Home() {
     setBookingStep(1);
     // Pre-fill user data
     setBookingData({
-      ...bookingData,
+      travelers: 1,
+      travelDate: '',
+      specialRequests: '',
       contactName: userData?.name || '',
       contactEmail: user?.email || '',
+      contactPhone: '',
+      preferences: [],
+      paymentMethod: 'pay_later',
+      insurance: false,
+      termsAccepted: false,
+      emergencyContact: '',
+      dietaryRestrictions: '',
+      accessibilityNeeds: '',
+      bookingNotes: ''
     });
   };
 
@@ -749,24 +771,29 @@ export default function Home() {
     if (!user || !bookingListing) return;
 
     try {
+      // Debug: Log the booking listing data
+      console.log('Booking listing data:', bookingListing);
+      
       const bookingDoc = {
         userId: user.uid,
         userName: bookingData.contactName,
         userEmail: bookingData.contactEmail,
         userPhone: bookingData.contactPhone,
         listingId: bookingListing.id,
-        listingTitle: bookingListing.title,
-        agencyId: bookingListing.agencyId,
-        agencyName: bookingListing.agencyName,
+        listingTitle: bookingListing.title || bookingListing.title || 'Unknown Package',
+        agencyId: bookingListing.agencyId || bookingListing.agencyId,
+        agencyName: bookingListing.agencyName || bookingListing.agencyName || 'Unknown Agency',
         travelers: bookingData.travelers,
         travelDate: bookingData.travelDate,
         specialRequests: bookingData.specialRequests,
         preferences: bookingData.preferences,
-        totalAmount: parseFloat(bookingListing.price) * bookingData.travelers,
+        totalAmount: parseFloat(bookingListing.price || bookingListing.cost || '0') * bookingData.travelers,
         status: 'pending',
         createdAt: new Date(),
         bookingReference: `BK${Date.now().toString().slice(-6)}`,
       };
+
+      console.log('Booking document to be created:', bookingDoc);
 
       const dbInstance = getDbInstance();
       if (!dbInstance) return;
@@ -783,8 +810,24 @@ export default function Home() {
         contactName: '',
         contactEmail: '',
         contactPhone: '',
-        preferences: []
+        preferences: [],
+        paymentMethod: 'pay_later',
+        insurance: false,
+        termsAccepted: false,
+        emergencyContact: '',
+        dietaryRestrictions: '',
+        accessibilityNeeds: '',
+        bookingNotes: ''
       });
+      
+      // Refresh user bookings
+      const userBookingsQuery = query(collection(dbInstance, 'bookings'), where('userId', '==', user.uid));
+      const querySnapshot = await getDocs(userBookingsQuery);
+      const bookingsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort bookings by createdAt in descending order (most recent first)
+      bookingsData.sort((a, b) => new Date((b as any).createdAt).getTime() - new Date((a as any).createdAt).getTime());
+      setUserBookings(bookingsData);
+      
     } catch (error) {
       console.error('Error submitting booking:', error);
       alert('Failed to submit booking. Please try again.');
@@ -1503,146 +1546,19 @@ export default function Home() {
                           return true;
                         })
                         .map((listing) => (
-                        <Card key={listing.id} className="hover:shadow-lg transition-shadow relative">
-                          <CardHeader className="pb-3">
-                            {/* Wishlist and Compare buttons */}
-                            <div className="absolute top-2 right-2 flex gap-1 z-10">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={`p-1 h-8 w-8 ${wishlist.includes(listing.id) ? 'bg-red-100 text-red-600' : 'bg-white'}`}
-                                onClick={() => {
-                                  if (wishlist.includes(listing.id)) {
-                                    setWishlist(wishlist.filter(id => id !== listing.id));
-                                  } else {
-                                    setWishlist([...wishlist, listing.id]);
-                                  }
-                                }}
-                              >
-                                {wishlist.includes(listing.id) ? '❤️' : '🤍'}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="p-1 h-8 w-8 bg-white"
-                                onClick={() => {
-                                  if (comparisonList.find(item => item.id === listing.id)) {
-                                    setComparisonList(comparisonList.filter(item => item.id !== listing.id));
-                                  } else if (comparisonList.length < 3) {
-                                    setComparisonList([...comparisonList, listing]);
-                                  } else {
-                                    alert('You can compare maximum 3 packages at once');
-                                  }
-                                }}
-                              >
-                                {comparisonList.find(item => item.id === listing.id) ? '✅' : '⚖️'}
-                              </Button>
-                            </div>
-
-                            {/* Display package photos - try new placesCovered structure first, then fallback to old photos field */}
-                            {(() => {
-                              // Try new placesCovered structure first
-                              if (listing.placesCovered && listing.placesCovered.length > 0 && listing.placesCovered[0].imageUrls && listing.placesCovered[0].imageUrls.length > 0) {
-                                return (
-                                  <div className="w-full h-48 bg-gray-100 rounded-lg mb-4 overflow-hidden">
-                                    <img
-                                      src={listing.placesCovered[0].imageUrls[0]}
-                                      alt={listing.placesCovered[0].name || 'Package Image'}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                );
-                              }
-                              // Fallback to old photos field
-                              else if (listing.photos && listing.photos.length > 0) {
-                                return (
-                                  <div className="w-full h-48 bg-gray-100 rounded-lg mb-4 overflow-hidden">
-                                    <img
-                                      src={listing.photos[0]}
-                                      alt={listing.title || 'Package Image'}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                );
-                              }
-                              // No images available
-                              return (
-                                <div className="w-full h-48 bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
-                                  <span className="text-gray-500">No image available</span>
-                                </div>
-                              );
-                            })()}
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              {listing.title || `${listing.packageType === 'international' ? 'International' : 'Domestic'} Package`}
-                              {listing.agencyData?.verified && (
-                                <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">
-                                  ✅ Verified
-                                </span>
-                              )}
-                            </CardTitle>
-                            <CardDescription className="flex items-center space-x-2">
-                              <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm">
-                                {listing.packageType === 'international' ? ' International' : ' Domestic'}
-                              </span>
-                              <span>•</span>
-                              <span className="font-medium">
-                                {listing.packageType === 'international' 
-                                  ? listing.countryName || 'Country not specified'
-                                  : listing.stateName || 'State not specified'
-                                }
-                              </span>
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{listing.description}</p>
-                            <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                              <span>Duration: {listing.itinerary?.length || 0} days / {listing.itinerary && listing.itinerary.length > 0 ? listing.itinerary.length - 1 : 0} nights</span>
-                              <span className="font-semibold text-blue-600">
-                                Cost: {listing.packageType === 'international' ? '$' : '₹'}{listing.cost || 'N/A'}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                              <span>By {listing.agencyName}</span>
-                              {listing.rating > 0 && (
-                                <span className="flex items-center">
-                                  ⭐ {listing.rating} ({listing.reviewsCount} reviews)
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setViewingListing(listing)}
-                              >
-                                View Details
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => startBooking(listing)}
-                              >
-                                Book Now
-                              </Button>
-                            </div>
-                            <div className="mt-2 text-center">
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="text-xs text-blue-600"
-                                onClick={() => {
-                                  setCurrentChatAgency(listing.agencyId);
-                                  setCurrentChatAgencyName(listing.agencyName);
-                                  setUserActiveSection('chat');
-                                }}
-                              >
-                                💬 Chat Support
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
+                          <ListingCard
+                            key={listing.id}
+                            listing={listing}
+                            onView={setViewingListing}
+                            onBook={startBooking}
+                            onChat={(listingData) => {
+                              setCurrentChatAgency(listingData.agencyId);
+                              setCurrentChatAgencyName(listingData.agencyName);
+                              setUserActiveSection('chat');
+                            }}
+                            variant="user"
+                          />
+                        ))
                     )}
                   </div>
                 </>
@@ -1792,6 +1708,12 @@ export default function Home() {
                             <span className="font-semibold">{bookingListing?.title}</span>
                           </div>
                           <div className="flex justify-between">
+                            <span>Package Type:</span>
+                            <span className={`font-semibold ${bookingListing?.packageType === 'international' ? 'text-blue-600' : 'text-green-600'}`}>
+                              {bookingListing?.packageType === 'international' ? 'International' : 'Domestic'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
                             <span>Travelers:</span>
                             <span>{bookingData.travelers}</span>
                           </div>
@@ -1801,19 +1723,134 @@ export default function Home() {
                           </div>
                           <div className="flex justify-between">
                             <span>Price per person:</span>
-                            <span>${bookingListing?.price}</span>
+                            <span className="font-semibold">
+                              {bookingListing?.packageType === 'international' ? '$' : '₹'}
+                              {(bookingListing?.price || bookingListing?.cost || '0')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Subtotal:</span>
+                            <span className="font-semibold">
+                              {bookingListing?.packageType === 'international' ? '$' : '₹'}
+                              {((parseFloat(bookingListing?.price || bookingListing?.cost || '0') * bookingData.travelers)).toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Service Fee (5%):</span>
+                            <span className="font-semibold">
+                              {bookingListing?.packageType === 'international' ? '$' : '₹'}
+                              {((parseFloat(bookingListing?.price || bookingListing?.cost || '0') * bookingData.travelers * 0.05)).toFixed(2)}
+                            </span>
                           </div>
                           <div className="flex justify-between font-bold text-lg border-t pt-2">
                             <span>Total Amount:</span>
-                            <span>${(parseFloat(bookingListing?.price || '0') * bookingData.travelers).toFixed(2)}</span>
+                            <span className="text-green-600 font-extrabold">
+                              {bookingListing?.packageType === 'international' ? '$' : '₹'}
+                              {((parseFloat(bookingListing?.price || bookingListing?.cost || '0') * bookingData.travelers * 1.05)).toFixed(2)}
+                            </span>
                           </div>
                         </div>
+                        
+                        {/* Additional User Features */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold">Additional Services</h3>
+                          
+                          {/* Travel Insurance */}
+                          <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <input
+                                type="checkbox"
+                                checked={bookingData.insurance}
+                                onChange={(e) => setBookingData({...bookingData, insurance: e.target.checked})}
+                                className="h-4 w-4 text-blue-600"
+                              />
+                              <div>
+                                <div className="font-medium">Travel Insurance</div>
+                                <div className="text-sm text-gray-600">Covers medical emergencies and trip cancellations</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold">
+                                {bookingListing?.packageType === 'international' ? '$' : '₹'}{(bookingData.travelers * 50).toFixed(2)}
+                              </div>
+                              <div className="text-xs text-gray-500">One-time fee</div>
+                            </div>
+                          </div>
+
+                          {/* Airport Transfer */}
+                          <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <input
+                                type="checkbox"
+                                checked={bookingData.paymentMethod === 'pay_later'}
+                                onChange={(e) => setBookingData({...bookingData, paymentMethod: e.target.checked ? 'pay_later' : 'pay_now'})}
+                                className="h-4 w-4 text-blue-600"
+                              />
+                              <div>
+                                <div className="font-medium">Airport Transfer</div>
+                                <div className="text-sm text-gray-600">Pickup and drop from airport</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold">
+                                {bookingListing?.packageType === 'international' ? '$' : '₹'}{(bookingData.travelers * 25).toFixed(2)}
+                              </div>
+                              <div className="text-xs text-gray-500">Round trip</div>
+                            </div>
+                          </div>
+
+                          {/* Special Requirements */}
+                          <div className="space-y-2">
+                            <Label htmlFor="emergencyContact">Emergency Contact</Label>
+                            <Input
+                              id="emergencyContact"
+                              placeholder="Emergency contact name and phone"
+                              value={bookingData.emergencyContact}
+                              onChange={(e) => setBookingData({...bookingData, emergencyContact: e.target.value})}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="dietaryRestrictions">Dietary Restrictions</Label>
+                            <Input
+                              id="dietaryRestrictions"
+                              placeholder="Any dietary restrictions or allergies"
+                              value={bookingData.dietaryRestrictions}
+                              onChange={(e) => setBookingData({...bookingData, dietaryRestrictions: e.target.value})}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="accessibilityNeeds">Accessibility Needs</Label>
+                            <Input
+                              id="accessibilityNeeds"
+                              placeholder="Any mobility or accessibility requirements"
+                              value={bookingData.accessibilityNeeds}
+                              onChange={(e) => setBookingData({...bookingData, accessibilityNeeds: e.target.value})}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="bookingNotes">Additional Notes</Label>
+                            <textarea
+                              id="bookingNotes"
+                              className="w-full p-3 border rounded-lg"
+                              rows={3}
+                              placeholder="Any other special requests or information"
+                              value={bookingData.bookingNotes}
+                              onChange={(e) => setBookingData({...bookingData, bookingNotes: e.target.value})}
+                            />
+                          </div>
+                        </div>
+
                         <div className="bg-blue-50 p-4 rounded-lg">
                           <h4 className="font-semibold text-blue-800 mb-2">Important Notes:</h4>
                           <ul className="text-sm text-blue-700 space-y-1">
                             <li>• Booking will be confirmed within 24 hours</li>
                             <li>• Payment details will be shared after confirmation</li>
                             <li>• You can modify or cancel your booking before payment</li>
+                            <li>• Travel insurance covers medical emergencies up to $10,000</li>
+                            <li>• Airport transfer available 24/7 with advance notice</li>
                           </ul>
                         </div>
                       </div>
@@ -2185,7 +2222,7 @@ export default function Home() {
                 >
                    Listings
                 </button>
-                <button
+                { <button
                   onClick={() => setAgencyActiveSection('overview')}
                   className={`w-full text-left px-4 py-2 rounded-lg ${
                     agencyActiveSection === 'overview'
@@ -2194,8 +2231,8 @@ export default function Home() {
                   }`}
                 >
                    Overview
-                </button>
-                <button
+                </button> }
+                { <button
                   onClick={() => setAgencyActiveSection('analytics')}
                   className={`w-full text-left px-4 py-2 rounded-lg ${
                     agencyActiveSection === 'analytics'
@@ -2204,8 +2241,8 @@ export default function Home() {
                   }`}
                 >
                    Analytics
-                </button>
-                <button
+                </button> }
+                {/* <button
                   onClick={() => setAgencyActiveSection('bookings')}
                   className={`w-full text-left px-4 py-2 rounded-lg ${
                     agencyActiveSection === 'bookings'
@@ -2214,8 +2251,8 @@ export default function Home() {
                   }`}
                 >
                    Bookings
-                </button>
-                <button
+                </button> */}
+                { <button
                   onClick={() => setAgencyActiveSection('revenue')}
                   className={`w-full text-left px-4 py-2 rounded-lg ${
                     agencyActiveSection === 'revenue'
@@ -2224,8 +2261,8 @@ export default function Home() {
                   }`}
                 >
                    Revenue
-                </button>
-                <button
+                </button> }
+                {<button
                   onClick={() => setAgencyActiveSection('chat')}
                   className={`w-full text-left px-4 py-2 rounded-lg ${
                     agencyActiveSection === 'chat'
@@ -2234,8 +2271,8 @@ export default function Home() {
                   }`}
                 >
                    Customer Chat
-                </button>
-                <button
+                </button> }
+                { <button
                   onClick={() => setAgencyActiveSection('settings')}
                   className={`w-full text-left px-4 py-2 rounded-lg ${
                     agencyActiveSection === 'settings'
@@ -2244,7 +2281,7 @@ export default function Home() {
                   }`}
                 >
                    Settings
-                </button>
+                </button> }
               </div>
             </nav>
           </div>
