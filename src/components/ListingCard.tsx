@@ -35,7 +35,7 @@ export default function ListingCard({
   variant = 'user',
   showCompare = true
 }: ListingCardProps) {
-  const { addToComparison, isInComparison, canAddMore } = useComparison();
+  const { addToComparison, removeFromComparison, isInComparison, canAddMore } = useComparison();
   const [showCompareToast, setShowCompareToast] = useState(false);
   const [compareToastMessage, setCompareToastMessage] = useState('');
 
@@ -258,7 +258,8 @@ export default function ListingCard({
   const handleCompareToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isInComparison(listing.id)) {
-      setCompareToastMessage('Already in comparison!');
+      removeFromComparison(listing.id);
+      setCompareToastMessage('Removed from compare');
       setShowCompareToast(true);
       setTimeout(() => setShowCompareToast(false), 2000);
     } else if (!canAddMore) {
@@ -281,8 +282,8 @@ export default function ListingCard({
         hotelTypes: listing.hotelTypes,
         inclusions: listing.inclusions,
         exclusions: listing.exclusions,
-        agencyName: listing.agencyName,
-        agencyId: listing.agencyId,
+        agencyName: listing.agencyName || listing.agencyData?.companyName || listing.companyName || listing.agencyData?.name || '',
+        agencyId: listing.agencyId || listing.userId || '',
         agencyData: listing.agencyData,
         photos: listing.photos,
         rating: listing.rating,
@@ -302,31 +303,46 @@ export default function ListingCard({
     <div className="bg-white/95 backdrop-blur-sm rounded-[18px] shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group flex flex-col h-full w-full max-w-[420px] mx-auto border border-slate-100/90 min-w-0">
       {/* Compare Toast */}
       {showCompareToast && (
-        <div className="absolute top-4 right-4 z-20 animate-in fade-in duration-200">
-          <div className="bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg">
+        <div className="absolute top-4 right-4 z-30 animate-in fade-in duration-200 pointer-events-none">
+          <div className="bg-gray-900/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg shadow-lg">
             {compareToastMessage}
           </div>
         </div>
       )}
 
-      {/* Status Badge */}
-      {!listing.approved && (
-        <div className="absolute top-3 right-3 z-20">
+      {/* Top Right Action & Badges Overlay */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+        {/* Status Badge */}
+        {!listing.approved && (
           <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 shadow-sm px-2 py-0.5">
             Pending
           </Badge>
-        </div>
-      )}
+        )}
 
-      {/* Verification badge */}
-      {listing.agencyData?.verified && listing.approved && (
-        <div className="absolute top-3 right-3 z-20">
+        {/* Verification badge */}
+        {listing.agencyData?.verified && listing.approved && (
           <Badge variant="outline" className="bg-white/90 backdrop-blur-md text-emerald-700 border-white/40 text-[10px] px-2 py-1 shadow-sm flex items-center gap-1">
             <ShieldCheck className="h-3 w-3 text-emerald-600" />
             Verified
           </Badge>
-        </div>
-      )}
+        )}
+
+        {/* Compare Button on Card */}
+        {variant === 'user' && showCompare && (
+          <button
+            onClick={handleCompareToggle}
+            className={`p-1.5 rounded-full backdrop-blur-md transition-all duration-200 border shadow-sm flex items-center justify-center cursor-pointer active:scale-90 ${
+              isInComparison(listing.id)
+                ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/30 ring-2 ring-blue-300'
+                : 'bg-white/85 hover:bg-white text-slate-700 hover:text-blue-600 border-white/60 hover:shadow'
+            }`}
+            title={isInComparison(listing.id) ? 'In Comparison (Click to remove)' : 'Add to Compare'}
+            aria-label={isInComparison(listing.id) ? 'In Comparison' : 'Add to Compare'}
+          >
+            <Scale className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
 
       {/* Image Section (Top, full width) */}
       <div className="relative w-full h-[190px] sm:h-[220px] bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">

@@ -6,6 +6,7 @@ import PackageDetailView from '@/components/PackageDetailView';
 import AuthModal from '@/components/AuthModal';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useComparison } from '@/contexts/ComparisonContext';
 import { getDbInstance } from '@/lib/firebase';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 
@@ -13,6 +14,7 @@ import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 export default function PackageClientView({ listing }: { listing: any }) {
   const router = useRouter();
   const { user, userData, signIn, register, signInWithGoogle, signOut } = useAuth();
+  const { comparisonList } = useComparison();
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [enrichedListing, setEnrichedListing] = useState(listing);
@@ -110,6 +112,23 @@ export default function PackageClientView({ listing }: { listing: any }) {
     });
   };
   
+  // Auto-redirect to chat after user logs in if a pending chat target was saved
+  useEffect(() => {
+    if (user) {
+      try {
+        const pendingRaw = sessionStorage.getItem('pending_chat_target');
+        if (pendingRaw) {
+          const pending = JSON.parse(pendingRaw);
+          if (pending && pending.agencyId) {
+            router.push(`/?action=chat&agencyId=${pending.agencyId}&agencyName=${encodeURIComponent(pending.agencyName || 'Travel Agency')}`);
+          }
+        }
+      } catch (e) {
+        console.error('Error redirecting pending chat in PackageClientView:', e);
+      }
+    }
+  }, [user, router]);
+
   return (
     <div className="min-h-screen flex flex-col relative">
       {/* Mobile Slide-in Navigation Sidebar Drawer */}
@@ -240,7 +259,11 @@ export default function PackageClientView({ listing }: { listing: any }) {
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  router.push('/?section=chat');
+                  if (!user) {
+                    setShowAuthModal(true);
+                  } else {
+                    router.push('/?section=chat');
+                  }
                 }}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
               >
@@ -355,6 +378,20 @@ export default function PackageClientView({ listing }: { listing: any }) {
               Explore Packages
             </button>
 
+            {/* Compare Link */}
+            <button
+              onClick={() => router.push('/?section=compare')}
+              className="hidden sm:inline-flex text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors items-center gap-1.5"
+            >
+              <Scale className="h-3.5 w-3.5 text-slate-600" />
+              <span>Compare</span>
+              {comparisonList.length > 0 && (
+                <span className="bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full ml-0.5">
+                  {comparisonList.length}
+                </span>
+              )}
+            </button>
+
             {user && userData ? (
               <div className="flex items-center gap-2 sm:gap-3">
                 {userData.role === 'agency' && (
@@ -404,9 +441,23 @@ export default function PackageClientView({ listing }: { listing: any }) {
           listing={enrichedListing} 
           onBack={() => router.push('/')}
           onBook={() => router.push(`/?action=book&packageId=${enrichedListing.id}`)}
-          onChat={() => router.push(`/?action=chat&agencyId=${enrichedListing.agencyId}&agencyName=${encodeURIComponent(enrichedListing.agencyName || 'Travel Agency')}`)}
+          onChat={() => {
+            const agencyId = enrichedListing.agencyId || enrichedListing.userId;
+            const agencyName = enrichedListing.agencyName || 'Travel Agency';
+            if (!user) {
+              sessionStorage.setItem('pending_chat_target', JSON.stringify({
+                agencyId,
+                agencyName,
+                packageTitle: enrichedListing.title || ''
+              }));
+              setShowAuthModal(true);
+              return;
+            }
+            router.push(`/?action=chat&agencyId=${agencyId}&agencyName=${encodeURIComponent(agencyName)}`);
+          }}
           onWishlist={handleWishlistToggle}
           isWishlisted={wishlist.includes(enrichedListing?.id)}
+          onRequireLogin={() => setShowAuthModal(true)}
         />
       </div>
 

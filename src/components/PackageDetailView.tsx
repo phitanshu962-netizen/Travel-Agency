@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useComparison } from '@/contexts/ComparisonContext';
 import { optimizeImageUrl, preloadImage } from '@/lib/imageOptimization';
 import { getDbInstance } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { event } from '@/lib/gtag';
 import {
@@ -53,6 +53,7 @@ interface PackageDetailViewProps {
   onWishlist?: (listingId: string) => void;
   isWishlisted?: boolean;
   isPreview?: boolean;
+  onRequireLogin?: () => void;
 }
 
 // Sample FAQ data
@@ -343,7 +344,8 @@ export default function PackageDetailView({
   onChat,
   onWishlist,
   isWishlisted,
-  isPreview = false
+  isPreview = false,
+  onRequireLogin
 }: PackageDetailViewProps) {
   const { user } = useAuth();
   const [expandedDays, setExpandedDays] = useState<number[]>([]);
@@ -371,6 +373,63 @@ export default function PackageDetailView({
     photoUrl: ''
   });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const handleRequireLogin = () => {
+    if (onRequireLogin) {
+      onRequireLogin();
+    } else {
+      window.dispatchEvent(new CustomEvent('tripdm:open-auth', { detail: { tab: 'login' } }));
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      handleRequireLogin();
+      return;
+    }
+    const listingId = listing?.id || listing?.docId;
+    if (!listingId || !newReview.comment.trim()) return;
+
+    setIsSubmittingReview(true);
+    try {
+      const reviewPayload = {
+        listingId,
+        packageTitle: listing.title || 'Travel Package',
+        userId: user.uid,
+        author: newReview.name.trim() || user.displayName || user.email?.split('@')[0] || 'Verified Traveller',
+        location: newReview.travelledFrom.trim() || 'India',
+        rating: Number(newReview.rating) || 5,
+        tripType: newReview.tripType || 'Family',
+        text: newReview.comment.trim(),
+        date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        verified: true,
+        createdAt: Date.now(),
+        images: newReview.photoUrl ? [newReview.photoUrl] : []
+      };
+
+      const db = getDbInstance();
+      if (db) {
+        await addDoc(collection(db, 'reviews'), reviewPayload);
+        setUserDbReviews(prev => [reviewPayload, ...prev]);
+      }
+      setShowWriteReviewModal(false);
+      setNewReview({
+        name: '',
+        travelledFrom: '',
+        rating: 5,
+        tripType: 'Family',
+        comment: '',
+        photoUrl: ''
+      });
+      alert('Thank you! Your review has been submitted.');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review. Please try again.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // Sticky bar observer: trigger as soon as "Offered By" section scrolls out of view
   useEffect(() => {
@@ -419,6 +478,49 @@ export default function PackageDetailView({
     };
     fetchPackageReviews();
   }, [listing?.id, listing?.docId]);
+
+  // Dynamic Agency resolution
+  const [fetchedAgencyData, setFetchedAgencyData] = useState<any>(listing?.agencyData || null);
+  const [fetchedAgencyName, setFetchedAgencyName] = useState<string>(
+    listing?.agencyName || listing?.agencyData?.companyName || listing?.companyName || ''
+  );
+
+  useEffect(() => {
+    setFetchedAgencyData(listing?.agencyData || null);
+    setFetchedAgencyName(listing?.agencyName || listing?.agencyData?.companyName || listing?.companyName || '');
+  }, [listing?.id, listing?.agencyId, listing?.agencyName, listing?.agencyData]);
+
+  useEffect(() => {
+    async function fetchAgency() {
+      const agencyId = listing?.agencyId || listing?.userId;
+      if (!agencyId) return;
+      const dbInstance = getDbInstance();
+      if (dbInstance) {
+        try {
+          const agencyDoc = await getDoc(doc(dbInstance, 'users', agencyId));
+          if (agencyDoc.exists()) {
+            const data = agencyDoc.data();
+            setFetchedAgencyData(data);
+            const resolvedName = data.companyName || data.name || data.agencyName || data.displayName || '';
+            if (resolvedName) {
+              setFetchedAgencyName(resolvedName);
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching agency in PackageDetailView:', e);
+        }
+      }
+    }
+
+    if (!fetchedAgencyName || fetchedAgencyName === 'Travel Agency' || fetchedAgencyName === 'Verified Agency' || !fetchedAgencyData) {
+      fetchAgency();
+    }
+  }, [listing?.id, listing?.agencyId, listing?.userId, fetchedAgencyName, fetchedAgencyData]);
+
+  const activeAgencyData = fetchedAgencyData || listing?.agencyData;
+  const activeAgencyName = (fetchedAgencyName && fetchedAgencyName !== 'Travel Agency' && fetchedAgencyName !== 'Verified Agency')
+    ? fetchedAgencyName
+    : (activeAgencyData?.companyName || activeAgencyData?.name || activeAgencyData?.displayName || listing?.agencyName || 'Travel Agency');
 
   // Get all images from placesCovered, photos, and itinerary (deduplicated by base URL)
   const getAllImages = () => {
@@ -575,7 +677,7 @@ export default function PackageDetailView({
   };
 
   const reviewsData = getReviewsData(listing, userDbReviews);
-  const { addToComparison, isInComparison, canAddMore, comparisonList } = useComparison();
+  const { addToComparison, removeFromComparison, isInComparison, canAddMore, comparisonList } = useComparison();
 
   const duration = listing.itinerary?.length || listing.duration || 0;
   const nights = duration > 0 ? duration - 1 : 0;
@@ -1004,7 +1106,8 @@ export default function PackageDetailView({
                   <button
                     onClick={() => {
                       if (isInComparison(listing.id)) {
-                        setCompareToastMessage('This package is already in your comparison list!');
+                        removeFromComparison(listing.id);
+                        setCompareToastMessage('Removed from comparison');
                         setShowCompareToast(true);
                         setTimeout(() => setShowCompareToast(false), 3000);
                       } else if (!canAddMore) {
@@ -1029,8 +1132,8 @@ export default function PackageDetailView({
                           hotelTypes: listing.hotelTypes,
                           inclusions: listing.inclusions,
                           exclusions: listing.exclusions,
-                          agencyName: listing.agencyName,
-                          agencyId: listing.agencyId,
+                          agencyName: listing.agencyName || listing.agencyData?.companyName || listing.companyName || '',
+                          agencyId: listing.agencyId || listing.userId || '',
                           agencyData: listing.agencyData,
                           photos: listing.photos,
                           rating: listing.rating,
@@ -1044,8 +1147,8 @@ export default function PackageDetailView({
                         }
                       }
                     }}
-                    className={`flex items-center justify-center gap-1.5 backdrop-blur-md p-2 sm:px-3 sm:py-1.5 rounded-full text-xs font-medium transition-all border active:scale-90 shadow-sm min-w-[34px] min-h-[34px] ${isInComparison(listing.id) ? 'bg-blue-500 text-white border-blue-400' : 'text-white bg-black/40 hover:bg-black/60 border-white/25'}`}
-                    title={isInComparison(listing.id) ? 'Comparing' : 'Compare'}
+                    className={`flex items-center justify-center gap-1.5 backdrop-blur-md p-2 sm:px-3 sm:py-1.5 rounded-full text-xs font-medium transition-all border active:scale-90 shadow-sm min-w-[34px] min-h-[34px] ${isInComparison(listing.id) ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/30' : 'text-white bg-black/40 hover:bg-black/60 border-white/25'}`}
+                    title={isInComparison(listing.id) ? 'Comparing (Click to remove)' : 'Compare'}
                     aria-label={isInComparison(listing.id) ? 'Comparing package' : 'Compare package'}
                   >
                     <Scale className="h-4 w-4" />
@@ -1342,10 +1445,10 @@ export default function PackageDetailView({
                 </p>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full border border-stone-200 overflow-hidden shrink-0 bg-orange-50 flex items-center justify-center">
-                    {(listing.agencyData?.logoUrl || listing.agencyData?.agencyLogo || listing.agencyData?.avatarUrl) ? (
+                    {(activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl) ? (
                       <img
-                        src={listing.agencyData?.logoUrl || listing.agencyData?.agencyLogo || listing.agencyData?.avatarUrl}
-                        alt={listing.agencyName || 'Agency Logo'}
+                        src={activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl}
+                        alt={activeAgencyName}
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
@@ -1358,9 +1461,9 @@ export default function PackageDetailView({
                       className="font-bold text-gray-900 text-[15px] leading-tight"
                       style={{ fontFamily: "'DM Sans', sans-serif" }}
                     >
-                      {listing.agencyName || 'Travel Agency'}
+                      {activeAgencyName}
                     </p>
-                    {listing.agencyData?.verified && (
+                    {activeAgencyData?.verified && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mt-1">
                         <ShieldCheck className="h-3 w-3" /> Verified Agency
                       </span>
@@ -1370,8 +1473,12 @@ export default function PackageDetailView({
                 {!isPreview && onChat && (
                   <button
                     onClick={() => {
-                      console.log('Chat with Agency button clicked in PackageDetailView, listing:', listing);
-                      onChat(listing);
+                      onChat({
+                        ...listing,
+                        agencyName: activeAgencyName,
+                        agencyData: activeAgencyData,
+                        agencyId: listing.agencyId || listing.userId,
+                      });
                     }}
                     className="btn-wavy-chat w-full flex items-center justify-center gap-2.5 text-white font-bold py-3 text-sm cursor-pointer border border-amber-300/40 rounded-lg shadow-lg"
                     style={{ fontFamily: "'DM Sans', sans-serif" }}
@@ -1462,11 +1569,7 @@ export default function PackageDetailView({
                 </button>
               ) : (
                 <button
-                  onClick={() => {
-                    const authBtn = document.querySelector('header button');
-                    if (authBtn) (authBtn as HTMLButtonElement).click();
-                    else alert("Please login to write a review");
-                  }}
+                  onClick={handleRequireLogin}
                   className="flex items-center gap-1.5 text-sm font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-lg cursor-pointer transition-all"
                 >
                   <User className="h-4 w-4" /> Please login to review
@@ -1685,11 +1788,7 @@ export default function PackageDetailView({
                       </button>
                     ) : (
                       <button
-                        onClick={() => {
-                          const authBtn = document.querySelector('header button');
-                          if (authBtn) (authBtn as HTMLButtonElement).click();
-                          else alert("Please login to write a review");
-                        }}
+                        onClick={handleRequireLogin}
                         className="inline-flex items-center gap-2 text-sm font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 px-5 py-2.5 rounded-lg cursor-pointer transition-all"
                       >
                         <User className="h-4 w-4" /> Please login to review
@@ -1742,10 +1841,10 @@ export default function PackageDetailView({
           <div className="flex items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-full border border-stone-200 overflow-hidden shrink-0 bg-orange-50 flex items-center justify-center shadow-xs">
-                {(listing.agencyData?.logoUrl || listing.agencyData?.agencyLogo || listing.agencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl) ? (
+                {(activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl) ? (
                   <img
-                    src={listing.agencyData?.logoUrl || listing.agencyData?.agencyLogo || listing.agencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl}
-                    alt={listing.agencyName || 'Agency Logo'}
+                    src={activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl}
+                    alt={activeAgencyName}
                     className="w-full h-full object-cover"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
@@ -1764,7 +1863,7 @@ export default function PackageDetailView({
                   className="font-bold text-gray-900 text-xs sm:text-sm leading-tight truncate block"
                   style={{ fontFamily: "'DM Sans', sans-serif" }}
                 >
-                  {listing.agencyName || 'Travel Agency'}
+                  {activeAgencyName}
                 </span>
               </div>
             </div>
@@ -1785,12 +1884,17 @@ export default function PackageDetailView({
               event({
                 action: 'chat_agent_click',
                 category: 'chat',
-                label: listing.agencyName || listing.title || listing.id,
+                label: activeAgencyName || listing.title || listing.id,
               });
               if (onChat) {
-                onChat(listing);
+                onChat({
+                  ...listing,
+                  agencyName: activeAgencyName,
+                  agencyData: activeAgencyData,
+                  agencyId: listing.agencyId || listing.userId,
+                });
               } else {
-                window.location.href = `/?action=chat&agencyId=${listing.agencyId || listing.userId}&agencyName=${encodeURIComponent(listing.agencyName || 'Travel Agency')}`;
+                window.location.href = `/?action=chat&agencyId=${listing.agencyId || listing.userId}&agencyName=${encodeURIComponent(activeAgencyName)}`;
               }
             }}
             className="btn-wavy-chat w-full flex items-center justify-center gap-2 text-white font-bold py-3 px-4 text-sm border border-amber-300/40 cursor-pointer rounded-xl"
@@ -1816,18 +1920,23 @@ export default function PackageDetailView({
               event({
                 action: 'chat_agent_click',
                 category: 'chat',
-                label: listing.agencyName || listing.title || listing.id,
+                label: activeAgencyName || listing.title || listing.id,
               });
-              onChat(listing);
+              onChat({
+                ...listing,
+                agencyName: activeAgencyName,
+                agencyData: activeAgencyData,
+                agencyId: listing.agencyId || listing.userId,
+              });
             }}
             className="btn-wavy-chat group flex items-center gap-3 text-white p-2 pr-5 border border-amber-300/50 shadow-[0_10px_30px_rgba(234,88,12,0.45)] backdrop-blur-xl cursor-pointer rounded-lg"
           >
             {/* Agency Logo Avatar */}
             <div className="w-10 h-10 rounded border-2 border-white/90 bg-white shrink-0 flex items-center justify-center shadow-md overflow-hidden" style={{ borderRadius: '6px' }}>
-              {(listing.agencyData?.logoUrl || listing.agencyData?.agencyLogo || listing.agencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl) ? (
+              {(activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl) ? (
                 <img
-                  src={listing.agencyData?.logoUrl || listing.agencyData?.agencyLogo || listing.agencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl}
-                  alt={listing.agencyName || 'Agency Logo'}
+                  src={activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl}
+                  alt={activeAgencyName}
                   className="w-full h-full object-cover object-center"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
@@ -1839,7 +1948,7 @@ export default function PackageDetailView({
             {/* Professional Agency & Action Text */}
             <div className="flex flex-col text-left">
               <span className="text-[11px] font-extrabold text-amber-100 truncate max-w-[130px] leading-tight">
-                {listing.agencyName || 'Travel Agency'}
+                {activeAgencyName}
               </span>
               <span className="text-xs font-black text-white flex items-center gap-1.5 leading-snug drop-shadow-sm">
                 <span>Chat with Agency</span>
@@ -1920,14 +2029,115 @@ export default function PackageDetailView({
           className="fixed inset-0 bg-black/92 z-[300] flex items-center justify-center p-4 animate-in fade-in"
           onClick={() => setSelectedGalleryImage(null)}
         >
-          <button
-            onClick={() => setSelectedGalleryImage(null)}
-            className="absolute top-6 right-6 text-white hover:text-stone-300 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors cursor-pointer"
-          >
-            <X className="h-6 w-6" />
-          </button>
           <div className="max-w-4xl max-h-[85vh] overflow-hidden rounded-xl" onClick={e => e.stopPropagation()}>
             <img src={selectedGalleryImage} alt={locationName ? `${locationName} - ${listing.title || 'Travel Package'} - Full size photo` : "Full size photo"} className="w-full h-full object-contain" />
+          </div>
+        </div>
+      )}
+
+      {/* ─── WRITE REVIEW MODAL ─────────────────────────────────── */}
+      {showWriteReviewModal && (
+        <div className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-5 border border-stone-200 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Write a Review</h3>
+                <p className="text-xs text-stone-500 mt-0.5">{listing.title || 'Travel Package'}</p>
+              </div>
+              <button
+                onClick={() => setShowWriteReviewModal(false)}
+                className="text-stone-400 hover:text-stone-600 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              {/* Rating Star Selector */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Rating</label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
+                      className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                    >
+                      <Star
+                        className={`h-7 w-7 ${
+                          newReview.rating >= star
+                            ? 'text-amber-400 fill-amber-400'
+                            : 'text-stone-200'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="text-xs font-bold text-amber-600 ml-2">
+                    {newReview.rating} out of 5
+                  </span>
+                </div>
+              </div>
+
+              {/* Trip Type */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Your Name</label>
+                  <input
+                    type="text"
+                    value={newReview.name}
+                    onChange={e => setNewReview(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder={user?.displayName || 'Your Name'}
+                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Trip Type</label>
+                  <select
+                    value={newReview.tripType}
+                    onChange={e => setNewReview(prev => ({ ...prev, tripType: e.target.value }))}
+                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
+                  >
+                    <option value="Family">Family</option>
+                    <option value="Couple">Couple</option>
+                    <option value="Friends">Friends</option>
+                    <option value="Solo">Solo</option>
+                    <option value="Business">Business</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Review Text */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Your Review</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={newReview.comment}
+                  onChange={e => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
+                  placeholder="Share details about the tour, hotels, driver, food, and overall itinerary experience..."
+                  className="w-full text-xs p-3 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWriteReviewModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReview || !newReview.comment.trim()}
+                  className="px-5 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

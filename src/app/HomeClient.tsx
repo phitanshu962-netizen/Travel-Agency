@@ -373,15 +373,26 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
   const sectionParam = searchParams.get('section');
   
   useEffect(() => {
+    if (loading) return;
     if (sectionParam) {
       if (sectionParam === 'compare') {
         setUserActiveSection('listings');
         setShowComparison(true);
+      } else if (sectionParam === 'chat' || sectionParam === 'messages') {
+        if (!user) {
+          setAuthModalTab('login');
+          setShowAuthModal(true);
+        } else {
+          setUserActiveSection('chat');
+        }
       } else {
         setUserActiveSection(sectionParam);
       }
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     }
-  }, [sectionParam]);
+  }, [sectionParam, user, loading]);
 
   useEffect(() => {
     const fetchPricingConfig = async () => {
@@ -780,6 +791,7 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
 
   // Deep linking for Chat, Book, and Wishlist from SEO routes
   useEffect(() => {
+    if (loading) return;
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const chatAgencyId = urlParams.get('chat');
@@ -789,8 +801,17 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
       let shouldCleanUrl = false;
 
       if (chatAgencyId) {
-        setUserActiveSection('chat');
-        setCurrentChatAgency(chatAgencyId);
+        if (!user) {
+          sessionStorage.setItem('pending_chat_target', JSON.stringify({
+            agencyId: chatAgencyId,
+            agencyName: 'Travel Agency'
+          }));
+          setAuthModalTab('login');
+          setShowAuthModal(true);
+        } else {
+          setUserActiveSection('chat');
+          setCurrentChatAgency(chatAgencyId);
+        }
         shouldCleanUrl = true;
       }
       
@@ -815,7 +836,7 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
-  }, [listings]);
+  }, [listings, user, loading]);
   
   // Dynamic Scroll Listener for sticky header scroll animations
   const [isScrolled, setIsScrolled] = useState(false);
@@ -872,6 +893,7 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
 
   // Handle deep linking from PackageClientView
   useEffect(() => {
+    if (loading) return;
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const view = params.get('view');
@@ -885,25 +907,44 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
       }
 
       if (action === 'chat' && agencyId) {
-        setUserActiveSection('chat');
-        setCurrentChatAgency(agencyId);
-        setCurrentChatAgencyName(agencyName || 'Travel Agency');
+        if (!user) {
+          sessionStorage.setItem('pending_chat_target', JSON.stringify({
+            agencyId,
+            agencyName: agencyName || 'Travel Agency'
+          }));
+          setAuthModalTab('login');
+          setShowAuthModal(true);
+        } else {
+          setUserActiveSection('chat');
+          setCurrentChatAgency(agencyId);
+          setCurrentChatAgencyName(agencyName || 'Travel Agency');
+        }
         window.history.replaceState({}, '', window.location.pathname);
       } else if (view === 'compare') {
         setUserActiveSection('listings');
         setShowComparison(true);
         window.history.replaceState({}, '', window.location.pathname);
       } else if (view === 'messages') {
-        setUserActiveSection('chat');
+        if (!user) {
+          setAuthModalTab('login');
+          setShowAuthModal(true);
+        } else {
+          setUserActiveSection('chat');
+        }
         setShowComparison(false);
         window.history.replaceState({}, '', window.location.pathname);
       } else if (view === 'wishlist' || view === 'support' || view === 'profile') {
-        setUserActiveSection(view);
+        if (!user && (view === 'wishlist' || view === 'profile')) {
+          setAuthModalTab('login');
+          setShowAuthModal(true);
+        } else {
+          setUserActiveSection(view);
+        }
         setShowComparison(false);
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
-  }, []);
+  }, [user, loading]);
 
   // Profile States
   const [profileName, setProfileName] = useState('');
@@ -1402,26 +1443,71 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
     migrateExistingAgency();
   }, [user?.uid, userData?.role, userData?.plan]);
 
-  // Intercept chat request and direct to chat
+  // Auto-resume pending chat once user logs in
+  useEffect(() => {
+    if (user) {
+      try {
+        const pending = sessionStorage.getItem('pending_chat_target');
+        if (pending) {
+          sessionStorage.removeItem('pending_chat_target');
+          const target = JSON.parse(pending);
+          if (target.agencyId) {
+            setCurrentChatAgency(target.agencyId);
+            setCurrentChatAgencyName(target.agencyName || 'Travel Agency');
+            const matchedConv = userConversations.find(c => c.agencyId === target.agencyId);
+            setCurrentChatAgencyIsOnline(matchedConv ? matchedConv.isOnline : false);
+            setUserActiveSection('chat');
+            setShowComparison(false);
+            setViewingListing(null);
+          }
+        }
+      } catch (e) {
+        console.error('Error opening pending chat target:', e);
+      }
+    }
+  }, [user]);
+
+  // Intercept chat request and direct to chat (requiring login first)
   const handleInitiateChat = (listingData: any) => {
     console.log('handleInitiateChat called with listing:', listingData);
+
+    const agencyId = listingData?.agencyId || listingData?.userId;
+    const agencyName = listingData?.agencyName || 'Travel Agency';
+
+    // Check if user is logged in
+    if (!user) {
+      if (agencyId) {
+        sessionStorage.setItem('pending_chat_target', JSON.stringify({
+          agencyId,
+          agencyName,
+          packageTitle: listingData?.title || ''
+        }));
+      }
+      setAuthModalTab('login');
+      setShowAuthModal(true);
+      return;
+    }
+
     // Check if the user is logged in as an agency (agencies don't need to initiate chat with themselves)
     const isAgency = userData && userData.role !== 'user';
-    if (user && isAgency) {
+    if (isAgency) {
       alert('Only travelers can initiate chats with agencies.');
       return;
     }
 
-    const agencyId = listingData.agencyId;
-    const agencyName = listingData.agencyName || 'Travel Agency';
+    if (!agencyId) {
+      alert('Unable to identify agency for this package.');
+      return;
+    }
 
-    // Direct redirect without unlock requirements
+    // Direct redirect
     setCurrentChatAgency(agencyId);
     setCurrentChatAgencyName(agencyName);
     const matchedConv = userConversations.find(c => c.agencyId === agencyId);
     setCurrentChatAgencyIsOnline(matchedConv ? matchedConv.isOnline : false);
     setUserActiveSection('chat');
     setViewingListing(null);
+    setShowComparison(false);
   };
 
   // Deduct credits/chats and unlock the customer connection for the agency
@@ -1719,7 +1805,7 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
   };
 
   // Comparison functionality
-  const { comparisonList, clearComparison } = useComparison();
+  const { comparisonList, removeFromComparison, clearComparison } = useComparison();
 
   // Fetch admin custom quick replies
   useEffect(() => {
@@ -4452,6 +4538,12 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                   {/* Messages */}
                   <button
                     onClick={() => {
+                      if (!user) {
+                        setAuthModalTab('login');
+                        setShowAuthModal(true);
+                        setMobileMenuOpen(false);
+                        return;
+                      }
                       setFromSection(userActiveSection);
                       setUserActiveSection('chat');
                       setMobileMenuOpen(false);
@@ -4650,6 +4742,11 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                 <span
                   className="cursor-pointer text-[15px] font-medium text-slate-800 flex items-center gap-1.5 select-none"
                   onClick={() => {
+                    if (!user) {
+                      setAuthModalTab('login');
+                      setShowAuthModal(true);
+                      return;
+                    }
                     setFromSection(userActiveSection);
                     setUserActiveSection('chat');
                   }}
@@ -4798,6 +4895,11 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                 {/* Messages Icon */}
                 <button
                   onClick={() => {
+                    if (!user) {
+                      setAuthModalTab('login');
+                      setShowAuthModal(true);
+                      return;
+                    }
                     setFromSection(userActiveSection);
                     setUserActiveSection('chat');
                   }}
@@ -4890,7 +4992,7 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
             }`}
             id="user-dashboard-scroll-container"
           >
-            <main className={`${userActiveSection === 'chat' ? 'w-full h-full flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden !p-0 !max-w-none' : (userActiveSection === 'profile' || userActiveSection === 'comparison' || (showComparison && userActiveSection === 'listings') || userActiveSection === 'wishlist' || userActiveSection === 'listings') ? 'w-full max-w-[1600px] mx-auto px-4 sm:px-8' : 'px-6 max-w-7xl mx-auto w-full'} ${userActiveSection === 'chat' ? '' : (userActiveSection === 'wishlist' && wishlist.length === 0) ? 'pb-0' : (userActiveSection === 'comparison' || (showComparison && userActiveSection === 'listings') || userActiveSection === 'profile') ? 'pb-0' : 'pb-10'}`}>
+            <main className={`${(userActiveSection === 'chat' || (showComparison && userActiveSection === 'listings')) ? 'w-full flex-1 flex flex-col min-h-0 min-w-0 !p-0 !max-w-none' : (userActiveSection === 'profile' || userActiveSection === 'comparison' || userActiveSection === 'wishlist' || userActiveSection === 'listings') ? 'w-full max-w-[1600px] mx-auto px-4 sm:px-8' : 'px-6 max-w-7xl mx-auto w-full'} ${userActiveSection === 'chat' ? '' : (userActiveSection === 'wishlist' && wishlist.length === 0) ? 'pb-0' : (userActiveSection === 'comparison' || (showComparison && userActiveSection === 'listings') || userActiveSection === 'profile') ? 'pb-0' : 'pb-10'}`}>
               {/* Header logic adjusted for non-listings sections (excludes bookings and profile which have their own layouts) */}
               {userActiveSection !== 'listings' && userActiveSection !== 'bookings' && userActiveSection !== 'profile' && userActiveSection !== 'comparison' && userActiveSection !== 'wishlist' && userActiveSection !== 'chat' && (
                 <div className="mb-6 mt-6 px-6 max-w-7xl mx-auto flex justify-between items-center border-b pb-4 border-gray-200">
@@ -4914,53 +5016,6 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
 
               {userActiveSection === 'listings' && !viewingListing && !showBookingForm && !showComparison && (
                 <div className="relative z-10 w-full pt-4">
-
-                  {/* Comparison Bar */}
-                  {comparisonList.length > 0 && (
-                    <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-md">
-                      <CardContent className="p-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                              <Scale className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">
-                                Comparing {comparisonList.length} of 3 packages
-                              </p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {comparisonList.map(pkg => (
-                                  <span key={pkg.id} className="bg-white px-2 py-0.5 rounded text-xs border border-blue-200 truncate max-w-[150px]">
-                                    {pkg.title ? `${pkg.title.slice(0, 25)}${pkg.title.length > 25 ? '...' : ''}` : 'Untitled Package'}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 w-full sm:w-auto">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setUserActiveSection('listings');
-                                setShowComparison(true);
-                              }}
-                              className="flex-1 sm:flex-none"
-                            >
-                              Compare Now ({comparisonList.length})
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={clearComparison}
-                              className="flex-1 sm:flex-none"
-                            >
-                              Clear
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
 
                   {/* Compute active filter count & summary for mobile button */}
                   {(() => {
@@ -4993,7 +5048,7 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                           <div className="flex gap-2 sm:gap-3.5 items-center justify-center px-2 overflow-x-auto horizontal-scroll-nav scrollbar-hide max-w-full">
                             {[
                               { id: 'all_categories', label: 'Categories', type: 'categories', filter: null },
-                              { id: 'all_packages', label: 'All Packages', type: 'all', filter: null, hidden: true },
+                              { id: 'all_packages', label: 'All Packages', type: 'all', filter: null, hidden: dashboardViewMode !== 'all' },
                               { id: 'domestic_tab', label: 'Domestic', type: 'all', filter: { category: 'domestic', title: 'Domestic Packages' } },
                               { id: 'intl_tab', label: 'International', type: 'all', filter: { category: 'international', title: 'International Packages' } },
                               { id: 'family_tab', label: 'Family', type: 'all', filter: { category: 'tourCategory', subcategory: 'Family Tour', title: 'Tour by Category - Family Tour' } },
@@ -5686,12 +5741,17 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                   onChat={handleInitiateChat}
                   onWishlist={handleWishlistToggle}
                   isWishlisted={wishlist.includes(viewingListing.id)}
+                  onRequireLogin={() => {
+                    setAuthModalTab('login');
+                    setShowAuthModal(true);
+                  }}
                 />
               )}
 
               {/* Package Comparison View */}
               {showComparison && userActiveSection === 'listings' && (
                 <PackageComparison
+                  listings={listings}
                   onBack={() => {
                     const returnUrl = sessionStorage.getItem('tripdm_return_url');
                     if (returnUrl) {
@@ -5699,9 +5759,27 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                       window.location.href = returnUrl;
                     } else {
                       setShowComparison(false);
+                      setUserActiveSection('listings');
+                      setDashboardViewMode('categories');
+                      setSelectedCategoryFilter(null);
                     }
                   }}
+                  onBrowsePackages={() => {
+                    setShowComparison(false);
+                    setUserActiveSection('listings');
+                    setDashboardViewMode('categories');
+                    setSelectedCategoryFilter(null);
+                  }}
                   onChat={(agencyId: string, agencyName: string) => {
+                    if (!user) {
+                      sessionStorage.setItem('pending_chat_target', JSON.stringify({
+                        agencyId,
+                        agencyName,
+                      }));
+                      setAuthModalTab('login');
+                      setShowAuthModal(true);
+                      return;
+                    }
                     setShowComparison(false);
                     setCurrentChatAgency(agencyId);
                     setCurrentChatAgencyName(agencyName);
@@ -5711,7 +5789,9 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                   }}
                   onView={(pkg) => {
                     setShowComparison(false);
-                    setViewingListing(pkg);
+                    const matchedListing = listings.find((l: any) => l.id === pkg.id);
+                    const fullPkg = matchedListing ? { ...matchedListing, ...pkg } : pkg;
+                    setViewingListing(fullPkg);
                   }}
                 />
               )}
@@ -5981,6 +6061,32 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
               )}
 
               {userActiveSection === 'chat' && (
+                !user ? (
+                  <div className="min-h-[70vh] flex items-center justify-center p-6 bg-gray-50/50">
+                    <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl p-8 text-center space-y-5 animate-in fade-in duration-300">
+                      <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-orange-500/20">
+                        <MessageSquare className="w-8 h-8" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">Login to Chat</h3>
+                        <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                          Please log in or create an account to start chatting with verified travel agencies and receive personalized tour plans.
+                        </p>
+                      </div>
+                      <div className="pt-2">
+                        <button
+                          onClick={() => {
+                            setAuthModalTab('login');
+                            setShowAuthModal(true);
+                          }}
+                          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition-all hover:scale-[1.02] cursor-pointer"
+                        >
+                          Sign In / Register
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                 <div className="flex flex-col md:flex-row flex-1 min-h-0 min-w-0 w-full h-full bg-white overflow-hidden">
                   {/* Left Column: Conversations List */}
                   <div className={`w-full md:w-80 md:min-w-[20rem] md:max-w-[20rem] flex-shrink-0 border-r border-gray-200 bg-white flex flex-col h-full z-10 min-w-0 overflow-hidden ${currentChatAgency ? 'hidden md:flex' : 'flex'}`}>
@@ -6479,6 +6585,7 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                     )}
                   </div>
                 </div>
+                )
               )}
 
               {userActiveSection === 'wishlist' && (
@@ -6729,8 +6836,119 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
                 </div>
               )}
             </main>
-            {userActiveSection !== 'chat' && userActiveSection !== 'wishlist' && userActiveSection !== 'profile' && !showComparison && userActiveSection !== 'comparison' && <Footer onNavigate={(section) => setUserActiveSection(section)} />}
+            {userActiveSection !== 'chat' && userActiveSection !== 'wishlist' && userActiveSection !== 'profile' && !showComparison && userActiveSection !== 'comparison' && (
+              <Footer onNavigate={(section) => {
+                if ((section === 'chat' || section === 'messages') && !user) {
+                  setAuthModalTab('login');
+                  setShowAuthModal(true);
+                  return;
+                }
+                setUserActiveSection(section);
+              }} />
+            )}
           </div>
+
+          {/* Standard Bottom Compare Dock */}
+          {comparisonList.length > 0 && !showComparison && !viewingListing && userActiveSection === 'listings' && (
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-[0_-4px_25px_rgba(0,0,0,0.12)] animate-in slide-in-from-bottom duration-300">
+              <div className="max-w-7xl mx-auto px-4 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-6">
+                
+                {/* Left: Info & Clear All */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-200/70 flex items-center justify-center text-orange-600 shrink-0">
+                    <Scale className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-bold text-slate-900">
+                        Compare Packages
+                      </span>
+                      <span className="bg-orange-100 text-orange-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                        {comparisonList.length}/3
+                      </span>
+                    </div>
+                    <button
+                      onClick={clearComparison}
+                      className="text-[11px] text-slate-400 hover:text-rose-600 transition-colors font-medium cursor-pointer underline"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                </div>
+
+                {/* Middle: Selected Package Chips */}
+                <div className="hidden sm:flex items-center gap-2.5 flex-1 max-w-2xl overflow-x-auto no-scrollbar py-0.5">
+                  {comparisonList.map((pkg) => {
+                    const imgUrl = (pkg.photos && pkg.photos[0]) || (pkg as any).coverImage || (pkg as any).imageUrls?.[0] || '';
+                    return (
+                      <div
+                        key={pkg.id}
+                        className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg p-1.5 pr-2.5 shrink-0 transition-colors group relative"
+                      >
+                        {imgUrl ? (
+                          <img
+                            src={imgUrl}
+                            alt={pkg.title}
+                            className="w-8 h-8 rounded object-cover shrink-0 bg-slate-200"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                            <Scale className="h-4 w-4" />
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0 max-w-[130px] md:max-w-[170px]">
+                          <span className="text-[11px] font-semibold text-slate-800 truncate leading-tight" title={pkg.title}>
+                            {pkg.title}
+                          </span>
+                          <span className="text-[10px] text-slate-500 truncate">
+                            {pkg.duration ? `${pkg.duration}D` : ''} {pkg.price || pkg.cost ? `• ₹${pkg.price || pkg.cost}` : ''}
+                          </span>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromComparison(pkg.id);
+                          }}
+                          className="text-slate-400 hover:text-rose-600 p-0.5 rounded-full hover:bg-white transition-colors cursor-pointer ml-1"
+                          title="Remove from comparison"
+                          aria-label={`Remove ${pkg.title}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {/* Empty slots placeholders */}
+                  {Array.from({ length: 3 - comparisonList.length }).map((_, i) => (
+                    <div
+                      key={`empty-${i}`}
+                      className="hidden md:flex items-center gap-1.5 border border-dashed border-slate-200 rounded-lg px-3 py-2 text-[11px] text-slate-400 shrink-0 select-none bg-slate-50/40"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Add package</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Right: Compare Now Button */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      setUserActiveSection('listings');
+                      setShowComparison(true);
+                    }}
+                    className="bg-[#b84814] hover:bg-[#963b10] text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-2.5 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 sm:gap-2"
+                  >
+                    <span>Compare Now</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          )}
 
           {/* Journey Details Modal */}
           {showJourneyModal && selectedJourneyBooking && (
