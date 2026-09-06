@@ -359,7 +359,7 @@ export default function LandingDiscovery({
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className="text-sm">{activeGroup.icon}</span>
                         <span className="text-[10px] font-extrabold uppercase tracking-widest text-orange-400">
-                          {activeGroup.totalPackages > 0 ? `${activeGroup.totalPackages} Packages` : 'Region'}
+                          Region
                         </span>
                       </div>
                       <h3
@@ -482,12 +482,7 @@ export default function LandingDiscovery({
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/40 to-transparent opacity-90 group-hover:opacity-80 transition-opacity" />
 
                         {/* Top Badges */}
-                        <div className="relative z-10 flex items-center justify-between gap-2">
-                          
-                          <span className="bg-slate-900/80 backdrop-blur-md text-white text-xs font-black px-3 py-1 rounded-full border border-white/20 shadow-xs">
-                            {heroDest.packageCount} {heroDest.packageCount === 1 ? 'Package' : 'Packages'}
-                          </span>
-                        </div>
+                        <div className="relative z-10 flex items-center justify-between gap-2" />
 
                         {/* Bottom Info */}
                         <div className="relative z-10">
@@ -552,11 +547,7 @@ export default function LandingDiscovery({
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/35 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
 
                             {/* Top Badge */}
-                            <div className="relative z-10 flex items-center justify-between">
-                              <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-white/20 shadow-xs">
-                                {dest.packageCount} {dest.packageCount === 1 ? 'Package' : 'Packages'}
-                              </span>
-                            </div>
+                            <div className="relative z-10 flex items-center justify-between" />
 
                             {/* Bottom Info */}
                             <div className="relative z-10">
@@ -616,9 +607,6 @@ export default function LandingDiscovery({
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/30 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
 
                           <div className="relative z-10">
-                            <span className="bg-orange-500 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-sm inline-block mb-1 shadow-xs">
-                              {dest.packageCount} {dest.packageCount === 1 ? 'Package' : 'Packages'}
-                            </span>
                             <h5 className="text-sm font-black text-white line-clamp-1">{dest.name}</h5>
                             {dest.startingPrice && (
                               <p className="text-[11px] font-bold text-amber-300 mt-0.5">
@@ -696,9 +684,6 @@ export default function LandingDiscovery({
                         <Compass className="w-12 h-12" />
                       </div>
                     )}
-                    <span className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md text-white text-xs font-black px-3.5 py-1.5 rounded-sm border border-white/20">
-                      {story.packageCount || 1} {(story.packageCount || 1) === 1 ? 'Package Available' : 'Packages Available'}
-                    </span>
                   </div>
 
                   {/* Right Column: State Story Details */}
@@ -807,7 +792,7 @@ export default function LandingDiscovery({
                     <div className="absolute top-5 left-5 z-10">
                       <span className="bg-slate-900/85 backdrop-blur-md text-white text-xs font-black px-3.5 py-1.5 rounded-full border border-white/20 shadow-xs flex items-center gap-2">
                         {getExperienceIcon(exp.name)}
-                        <span>{exp.packageCount} {exp.packageCount === 1 ? 'Package' : 'Packages'}</span>
+                        <span>{exp.name}</span>
                       </span>
                     </div>
 
@@ -863,7 +848,7 @@ export default function LandingDiscovery({
                     <div className="absolute top-4 left-4 z-10">
                       <span className="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-extrabold px-3 py-1 rounded-full border border-white/20 shadow-xs flex items-center gap-1.5">
                         {getExperienceIcon(exp.name)}
-                        <span>{exp.packageCount} {exp.packageCount === 1 ? 'Package' : 'Packages'}</span>
+                        <span>{exp.name}</span>
                       </span>
                     </div>
 
@@ -920,7 +905,7 @@ export default function LandingDiscovery({
                       <div className="absolute top-4 left-4 z-10">
                         <span className="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-extrabold px-3 py-1 rounded-full border border-white/20 shadow-xs flex items-center gap-1.5">
                           {getExperienceIcon(exp.name)}
-                          <span>{exp.packageCount} {exp.packageCount === 1 ? 'Package' : 'Packages'}</span>
+                          <span>{exp.name}</span>
                         </span>
                       </div>
 

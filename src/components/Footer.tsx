@@ -42,8 +42,12 @@ export default function Footer({ onNavigate }: FooterProps = {}) {
           <div>
             <h3 className="text-base font-bold mb-4 text-white">Earn with us</h3>
             <ul className="space-y-2.5 text-sm text-gray-400">
+              <li>
+                <Link href="/agencytripdm" className="hover:text-orange-400 font-medium transition-colors">
+                  Join as an Agency
+                </Link>
+              </li>
               <li><Link href="#" className="hover:text-white transition-colors">Become an Affiliate</Link></li>
-            
             </ul>
           </div>
 
