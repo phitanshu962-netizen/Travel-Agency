@@ -8,12 +8,13 @@ import BlogComments from '@/components/BlogComments';
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'travel-agent-management-29c27';
 
-export const revalidate = 3600;
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
   try {
     const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/blogs?pageSize=10000`;
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return [{ slug: 'default' }];
     const data = await res.json();
     if (!data.documents || !Array.isArray(data.documents) || data.documents.length === 0) {
@@ -62,7 +63,17 @@ function parseBlogDoc(doc: any): Blog {
     slug: fields.slug?.stringValue || id,
     excerpt: fields.excerpt?.stringValue || '',
     content: fields.content?.stringValue || '',
-    coverImage: fields.coverImage?.stringValue || '',
+    coverImage:
+      fields.coverImage?.stringValue ||
+      fields.cover_image?.stringValue ||
+      fields.coverImageUrl?.stringValue ||
+      fields.imageUrl?.stringValue ||
+      fields.image?.stringValue ||
+      fields.photo?.stringValue ||
+      fields.bannerImage?.stringValue ||
+      fields.thumbnail?.stringValue ||
+      fields.featuredImage?.stringValue ||
+      '',
     category: fields.category?.stringValue || 'Destinations',
     tags: fields.tags?.arrayValue?.values?.map((v: any) => v.stringValue) || [],
     author: fields.author?.stringValue || 'TripDM Travel Expert',
@@ -78,27 +89,68 @@ function parseBlogDoc(doc: any): Blog {
 
 async function getBlogBySlug(slug: string): Promise<Blog | null> {
   try {
-    const directUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/blogs/${slug}`;
-    const directRes = await fetch(directUrl, { next: { revalidate: 3600 } });
-    if (directRes.ok) {
-      const doc = await directRes.json();
-      if (doc && doc.fields) return parseBlogDoc(doc);
+    const decoded = decodeURIComponent(slug || '').trim();
+    const slugCandidates = Array.from(
+      new Set([slug, decoded, slugify(decoded), decoded.toLowerCase().replace(/\s+/g, '-')])
+    ).filter(Boolean);
+
+    // 1. Try direct ID fetch
+    for (const cand of slugCandidates) {
+      const directUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/blogs/${encodeURIComponent(cand)}`;
+      const directRes = await fetch(directUrl, { cache: 'no-store' });
+      if (directRes.ok) {
+        const doc = await directRes.json();
+        if (doc && doc.fields) return parseBlogDoc(doc);
+      }
     }
+
+    // 2. Query matching slug field with any of the candidates
     const queryUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
-    const query = {
-      structuredQuery: {
-        from: [{ collectionId: 'blogs' }],
-        where: { fieldFilter: { field: { fieldPath: 'slug' }, op: 'EQUAL', value: { stringValue: slug } } },
-        limit: 1,
-      },
-    };
-    const res = await fetch(queryUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query), next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const item = data.find((d: any) => d.document);
-    if (!item) return null;
-    return parseBlogDoc(item.document);
-  } catch { return null; }
+    for (const cand of slugCandidates) {
+      const query = {
+        structuredQuery: {
+          from: [{ collectionId: 'blogs' }],
+          where: { fieldFilter: { field: { fieldPath: 'slug' }, op: 'EQUAL', value: { stringValue: cand } } },
+          limit: 1,
+        },
+      };
+      const res = await fetch(queryUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(query),
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const item = data.find((d: any) => d.document);
+        if (item) return parseBlogDoc(item.document);
+      }
+    }
+
+    // 3. Fallback: Search by title matching decoded slug
+    const allBlogsUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/blogs?pageSize=100`;
+    const allRes = await fetch(allBlogsUrl, { cache: 'no-store' });
+    if (allRes.ok) {
+      const allData = await allRes.json();
+      if (allData.documents && Array.isArray(allData.documents)) {
+        for (const doc of allData.documents) {
+          const parsed = parseBlogDoc(doc);
+          if (
+            slugCandidates.includes(parsed.slug) ||
+            slugCandidates.includes(parsed.id) ||
+            parsed.title.toLowerCase().includes(decoded.toLowerCase()) ||
+            decoded.toLowerCase().includes(parsed.title.toLowerCase())
+          ) {
+            return parsed;
+          }
+        }
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 async function getRecommendedBlogs(currentBlog: Blog): Promise<Blog[]> {
@@ -306,6 +358,34 @@ function parseTableLine(line: string): string[] {
   });
 }
 
+function formatCellContent(val: string): string {
+  if (!val) return '';
+  return val
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function isBudgetTierCol(header: string): boolean {
+  const h = header.toLowerCase();
+  return /budget|backpacker|mid-range|midrange|adventurer|luxury|premium|comfort|standard|deluxe|economy|tier\s*\d|package\s*\d/i.test(h);
+}
+
+function getTierMeta(name: string): { label: string; icon: string; theme: string } {
+  const n = name.toLowerCase();
+  if (/budget|backpacker|economy/i.test(n)) {
+    return { label: 'BUDGET TIER', icon: '🎒', theme: 'tier-budget' };
+  }
+  if (/mid-range|midrange|adventurer|standard/i.test(n)) {
+    return { label: 'MID-RANGE TIER', icon: '🌲', theme: 'tier-midrange' };
+  }
+  if (/luxury|premium|comfort|deluxe/i.test(n)) {
+    return { label: 'PREMIUM COMFORT', icon: '✨', theme: 'tier-luxury' };
+  }
+  return { label: 'PACKAGE TIER', icon: '🏷️', theme: 'tier-default' };
+}
+
 function convertMarkdownTables(content: string): string {
   const lines = content.split('\n');
   const result: string[] = [];
@@ -354,15 +434,141 @@ function convertMarkdownTables(content: string): string {
           }
         }
 
-        if (headerCells.length > 0 || bodyRows.length > 0) {
-          const thHtml = headerCells.map(c => `<th>${c}</th>`).join('');
-          const trHtml = bodyRows.map(row => {
-            const tdHtml = row.map(c => `<td>${c}</td>`).join('');
-            return `<tr>${tdHtml}</tr>`;
+        if (headerCells.length > 0 && bodyRows.length > 0) {
+          // Check if this table is a Tier/Budget comparison deck
+          const tierColIndices: number[] = [];
+          let highlightColIdx = -1;
+
+          for (let colIdx = 1; colIdx < headerCells.length; colIdx++) {
+            const h = headerCells[colIdx];
+            if (/highlight|perk|inclusion|note|covered|benefit/i.test(h)) {
+              highlightColIdx = colIdx;
+            } else if (isBudgetTierCol(h)) {
+              tierColIndices.push(colIdx);
+            }
+          }
+
+          // If at least 2 columns represent budget/tier options:
+          if (tierColIndices.length >= 2) {
+            // Find total row if present
+            let totalRowIdx = -1;
+            for (let r = 0; r < bodyRows.length; r++) {
+              const firstCell = (bodyRows[r][0] || '').toLowerCase();
+              if (/total|overall|estimated total/i.test(firstCell)) {
+                totalRowIdx = r;
+                break;
+              }
+            }
+
+            const tierNarrativesHtml = tierColIndices.map((colIdx, idx) => {
+              const rawTierName = headerCells[colIdx] || `Tier ${colIdx}`;
+              const cleanTierTitle = rawTierName.replace(/\s*\([^)]*\)/g, '').trim();
+              const tierMeta = getTierMeta(cleanTierTitle);
+
+              let totalCost = '';
+              if (totalRowIdx >= 0 && bodyRows[totalRowIdx][colIdx]) {
+                totalCost = bodyRows[totalRowIdx][colIdx].trim();
+              }
+
+              const itemsHtml = bodyRows
+                .filter((_, rIdx) => rIdx !== totalRowIdx)
+                .map(row => {
+                  const cat = row[0] || '';
+                  const val = row[colIdx] || '—';
+                  return `
+                    <li class="btn-item">
+                      <span class="btn-item-bullet">•</span>
+                      <span class="btn-item-content"><strong>${cat}:</strong> ${formatCellContent(val)}</span>
+                    </li>
+                  `;
+                })
+                .join('');
+
+              let perksHtml = '';
+              if (highlightColIdx >= 0) {
+                const totalPerk = totalRowIdx >= 0 ? bodyRows[totalRowIdx][highlightColIdx] : '';
+                if (totalPerk) {
+                  perksHtml = `<p class="btn-highlight-footer"><strong>Highlights:</strong> <em>${formatCellContent(totalPerk)}</em></p>`;
+                } else {
+                  const perks = bodyRows
+                    .filter((_, rIdx) => rIdx !== totalRowIdx)
+                    .map(row => row[highlightColIdx])
+                    .filter(Boolean);
+                  if (perks.length > 0) {
+                    perksHtml = `<p class="btn-highlight-footer"><strong>Key Highlights:</strong> <em>${formatCellContent(perks.join(' • '))}</em></p>`;
+                  }
+                }
+              }
+
+              return `
+                <div class="blog-tier-narrative-block">
+                  <div class="btn-header-row">
+                    <h3 class="btn-title">
+                      <span>${idx + 1}. ${cleanTierTitle}</span>
+                    </h3>
+                    ${totalCost ? `
+                      <span class="btn-cost-badge">Estimated Total: ${formatCellContent(totalCost)}</span>
+                    ` : ''}
+                  </div>
+                  <p class="btn-intro">
+                    For travelers choosing the <strong>${cleanTierTitle}</strong> plan${totalCost ? ` (estimated around <strong>${formatCellContent(totalCost)}</strong> for a complete 7-day trip)` : ''}, the breakdown includes:
+                  </p>
+                  <ul class="btn-items-list">
+                    ${itemsHtml}
+                  </ul>
+                  ${perksHtml}
+                </div>
+              `;
+            }).join('\n');
+
+            const narrativeDeckHtml = `\n\n<div class="blog-tier-narrative-deck">\n${tierNarrativesHtml}\n</div>\n\n`;
+            result.push(narrativeDeckHtml);
+            continue;
+          }
+
+          // Otherwise, Universal Clean Data Cards (Itineraries, Lists, Guides)
+          const dataCardsHtml = bodyRows.map(row => {
+            const firstCell = (row[0] || '').trim();
+            const isTotal = /total|overall|estimated total/i.test(firstCell);
+
+            if (isTotal) {
+              const valuesHtml = headerCells.slice(1).map((h, idx) => {
+                const val = row[idx + 1] || '—';
+                return `<div class="bsb-chip"><span>${h}:</span> <strong>${formatCellContent(val)}</strong></div>`;
+              }).join('');
+
+              return `
+                <div class="blog-summary-banner-card">
+                  <div class="bsb-title">📊 ${firstCell}</div>
+                  <div class="bsb-values">${valuesHtml}</div>
+                </div>
+              `;
+            }
+
+            const fieldsHtml = headerCells.slice(1).map((h, idx) => {
+              const val = row[idx + 1] || '—';
+              return `
+                <div class="bdc-field">
+                  <div class="bdc-field-name">${h}</div>
+                  <div class="bdc-field-val">${formatCellContent(val)}</div>
+                </div>
+              `;
+            }).join('');
+
+            return `
+              <div class="blog-data-card">
+                <div class="bdc-header">
+                  <span class="bdc-title">${formatCellContent(firstCell)}</span>
+                </div>
+                <div class="bdc-grid">
+                  ${fieldsHtml}
+                </div>
+              </div>
+            `;
           }).join('\n');
 
-          const tableHtml = `\n\n<div class="table-wrap"><table class="blog-table"><thead><tr>${thHtml}</tr></thead><tbody>\n${trHtml}\n</tbody></table></div>\n\n`;
-          result.push(tableHtml);
+          const deckHtml = `\n\n<div class="blog-data-deck">\n${dataCardsHtml}\n</div>\n\n`;
+          result.push(deckHtml);
           continue;
         }
       }
@@ -586,6 +792,13 @@ function renderContent(content: string): string {
     })
     .replace(/^---$/gm, '<hr>');
 
+  // Markdown Images (must run BEFORE generic links regex)
+  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, (_, alt, src) => {
+    const cleanSrc = src.trim();
+    const cleanAlt = alt.trim();
+    return `<figure class="blog-inline-figure"><img src="${cleanSrc}" alt="${cleanAlt}" class="blog-inline-img" loading="lazy" />${cleanAlt ? `<figcaption class="blog-inline-caption">${cleanAlt}</figcaption>` : ''}</figure>`;
+  });
+
   // Links
   html = html.replace(/\[(.+?)\]\((.+?)\)/g, (_, text, href) => {
     if (href.startsWith('#')) {
@@ -598,7 +811,7 @@ function renderContent(content: string): string {
   html = html.split(/\n\n+/).map(block => {
     const trimmed = block.trim();
     if (!trimmed) return '';
-    if (/^<(h[1-6]|ul|ol|blockquote|hr|div|table|thead|tbody|tr)/i.test(trimmed)) {
+    if (/^<(h[1-6]|ul|ol|blockquote|hr|div|table|thead|tbody|tr|figure|img)/i.test(trimmed)) {
       return trimmed;
     }
     if (/^\s*[\.\…\,`'"\-\*\_\s]+\s*$/.test(trimmed)) return '';
@@ -806,7 +1019,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           font-size: 13px;
           font-weight: 700;
           padding: 8px 16px;
-          border-radius: 9999px;
+          border-radius: 6px;
           text-decoration: none;
           transition: background 0.15s, transform 0.15s;
           display: inline-flex;
@@ -824,9 +1037,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           border-bottom: 1px solid var(--hairline-border);
         }
         .bp-nav-inner {
-          max-width: 1320px;
+          max-width: 1160px;
           margin: 0 auto;
-          padding: 0 clamp(20px, 4vw, 40px);
+          padding: 0 clamp(16px, 3vw, 28px);
           height: 72px;
           display: flex;
           align-items: center;
@@ -852,7 +1065,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #EBF5EE;
           border: 1px solid #D1E7DD;
           padding: 5px 12px;
-          border-radius: 9999px;
+          border-radius: 6px;
           letter-spacing: 0.3px;
         }
         .bp-pulse-dot {
@@ -871,9 +1084,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         /* 4. MAIN ARTICLE PAGE LAYOUT */
         .bp-container {
-          max-width: 1280px;
+          max-width: 1160px;
           margin: 0 auto;
-          padding: 32px clamp(16px, 4vw, 36px) 96px;
+          padding: 32px clamp(16px, 3vw, 28px) 80px;
         }
 
         /* BREADCRUMB & LOCATION COORDINATES */
@@ -883,18 +1096,18 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 12px;
-          margin-bottom: 20px;
-          font-size: 13px;
+          margin-bottom: 22px;
+          font-size: 13.5px;
         }
         .bp-breadcrumbs {
           display: flex;
           align-items: center;
           gap: 8px;
-          color: var(--ink-muted);
+          color: #94a3b8;
           font-weight: 500;
         }
         .bp-breadcrumbs a {
-          color: var(--ink-secondary);
+          color: #64748b;
           text-decoration: none;
           transition: color 0.15s;
         }
@@ -914,8 +1127,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         /* ARTICLE HEADER & EDITORIAL TITLE */
         .bp-header {
-          max-width: 900px;
-          margin: 0 auto 36px;
+          width: 100%;
+          max-width: 960px;
+          margin: 0 0 32px 0;
           text-align: left;
         }
         .bp-category-badge {
@@ -923,19 +1137,28 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           color: var(--accent-terracotta);
           font-family: 'Space Grotesk', sans-serif;
           font-size: 12px;
-          font-weight: 700;
+          font-weight: 800;
           letter-spacing: 1.5px;
           text-transform: uppercase;
           margin-bottom: 12px;
         }
         .bp-title {
           font-family: 'Playfair Display', Georgia, serif;
-          font-size: clamp(30px, 4.2vw, 52px);
-          font-weight: 900;
+          font-size: clamp(24px, 3.2vw, 38px);
+          font-weight: 800;
           color: var(--ink-primary);
-          line-height: 1.16;
-          margin: 0 0 24px;
-          letter-spacing: -0.8px;
+          line-height: 1.28;
+          margin: 0 0 16px;
+          letter-spacing: -0.4px;
+        }
+        .bp-lead-excerpt {
+          font-family: 'Lato', 'Inter', sans-serif;
+          font-size: 16.5px;
+          color: #475569;
+          line-height: 1.68;
+          margin: 0 0 22px;
+          max-width: 900px;
+          font-weight: 400;
         }
 
         /* AUTHOR MASTHEAD ROW */
@@ -943,8 +1166,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 20px;
-          padding: 20px 0;
+          gap: 16px;
+          padding: 16px 0;
           border-top: 1px solid var(--hairline-border);
           border-bottom: 1px solid var(--hairline-border);
           flex-wrap: wrap;
@@ -952,11 +1175,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .bp-author-left {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 12px;
         }
         .bp-author-avatar {
-          width: 46px;
-          height: 46px;
+          width: 42px;
+          height: 42px;
           border-radius: 50%;
           background: linear-gradient(135deg, #D9531E, #F59E0B);
           color: #ffffff;
@@ -964,9 +1187,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           align-items: center;
           justify-content: center;
           font-weight: 800;
-          font-size: 16px;
+          font-size: 15px;
           border: 2px solid #FFFFFF;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .bp-author-info {
           display: flex;
@@ -980,7 +1203,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         }
         .bp-author-name {
           font-weight: 700;
-          font-size: 15px;
+          font-size: 14.5px;
           color: var(--ink-primary);
         }
         .bp-author-badge {
@@ -989,10 +1212,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #EBF5EE;
           color: var(--accent-alpine);
           padding: 2px 8px;
-          border-radius: 9999px;
+          border-radius: 6px;
         }
         .bp-meta-sub {
-          font-size: 13px;
+          font-size: 12.5px;
           color: var(--ink-muted);
           display: flex;
           align-items: center;
@@ -1013,25 +1236,25 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           border: 1px solid #FDE68A;
           color: #92400E;
           padding: 5px 12px;
-          border-radius: 8px;
+          border-radius: 6px;
         }
 
-        /* 5. COVER HERO: HIGH RES PHOTO OR TYPOGRAPHIC COVER POSTER FALLBACK */
+        /* 5. COVER HERO */
         .bp-hero-container {
-          margin-bottom: 48px;
+          margin-bottom: 40px;
           width: 100%;
         }
         .bp-hero-box {
           position: relative;
           width: 100%;
-          border-radius: 20px;
+          border-radius: 6px;
           overflow: hidden;
-          box-shadow: 0 12px 36px rgba(0,0,0,0.06);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.05);
           background: #E7E5E4;
         }
         .bp-hero-img {
           width: 100%;
-          max-height: 560px;
+          max-height: 480px;
           object-fit: cover;
           display: block;
         }
@@ -1045,23 +1268,45 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           font-size: 11.5px;
           font-weight: 500;
           padding: 6px 14px;
-          border-radius: 9999px;
+          border-radius: 6px;
+        }
+
+        /* INLINE IMAGES & FIGURES */
+        .blog-inline-figure {
+          margin: 36px 0;
+          width: 100%;
+        }
+        .blog-inline-img {
+          width: 100%;
+          height: auto;
+          max-height: 520px;
+          object-fit: cover;
+          border-radius: 6px;
+          border: 1px solid #E2E8F0;
+          display: block;
+        }
+        .blog-inline-caption {
+          font-size: 13px;
+          color: #64748B;
+          text-align: center;
+          margin-top: 8px;
+          font-style: italic;
         }
 
         /* TYPOGRAPHIC COVER POSTER FALLBACK (ZERO BLACK BOXES FOREVER) */
         .bp-poster-fallback {
           position: relative;
           width: 100%;
-          min-height: 380px;
-          border-radius: 20px;
+          min-height: 240px;
+          border-radius: 6px;
           background: #F8FAFC;
           border: 1px solid #E2E8F0;
-          padding: clamp(28px, 5vw, 48px);
+          padding: clamp(24px, 4vw, 36px);
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+          justify-content: center;
           overflow: hidden;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.03);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
         }
         .bp-poster-topo {
           position: absolute;
@@ -1069,7 +1314,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           right: -10%;
           width: 80%;
           height: 140%;
-          opacity: 0.18;
+          opacity: 0.14;
           pointer-events: none;
         }
         .bp-poster-top-bar {
@@ -1081,7 +1326,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           flex-wrap: wrap;
           gap: 12px;
           border-bottom: 1px solid #E2E8F0;
-          padding-bottom: 16px;
+          padding-bottom: 12px;
         }
         .bp-poster-stamp {
           font-family: 'Space Grotesk', monospace;
@@ -1099,65 +1344,36 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .bp-poster-body {
           position: relative;
           z-index: 2;
-          margin: 36px 0;
-        }
-        .bp-poster-watermark {
-          font-family: 'Playfair Display', Georgia, serif;
-          font-size: clamp(32px, 5vw, 68px);
-          font-weight: 900;
-          color: #121619;
-          letter-spacing: -1.5px;
-          line-height: 1.05;
-          margin: 0 0 12px;
+          margin: 20px 0 0;
         }
         .bp-poster-subtitle {
-          font-size: clamp(15px, 2vw, 18px);
+          font-size: 15px;
           color: #4A5568;
           max-width: 680px;
           line-height: 1.6;
           font-weight: 500;
         }
-        .bp-poster-bottom-bar {
-          position: relative;
-          z-index: 2;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 16px;
-          font-size: 13px;
-          color: #4B5563;
-          border-top: 1px solid rgba(0,0,0,0.06);
-          padding-top: 16px;
-        }
-        .bp-poster-badge-zero {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-weight: 700;
-          color: var(--accent-alpine);
-        }
 
         /* 6. TWO-COLUMN ASYMMETRIC MAGAZINE GRID */
         .bp-magazine-grid {
           display: grid;
-          grid-template-columns: minmax(0, 720px) 340px;
-          justify-content: center;
-          gap: 56px;
+          grid-template-columns: minmax(0, 1fr) 340px;
+          gap: 48px;
           align-items: start;
+          width: 100%;
         }
 
-        @media (max-width: 1120px) {
+        @media (max-width: 1024px) {
           .bp-magazine-grid {
-            grid-template-columns: minmax(0, 720px);
-            gap: 40px;
+            grid-template-columns: 1fr;
+            gap: 36px;
           }
         }
 
-        /* COLUMN A: 720px GOLDEN READING COLUMN */
+        /* COLUMN A: READING COLUMN */
         .bp-reading-column {
           width: 100%;
-          max-width: 720px;
+          max-width: 100%;
         }
 
         /* 5-SECOND EXECUTIVE SKIM CAPSULE */
@@ -1165,7 +1381,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #FAF7F2;
           border: 1px solid #EADDCF;
           border-left: 4px solid var(--accent-terracotta);
-          border-radius: 12px;
+          border-radius: 6px;
           padding: 24px 28px;
           margin-bottom: 36px;
         }
@@ -1188,7 +1404,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           color: var(--accent-terracotta);
           background: rgba(217, 83, 30, 0.1);
           padding: 4px 10px;
-          border-radius: 9999px;
+          border-radius: 6px;
         }
         .esc-grid {
           display: grid;
@@ -1202,7 +1418,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #FFFFFF;
           border: 1px solid #E7E5E4;
           padding: 12px 16px;
-          border-radius: 8px;
+          border-radius: 6px;
         }
         .esc-item-label {
           font-size: 11px;
@@ -1293,7 +1509,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .stay-tier-card {
           background: #FFFFFF;
           border: 1px solid #E5E7EB;
-          border-radius: 12px;
+          border-radius: 6px;
           padding: 16px 20px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.02);
           transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
@@ -1343,7 +1559,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #FFFFFF;
           border: 1px solid #E5E7EB;
           padding: 4px 12px;
-          border-radius: 9999px;
+          border-radius: 6px;
         }
         .st-desc {
           margin-top: 8px;
@@ -1362,7 +1578,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #FFFBEB;
           border: 1px solid #FCD34D;
           border-left: 4px solid #D97706;
-          border-radius: 12px;
+          border-radius: 6px;
           padding: 20px 24px;
           margin: 32px 0;
         }
@@ -1388,7 +1604,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #FDE68A;
           color: #78350F;
           padding: 2px 8px;
-          border-radius: 9999px;
+          border-radius: 6px;
           margin-left: auto;
         }
         .gr-content {
@@ -1402,7 +1618,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #F8FAFC;
           border: 1px solid #E2E8F0;
           border-left: 4px solid var(--accent-terracotta);
-          border-radius: 12px;
+          border-radius: 6px;
           padding: 20px 24px;
           margin: 32px 0;
         }
@@ -1428,7 +1644,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: rgba(217, 83, 30, 0.1);
           color: var(--accent-terracotta);
           padding: 2px 8px;
-          border-radius: 9999px;
+          border-radius: 6px;
           margin-left: auto;
         }
         .is-content {
@@ -1445,7 +1661,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #F8FAFC;
           border: 1px solid #E2E8F0;
           border-left: 4px solid var(--accent-terracotta);
-          border-radius: 0 12px 12px 0;
+          border-radius: 0 6px 6px 0;
           font-family: 'Playfair Display', Georgia, serif;
           font-style: italic;
           font-size: 20px;
@@ -1453,45 +1669,183 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           line-height: 1.6;
         }
 
-        /* TABLES */
-        .table-wrap {
-          width: 100%;
-          overflow-x: auto;
-          margin: 32px 0;
-          border-radius: 12px;
-          border: 1px solid #E5E7EB;
+        /* EDITORIAL TIER NARRATIVE SECTIONS (PARAGRAPH FORMAT) */
+        .blog-tier-narrative-deck {
+          margin: 28px 0 36px;
+          display: flex;
+          flex-direction: column;
+          gap: 28px;
         }
-        .blog-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 14.5px;
-          background: #FFFFFF;
+        .blog-tier-narrative-block {
+          background: transparent;
+          border: none;
+          padding: 0;
+          margin: 0;
         }
-        .blog-table th {
-          background: #181E24;
-          color: #FFFFFF;
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 12px;
-          letter-spacing: 0.8px;
-          text-transform: uppercase;
-          padding: 14px 18px;
-          text-align: left;
-        }
-        .blog-table td {
-          padding: 14px 18px;
+        .btn-header-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
           border-bottom: 1px solid #F1F5F9;
-          color: #334155;
-          vertical-align: top;
         }
-        .blog-table tr:nth-child(even) td {
+        .btn-title {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 20px;
+          font-weight: 800;
+          color: #0F172A;
+          margin: 0;
+        }
+        .btn-cost-badge {
+          font-family: 'Space Grotesk', monospace;
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #0F172A;
           background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          padding: 4px 12px;
+          border-radius: 6px;
+        }
+        .btn-intro {
+          font-size: 16px;
+          line-height: 1.75;
+          color: #334155;
+          margin-bottom: 12px;
+        }
+        .btn-items-list {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 12px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .btn-item {
+          font-size: 15.5px;
+          line-height: 1.6;
+          color: #334155;
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+        }
+        .btn-item-bullet {
+          color: var(--accent-terracotta);
+          font-size: 14px;
+        }
+        .btn-item strong {
+          color: #0F172A;
+          font-weight: 700;
+        }
+        .btn-highlight-footer {
+          font-size: 14.5px;
+          color: #64748B;
+          line-height: 1.6;
+          margin-top: 8px;
+          margin-bottom: 0;
+        }
+
+        /* UNIVERSAL CLEAN DATA CARDS (REPLACED NON-TIER TABLES) */
+        .blog-data-deck {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin: 32px 0;
+        }
+        .blog-data-card {
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          border-radius: 6px;
+          padding: 18px 20px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+          transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+        .blog-data-card:hover {
+          border-color: #CBD5E1;
+        }
+        .bdc-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid #F1F5F9;
+        }
+        .bdc-title {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 17px;
+          font-weight: 800;
+          color: #0F172A;
+        }
+        .bdc-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+          gap: 10px;
+        }
+        .bdc-field {
+          background: #F8FAFC;
+          border: 1px solid #F1F5F9;
+          border-radius: 6px;
+          padding: 9px 12px;
+        }
+        .bdc-field-name {
+          font-size: 10.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #64748B;
+          margin-bottom: 2px;
+        }
+        .bdc-field-val {
+          font-size: 13.5px;
+          font-weight: 600;
+          color: #1E293B;
+          line-height: 1.4;
+        }
+
+        /* SUMMARY / TOTAL CARD */
+        .blog-summary-banner-card {
+          background: #FAF8F5;
+          border: 1.5px solid #FED7AA;
+          border-radius: 6px;
+          padding: 16px 20px;
+          margin: 16px 0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .bsb-title {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 17px;
+          font-weight: 800;
+          color: #9A3412;
+        }
+        .bsb-values {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .bsb-chip {
+          background: #FFFFFF;
+          border: 1px solid #FDBA74;
+          border-radius: 6px;
+          padding: 6px 12px;
+          font-family: 'Space Grotesk', monospace;
+          font-size: 13px;
+          font-weight: 700;
+          color: #7C2D12;
         }
 
         /* INTERACTIVE LOCAL TARIFF CALCULATOR */
         .tariff-calculator-widget {
           background: #FFFFFF;
           border: 1px solid #E7E5E4;
-          border-radius: 16px;
+          border-radius: 6px;
           padding: 28px;
           margin: 40px 0;
           box-shadow: 0 4px 20px rgba(0,0,0,0.03);
@@ -1515,7 +1869,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           background: #EBF5EE;
           color: var(--accent-alpine);
           padding: 4px 10px;
-          border-radius: 9999px;
+          border-radius: 6px;
         }
         .tc-slider-box {
           margin-bottom: 24px;
@@ -1532,7 +1886,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           width: 100%;
           height: 6px;
           background: #E5E7EB;
-          border-radius: 9999px;
+          border-radius: 6px;
           outline: none;
           accent-color: var(--accent-terracotta);
           cursor: pointer;
@@ -1548,7 +1902,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .tc-tier-box {
           background: #FAF9F6;
           border: 1px solid #E5E7EB;
-          border-radius: 10px;
+          border-radius: 6px;
           padding: 14px;
           text-align: center;
         }
@@ -1583,7 +1937,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .faq-accordion-item {
           background: #FFFFFF;
           border: 1px solid #E5E7EB;
-          border-radius: 12px;
+          border-radius: 6px;
           padding: 0 20px;
           transition: border-color 0.2s;
         }
@@ -1638,23 +1992,57 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .bp-sidebar-card {
           background: #FFFFFF;
           border: 1px solid var(--hairline-border);
-          border-radius: 16px;
+          border-radius: 6px;
           padding: 24px;
           box-shadow: 0 4px 16px rgba(0,0,0,0.02);
         }
 
         /* KINETIC TABLE OF CONTENTS */
+        .bp-toc-card {
+          padding: 20px 20px 18px;
+        }
         .bp-toc-header {
           font-family: 'Space Grotesk', sans-serif;
-          font-size: 11.5px;
+          font-size: 11px;
           font-weight: 800;
           letter-spacing: 1px;
           text-transform: uppercase;
           color: var(--ink-muted);
-          margin-bottom: 16px;
+          margin-bottom: 14px;
           display: flex;
           align-items: center;
           justify-content: space-between;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .bp-toc-count {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: #ea580c;
+          background: rgba(249, 115, 22, 0.1);
+          padding: 2px 7px;
+          border-radius: 4px;
+          letter-spacing: 0.3px;
+        }
+        .bp-toc-list-wrap {
+          max-height: min(440px, calc(100vh - 200px));
+          overflow-y: auto;
+          padding-right: 4px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+        }
+        .bp-toc-list-wrap::-webkit-scrollbar {
+          width: 4px;
+        }
+        .bp-toc-list-wrap::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .bp-toc-list-wrap::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.14);
+          border-radius: 4px;
+        }
+        .bp-toc-list-wrap::-webkit-scrollbar-thumb:hover {
+          background: rgba(234, 88, 12, 0.45);
         }
         .bp-toc-list {
           list-style: none;
@@ -1662,27 +2050,30 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           margin: 0;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 4px;
         }
         .bp-toc-link {
-          font-size: 13.5px;
+          font-size: 12.5px;
           font-weight: 500;
-          color: var(--ink-secondary);
+          color: #64748b;
           text-decoration: none;
-          line-height: 1.45;
+          line-height: 1.4;
           display: block;
-          padding: 4px 0 4px 12px;
-          border-left: 2px solid transparent;
-          transition: all 0.15s;
+          padding: 5px 8px 5px 10px;
+          border-left: 2px solid #e2e8f0;
+          border-radius: 0 4px 4px 0;
+          transition: all 0.15s ease;
         }
         .bp-toc-link:hover {
           color: var(--accent-terracotta);
           border-left-color: #FDBA74;
+          background: rgba(249, 115, 22, 0.03);
         }
         .bp-toc-link.is-active {
           color: var(--accent-terracotta);
           font-weight: 700;
           border-left-color: var(--accent-terracotta);
+          background: rgba(234, 88, 12, 0.07);
         }
 
         /* SEASON & TARIFF BAROMETER WIDGET */
@@ -1700,7 +2091,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           font-size: 13px;
           padding: 8px 12px;
           background: #FAF9F6;
-          border-radius: 8px;
+          border-radius: 6px;
           margin-bottom: 10px;
         }
         .barometer-badge {
@@ -1710,14 +2101,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           color: #B45309;
           background: #FEF3C7;
           padding: 2px 8px;
-          border-radius: 4px;
+          border-radius: 6px;
         }
 
         /* DIRECT LOCAL OPERATOR CARD */
         .operator-bridge-card {
           background: linear-gradient(135deg, #181E24 0%, #0F1316 100%);
           color: #FFFFFF;
-          border-radius: 16px;
+          border-radius: 6px;
           padding: 24px;
         }
         .ob-badge {
@@ -1751,7 +2142,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           font-size: 13.5px;
           font-weight: 700;
           padding: 10px 16px;
-          border-radius: 8px;
+          border-radius: 6px;
           text-decoration: none;
           transition: background 0.15s;
         }
@@ -1778,7 +2169,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           font-size: 13px;
           font-weight: 700;
           padding: 10px 20px;
-          border-radius: 9999px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           gap: 8px;
@@ -1793,7 +2184,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           max-height: 70vh;
           background: #FFFFFF;
           border-top: 1px solid #E5E7EB;
-          border-radius: 20px 20px 0 0;
+          border-radius: 6px 6px 0 0;
           padding: 24px clamp(16px, 4vw, 28px) 36px;
           z-index: 1002;
           overflow-y: auto;
@@ -1845,7 +2236,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .bp-rec-card {
           background: #FFFFFF;
           border: 1px solid var(--hairline-border);
-          border-radius: 16px;
+          border-radius: 6px;
           overflow: hidden;
           text-decoration: none;
           display: flex;
@@ -1882,7 +2273,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           font-size: 11px;
           font-weight: 700;
           padding: 4px 10px;
-          border-radius: 9999px;
+          border-radius: 6px;
           letter-spacing: 0.5px;
           text-transform: uppercase;
         }
@@ -1983,6 +2374,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <header className="bp-header">
             {blog.category && <span className="bp-category-badge">{blog.category}</span>}
             <h1 className="bp-title">{blog.title}</h1>
+            {blog.excerpt && <p className="bp-lead-excerpt">{blog.excerpt}</p>}
 
             {/* AUTHOR MASTHEAD ROW */}
             <div className="bp-author-masthead">
@@ -2010,31 +2402,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </div>
           </header>
 
-          {/* COVER HERO: HIGH-RES PHOTO OR TYPOGRAPHIC COVER POSTER FALLBACK */}
-          <div className="bp-hero-container">
-            {blog.coverImage ? (
+          {/* COVER HERO (Rendered when cover image is present) */}
+          {blog.coverImage && (
+            <div className="bp-hero-container">
               <div className="bp-hero-box">
                 <img src={blog.coverImage} alt={blog.title} className="bp-hero-img" />
               </div>
-            ) : (
-              /* TYPOGRAPHIC COVER POSTER FALLBACK: CLEAN DYNAMIC COVER FOR ANY ARTICLE */
-              <div className="bp-poster-fallback">
-                <svg className="bp-poster-topo" viewBox="0 0 500 500" fill="none" stroke="#D9531E" strokeWidth="1.2">
-                  <path d="M50 100 Q150 50 250 120 T450 100 M20 200 Q180 140 300 220 T480 190 M10 300 Q140 240 280 320 T490 280 M40 400 Q160 350 320 420 T480 380" />
-                </svg>
-                <div className="bp-poster-top-bar">
-                  <span className="bp-poster-stamp">TRIPDM EDITORIAL</span>
-                  <span className="bp-poster-audit">{blog.category}</span>
-                </div>
-                <div className="bp-poster-body">
-                  <h2 className="bp-poster-watermark">{blog.title}</h2>
-                  {blog.excerpt && (
-                    <p className="bp-poster-sub">{blog.excerpt}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* TWO-COLUMN ASYMMETRIC MAGAZINE GRID */}
           <div className="bp-magazine-grid">
@@ -2055,20 +2430,21 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <aside className="bp-sidebar">
               {/* KINETIC TABLE OF CONTENTS */}
               {tocItems.length > 0 && (
-                <div className="bp-sidebar-card">
+                <div className="bp-sidebar-card bp-toc-card">
                   <div className="bp-toc-header">
                     <span>Table of Contents</span>
-                    <span>📑</span>
                   </div>
-                  <ul className="bp-toc-list">
-                    {tocItems.map((item) => (
-                      <li key={item.id}>
-                        <a href={`#${item.id}`} className="bp-toc-link">
-                          {item.title}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="bp-toc-list-wrap" id="bp-toc-list-wrap">
+                    <ul className="bp-toc-list">
+                      {tocItems.map((item) => (
+                        <li key={item.id}>
+                          <a href={`#${item.id}`} className="bp-toc-link">
+                            {item.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
             </aside>
@@ -2172,7 +2548,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
               // 2. Kinetic Table of Contents Active Tracking
               var tocLinks = document.querySelectorAll('.bp-toc-link');
+              var tocWrap = document.getElementById('bp-toc-list-wrap');
               var headings = [];
+              var activeLinkEl = null;
 
               tocLinks.forEach(function(link) {
                 var href = link.getAttribute('href');
@@ -2184,7 +2562,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
               if (headings.length > 0) {
                 window.addEventListener('scroll', function() {
-                  var fromTop = window.scrollY + 120;
+                  var fromTop = window.scrollY + 130;
                   var current = headings[0];
                   for (var i = 0; i < headings.length; i++) {
                     if (headings[i].el.offsetTop <= fromTop) {
@@ -2192,7 +2570,18 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     }
                   }
                   tocLinks.forEach(function(l) { l.classList.remove('is-active'); });
-                  if (current && current.link) current.link.classList.add('is-active');
+                  if (current && current.link) {
+                    current.link.classList.add('is-active');
+                    if (activeLinkEl !== current.link && tocWrap) {
+                      activeLinkEl = current.link;
+                      var linkTop = current.link.offsetTop - tocWrap.offsetTop;
+                      var wrapScroll = tocWrap.scrollTop;
+                      var wrapHeight = tocWrap.clientHeight;
+                      if (linkTop < wrapScroll || linkTop > wrapScroll + wrapHeight - 40) {
+                        current.link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                      }
+                    }
+                  }
                 }, { passive: true });
               }
 

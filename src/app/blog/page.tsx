@@ -167,11 +167,27 @@ export default async function BlogPage() {
         </nav>
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <section style={{ padding: '72px 24px 56px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-          {/* Subtle background dot grid */}
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(249,115,22,0.12) 1px, transparent 1px)', backgroundSize: '28px 28px', pointerEvents: 'none' }} />
-          {/* Soft glow */}
-          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 700, height: 280, background: 'radial-gradient(ellipse, rgba(249,115,22,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <section style={{ padding: '80px 24px 60px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+          {/* Ultra-realistic Panoramic Background Image */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'url(/blog-hero-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center 32%',
+            opacity: 0.22,
+            filter: 'saturate(1.25) contrast(1.05)',
+            pointerEvents: 'none',
+          }} />
+          {/* Smooth editorial gradient overlay for high contrast & seamless page blend */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to bottom, rgba(248,250,252,0.75) 0%, rgba(248,250,252,0.4) 50%, #f8fafc 100%)',
+            pointerEvents: 'none',
+          }} />
+          {/* Soft warm sun glow */}
+          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 700, height: 280, background: 'radial-gradient(ellipse, rgba(249,115,22,0.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
           <div style={{ position: 'relative', zIndex: 1 }}>
             {/* BLOG label — Nunito font, plain text */}
@@ -234,7 +250,7 @@ export default async function BlogPage() {
                 gap: 6,
                 background: 'rgba(249,115,22,0.08)',
                 border: '1px solid rgba(249,115,22,0.18)',
-                borderRadius: 20,
+                borderRadius: '6px',
                 padding: '6px 16px',
                 fontFamily: "'Nunito', sans-serif",
                 fontSize: 13,
@@ -249,7 +265,7 @@ export default async function BlogPage() {
 
         {blogs.length === 0 ? (
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 80px' }}>
-            <div style={{ textAlign: 'center', padding: '80px 40px', background: '#ffffff', borderRadius: 20, border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div style={{ textAlign: 'center', padding: '80px 40px', background: '#ffffff', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.06)' }}>
               <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
                 <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/>
@@ -259,7 +275,7 @@ export default async function BlogPage() {
               </div>
               <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Coming Soon</h2>
               <p style={{ color: '#64748b', marginBottom: 28 }}>Our travel blog is launching soon. Check back for expert travel guides!</p>
-              <Link href="/" style={{ display: 'inline-block', background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '12px 28px', fontWeight: 600, fontSize: 14 }}>
+              <Link href="/" style={{ display: 'inline-block', background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#fff', textDecoration: 'none', borderRadius: '6px', padding: '12px 28px', fontWeight: 600, fontSize: 14 }}>
                 Explore Travel Packages →
               </Link>
             </div>
