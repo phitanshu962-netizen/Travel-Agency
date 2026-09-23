@@ -74,7 +74,7 @@ export default function Footer({ onNavigate }: FooterProps = {}) {
                   Join as an Agency
                 </Link>
               </li>
-              <li><Link href="#" className="hover:text-white transition-colors">Become an Affiliate</Link></li>
+              {/* <li><Link href="#" className="hover:text-white transition-colors">Become an Affiliate</Link></li> */}
             </ul>
           </div>
 
@@ -87,7 +87,7 @@ export default function Footer({ onNavigate }: FooterProps = {}) {
                   My Account
                 </a>
               </li>
-              <li><Link href="#" className="hover:text-white transition-colors">Upcoming Tour</Link></li>
+              {/* <li><Link href="#" className="hover:text-white transition-colors">Upcoming Tour</Link></li> */}
               <li>
                 <a href="#" onClick={(e) => { if(onNavigate) { e.preventDefault(); onNavigate('chat'); } }} className="hover:text-white transition-colors cursor-pointer">
                   My Chat
@@ -108,7 +108,6 @@ export default function Footer({ onNavigate }: FooterProps = {}) {
               <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-14 sm:h-16 w-auto object-contain brightness-125" />
             </div>
             <div className="md:col-span-2 flex flex-wrap md:pl-32 gap-4 text-xs text-gray-400">
-              <Link href="/policies/about" className="hover:text-orange-400 transition-colors">About Us</Link>
               <Link href="/policies/conditions-of-use" className="hover:text-orange-400 transition-colors">Condition of Use and Sale</Link>
               <Link href="/policies/privacy-notice" className="hover:text-orange-400 transition-colors">Privacy Notice</Link>
               <Link href="/policies/internet-based-policy" className="hover:text-orange-400 transition-colors">Internet-Based Policy</Link>

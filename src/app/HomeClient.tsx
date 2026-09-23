@@ -669,7 +669,11 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
 
   useEffect(() => {
     if (searchTerm && typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0, 0);
+      const scrollContainer = document.getElementById('user-dashboard-scroll-container');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = 0;
+      }
     }
   }, [searchTerm]);
 
@@ -2095,10 +2099,10 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
 
   // Reset scroll position when user switches tabs in the dashboard
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
     const scrollContainer = document.getElementById('user-dashboard-scroll-container');
     if (scrollContainer) {
-      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollContainer.scrollTop = 0;
     }
   }, [userActiveSection]);
 
