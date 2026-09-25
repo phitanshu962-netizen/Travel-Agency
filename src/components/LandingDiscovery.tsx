@@ -539,66 +539,249 @@ export default function LandingDiscovery({
                   })}
                 </div>
 
-                {/* Active Region Showcase Grid (Desktop Only - Option 2: Uniform Balanced 3-Column Grid) */}
-                {destinations.length > 0 && (
-                  <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                    {destinations.map((dest) => (
-                      <div
-                        key={dest.name}
-                        onClick={() => setSearchTerm(dest.name)}
-                        className="group cursor-pointer relative overflow-hidden bg-slate-900 border border-slate-200/80 shadow-2xs hover:shadow-xl transition-all duration-300 h-52 sm:h-60 flex flex-col justify-between p-6"
-                        style={{ borderRadius: '6px' }}
-                      >
-                        {dest.coverImage ? (
-                          <img
-                            src={dest.coverImage}
-                            alt={dest.name}
-                            className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-108 transition-transform duration-700"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-slate-500">
-                            <MapPin className="w-10 h-10" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/35 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
-
-                        {/* Top Badge */}
-                        <div className="relative z-10 flex items-center justify-between" />
-
-                        {/* Bottom Info */}
-                        <div className="relative z-10">
-                          <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-sm line-clamp-1 mb-1.5">
-                            {dest.name}
-                          </h4>
-                          {dest.discoveredPlaces && dest.discoveredPlaces.length > 0 && (
-                            <p className="text-xs font-semibold text-slate-200/90 line-clamp-1 mb-3">
-                              {dest.discoveredPlaces.join(' • ')}
-                            </p>
+                {/* Active Region Showcase Grid (Desktop Only - Smart Adaptive Grid) */}
+                {destinations.length > 0 && (() => {
+                  // Scenario A: Exactly 5 destinations -> 1 Tall Hero (5 cols) + 4 Cards in 2x2 Grid (7 cols)
+                  if (destinations.length === 5) {
+                    const hero = destinations[0];
+                    const gridDests = destinations.slice(1);
+                    return (
+                      <div className="hidden sm:grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                        {/* Hero Spotlight Card */}
+                        <div
+                          onClick={() => setSearchTerm(hero.name)}
+                          className="lg:col-span-5 group cursor-pointer relative overflow-hidden bg-slate-900 border border-slate-200/90 shadow-sm hover:shadow-xl transition-all duration-300 min-h-[380px] sm:min-h-[420px] flex flex-col justify-between p-6 sm:p-8"
+                          style={{ borderRadius: '6px' }}
+                        >
+                          {hero.coverImage ? (
+                            <img
+                              src={hero.coverImage}
+                              alt={hero.name}
+                              className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-700"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-slate-500">
+                              <MapPin className="w-12 h-12" />
+                            </div>
                           )}
-                          <div className="flex items-center justify-between pt-2.5 border-t border-white/15">
-                            {dest.startingPrice ? (
-                              <div>
-                                <p className="text-[9px] uppercase tracking-wider text-slate-300 font-bold">Starting from</p>
-                                <p className="text-sm sm:text-base font-black text-amber-300">
-                                  ₹{dest.startingPrice.toLocaleString('en-IN')}
-                                </p>
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/40 to-transparent opacity-90 group-hover:opacity-80 transition-opacity" />
+
+                          <div className="relative z-10 flex items-center justify-between gap-2" />
+
+                          <div className="relative z-10">
+                            <h3 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm mb-2">
+                              {hero.name}
+                            </h3>
+
+                            {hero.discoveredPlaces && hero.discoveredPlaces.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mb-4">
+                                {hero.discoveredPlaces.map((place) => (
+                                  <span
+                                    key={place}
+                                    className="text-[11px] font-bold bg-white/20 backdrop-blur-sm text-white px-2.5 py-0.5 rounded-md border border-white/10"
+                                  >
+                                    {place}
+                                  </span>
+                                ))}
                               </div>
-                            ) : (
-                              <span className="text-[11px] text-slate-300 font-bold">Verified Packages</span>
                             )}
-                            <span
-                              className="text-xs font-bold text-white bg-white/20 group-hover:bg-orange-500 px-3.5 py-1.5 transition-all flex items-center gap-1.5 shadow-xs"
-                              style={{ borderRadius: '6px' }}
-                            >
-                              <span>Explore</span>
-                              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                            </span>
+
+                            <div className="flex items-center justify-between pt-3 border-t border-white/15">
+                              {hero.startingPrice ? (
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wider text-slate-300 font-bold">Starting from</p>
+                                  <p className="text-base sm:text-lg font-black text-amber-300">
+                                    ₹{hero.startingPrice.toLocaleString('en-IN')}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-300 font-bold">Verified Packages</span>
+                              )}
+                              <span
+                                className="text-xs font-black text-white bg-white/20 group-hover:bg-orange-500 px-4 py-2 transition-all flex items-center gap-1.5 shadow-xs"
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <span>Explore Packages</span>
+                                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                              </span>
+                            </div>
                           </div>
                         </div>
+
+                        {/* 4 Cards in 2x2 Grid */}
+                        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                          {gridDests.map((dest) => (
+                            <div
+                              key={dest.name}
+                              onClick={() => setSearchTerm(dest.name)}
+                              className="group cursor-pointer relative overflow-hidden bg-slate-900 border border-slate-200/80 shadow-2xs hover:shadow-lg transition-all duration-300 h-44 sm:h-48 flex flex-col justify-between p-5"
+                              style={{ borderRadius: '6px' }}
+                            >
+                              {dest.coverImage ? (
+                                <img
+                                  src={dest.coverImage}
+                                  alt={dest.name}
+                                  className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-108 transition-transform duration-500"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-slate-500">
+                                  <MapPin className="w-8 h-8" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/35 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
+
+                              <div className="relative z-10 flex items-center justify-between" />
+
+                              <div className="relative z-10">
+                                <h4 className="text-lg sm:text-xl font-black text-white tracking-tight drop-shadow-sm line-clamp-1 mb-1">
+                                  {dest.name}
+                                </h4>
+                                {dest.discoveredPlaces && dest.discoveredPlaces.length > 0 && (
+                                  <p className="text-[11px] font-semibold text-slate-200/85 line-clamp-1 mb-2">
+                                    {dest.discoveredPlaces.join(' • ')}
+                                  </p>
+                                )}
+                                <div className="flex items-center justify-between pt-1.5 border-t border-white/10">
+                                  {dest.startingPrice ? (
+                                    <p className="text-xs font-bold text-amber-300">
+                                      From ₹{dest.startingPrice.toLocaleString('en-IN')}
+                                    </p>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-300">Verified</span>
+                                  )}
+                                  <span className="text-[11px] font-bold text-white group-hover:text-orange-400 flex items-center gap-1 transition-colors">
+                                    <span>View</span>
+                                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  }
+
+                  // Scenario B: Exactly 4 destinations -> 4-Column Balanced Grid
+                  if (destinations.length === 4) {
+                    return (
+                      <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                        {destinations.map((dest) => (
+                          <div
+                            key={dest.name}
+                            onClick={() => setSearchTerm(dest.name)}
+                            className="group cursor-pointer relative overflow-hidden bg-slate-900 border border-slate-200/80 shadow-2xs hover:shadow-xl transition-all duration-300 h-52 sm:h-60 flex flex-col justify-between p-5"
+                            style={{ borderRadius: '6px' }}
+                          >
+                            {dest.coverImage ? (
+                              <img
+                                src={dest.coverImage}
+                                alt={dest.name}
+                                className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-108 transition-transform duration-700"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-slate-500">
+                                <MapPin className="w-10 h-10" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/35 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
+
+                            <div className="relative z-10 flex items-center justify-between" />
+
+                            <div className="relative z-10">
+                              <h4 className="text-lg sm:text-xl font-black text-white tracking-tight drop-shadow-sm line-clamp-1 mb-1.5">
+                                {dest.name}
+                              </h4>
+                              {dest.discoveredPlaces && dest.discoveredPlaces.length > 0 && (
+                                <p className="text-xs font-semibold text-slate-200/90 line-clamp-1 mb-3">
+                                  {dest.discoveredPlaces.join(' • ')}
+                                </p>
+                              )}
+                              <div className="flex items-center justify-between pt-2.5 border-t border-white/15">
+                                {dest.startingPrice ? (
+                                  <div>
+                                    <p className="text-[9px] uppercase tracking-wider text-slate-300 font-bold">Starting from</p>
+                                    <p className="text-sm sm:text-base font-black text-amber-300">
+                                      ₹{dest.startingPrice.toLocaleString('en-IN')}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-300 font-bold">Verified Packages</span>
+                                )}
+                                <span
+                                  className="text-xs font-bold text-white bg-white/20 group-hover:bg-orange-500 px-3.5 py-1.5 transition-all flex items-center gap-1.5 shadow-xs"
+                                  style={{ borderRadius: '6px' }}
+                                >
+                                  <span>Explore</span>
+                                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  // Scenario C: 6 destinations, 3 destinations, or other counts -> Uniform 3-Column Balanced Grid
+                  return (
+                    <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                      {destinations.map((dest) => (
+                        <div
+                          key={dest.name}
+                          onClick={() => setSearchTerm(dest.name)}
+                          className="group cursor-pointer relative overflow-hidden bg-slate-900 border border-slate-200/80 shadow-2xs hover:shadow-xl transition-all duration-300 h-52 sm:h-60 flex flex-col justify-between p-6"
+                          style={{ borderRadius: '6px' }}
+                        >
+                          {dest.coverImage ? (
+                            <img
+                              src={dest.coverImage}
+                              alt={dest.name}
+                              className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-108 transition-transform duration-700"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-slate-500">
+                              <MapPin className="w-10 h-10" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/35 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
+
+                          <div className="relative z-10 flex items-center justify-between" />
+
+                          <div className="relative z-10">
+                            <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-sm line-clamp-1 mb-1.5">
+                              {dest.name}
+                            </h4>
+                            {dest.discoveredPlaces && dest.discoveredPlaces.length > 0 && (
+                              <p className="text-xs font-semibold text-slate-200/90 line-clamp-1 mb-3">
+                                {dest.discoveredPlaces.join(' • ')}
+                              </p>
+                            )}
+                            <div className="flex items-center justify-between pt-2.5 border-t border-white/15">
+                              {dest.startingPrice ? (
+                                <div>
+                                  <p className="text-[9px] uppercase tracking-wider text-slate-300 font-bold">Starting from</p>
+                                  <p className="text-sm sm:text-base font-black text-amber-300">
+                                    ₹{dest.startingPrice.toLocaleString('en-IN')}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-slate-300 font-bold">Verified Packages</span>
+                              )}
+                              <span
+                                className="text-xs font-bold text-white bg-white/20 group-hover:bg-orange-500 px-3.5 py-1.5 transition-all flex items-center gap-1.5 shadow-xs"
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <span>Explore</span>
+                                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
 
                 {/* Gradient Divider */}
                 <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 pt-12 sm:pt-14">
