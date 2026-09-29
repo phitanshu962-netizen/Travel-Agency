@@ -274,10 +274,10 @@ export default function BlogComments({ blogSlug, blogId }: BlogCommentsProps) {
         .thrill-pill-input {
           width: 100%;
           height: 46px;
-          padding: 0 20px;
+          padding: 0 16px;
           background: #ffffff;
           border: 1px solid #e2e8f0;
-          border-radius: 9999px;
+          border-radius: 6px;
           font-size: 14.5px;
           font-family: 'Inter', sans-serif;
           color: #1e293b;
@@ -311,7 +311,7 @@ export default function BlogComments({ blogSlug, blogId }: BlogCommentsProps) {
           padding: 14px 18px;
           background: #ffffff;
           border: 1px solid #e2e8f0;
-          border-radius: 16px;
+          border-radius: 6px;
           font-size: 14.5px;
           font-family: 'Inter', sans-serif;
           color: #1e293b;
@@ -378,7 +378,7 @@ export default function BlogComments({ blogSlug, blogId }: BlogCommentsProps) {
           align-items: center;
           justify-content: center;
           padding: 12px 28px;
-          border-radius: 9999px;
+          border-radius: 6px;
           font-size: 12.5px;
           font-weight: 700;
           letter-spacing: 0.8px;
@@ -436,7 +436,7 @@ export default function BlogComments({ blogSlug, blogId }: BlogCommentsProps) {
           align-items: center;
           gap: 10px;
           padding: 12px 18px;
-          border-radius: 12px;
+          border-radius: 6px;
           font-size: 14px;
           margin-bottom: 22px;
           font-family: 'Inter', sans-serif;
@@ -488,7 +488,7 @@ export default function BlogComments({ blogSlug, blogId }: BlogCommentsProps) {
           width: 88px;
           height: 88px;
           background: #b0b4b8;
-          border-radius: 4px;
+          border-radius: 6px;
           flex-shrink: 0;
           overflow: hidden;
           display: flex;
@@ -562,7 +562,7 @@ export default function BlogComments({ blogSlug, blogId }: BlogCommentsProps) {
           border: 1px solid #e2e8f0;
           color: #64748b;
           padding: 5px 12px;
-          border-radius: 16px;
+          border-radius: 6px;
           font-size: 12px;
           font-weight: 600;
           font-family: 'Inter', sans-serif;
@@ -592,12 +592,12 @@ export default function BlogComments({ blogSlug, blogId }: BlogCommentsProps) {
           }
           .thrill-pill-input {
             height: 48px;
-            padding: 0 20px;
+            padding: 0 16px;
           }
           .thrill-textarea {
             padding: 16px 20px;
             min-height: 160px;
-            border-radius: 20px;
+            border-radius: 6px;
           }
           .thrill-submit-btn {
             width: 100%;

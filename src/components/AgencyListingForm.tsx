@@ -25,6 +25,7 @@ interface ItineraryDay {
   description: string;
   images?: File[];
   imageUrls?: string[];
+  imageUrl?: string;
 }
 
 interface FormData {
@@ -212,7 +213,7 @@ export default function AgencyListingForm({ agencyId, onSuccess, onCancel, initi
       itinerary: initialData.itinerary ? initialData.itinerary.map((day: any) => ({
         ...day,
         images: [],
-        imageUrls: day.imageUrls || (day.imageUrl ? [day.imageUrl] : [])
+        imageUrls: day.imageUrl ? [day.imageUrl] : (Array.isArray(day.imageUrls) && day.imageUrls.length > 0 ? [day.imageUrls[0]] : [])
       })) : [],
       mealPlan: Array.isArray(initialData.mealPlan)
         ? initialData.mealPlan
@@ -452,10 +453,15 @@ export default function AgencyListingForm({ agencyId, onSuccess, onCancel, initi
     setValue('itinerary', renumberedItinerary);
   };
 
-  const updateItineraryDay = (index: number, field: keyof ItineraryDay, value: any) => {
-    const newItinerary = [...itinerary];
-    newItinerary[index] = { ...newItinerary[index], [field]: value };
-    setValue('itinerary', newItinerary);
+  const updateItineraryDay = (index: number, fieldOrUpdates: keyof ItineraryDay | Partial<ItineraryDay>, value?: any) => {
+    const currentItinerary = getValues('itinerary') || itinerary || [];
+    const newItinerary = [...currentItinerary];
+    if (typeof fieldOrUpdates === 'string') {
+      newItinerary[index] = { ...newItinerary[index], [fieldOrUpdates]: value };
+    } else if (typeof fieldOrUpdates === 'object') {
+      newItinerary[index] = { ...newItinerary[index], ...fieldOrUpdates };
+    }
+    setValue('itinerary', newItinerary, { shouldDirty: true, shouldTouch: true });
   };
 
   const uploadImages = async (places: Place[]): Promise<Place[]> => {
@@ -536,42 +542,45 @@ export default function AgencyListingForm({ agencyId, onSuccess, onCancel, initi
       const dayImages = day.images;
 
       if (dayImages && dayImages.length > 0) {
-        const imageUrls: string[] = [];
+        const file = dayImages[0];
+        const placeNameOnly = cleanPlaceNameForSEO(day.placeName);
+        const cleanPlace = sanitizeFileName(placeNameOnly || `Day-${day.day}`);
 
-        for (let imgIndex = 0; imgIndex < dayImages.length; imgIndex++) {
-          const file = dayImages[imgIndex];
-          const placeNameOnly = cleanPlaceNameForSEO(day.placeName);
-          const cleanPlace = sanitizeFileName(placeNameOnly || `Day-${day.day}`);
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('category', 'listings');
+          formData.append('userId', agencyId);
+          formData.append('subfolder', `itinerary/${cleanState}/${cleanPlace}`);
 
-          try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('category', 'listings');
-            formData.append('userId', agencyId);
-            formData.append('subfolder', `itinerary/${cleanState}/${cleanPlace}`);
-
-            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-            if (!uploadRes.ok) {
-              const errData = await uploadRes.json().catch(() => ({}));
-              throw new Error(errData.error || 'Itinerary image upload failed');
-            }
-            const uploadData = await uploadRes.json();
-            imageUrls.push(uploadData.url);
-
-            setUploadProgress(prev => ({
-              ...prev,
-              [`${file.name}`]: 100
-            }));
-          } catch (error) {
-            console.error('Error uploading itinerary image:', error);
-            throw new Error(`Failed to upload itinerary image: ${file.name}`);
+          const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json().catch(() => ({}));
+            throw new Error(errData.error || 'Itinerary image upload failed');
           }
-        }
+          const uploadData = await uploadRes.json();
 
+          setUploadProgress(prev => ({
+            ...prev,
+            [`${file.name}`]: 100
+          }));
+
+          updatedDays[dayIndex] = {
+            ...day,
+            imageUrl: uploadData.url,
+            imageUrls: [uploadData.url],
+            images: [] // Clear File objects
+          };
+        } catch (error) {
+          console.error('Error uploading itinerary image:', error);
+          throw new Error(`Failed to upload itinerary image: ${file.name}`);
+        }
+      } else if (day.imageUrls && day.imageUrls.length > 0) {
         updatedDays[dayIndex] = {
           ...day,
-          imageUrls: [...(day.imageUrls || []), ...imageUrls],
-          images: [] // Clear File objects
+          imageUrl: day.imageUrls[0],
+          imageUrls: [day.imageUrls[0]],
+          images: []
         };
       }
     }
@@ -1304,62 +1313,85 @@ export default function AgencyListingForm({ agencyId, onSuccess, onCancel, initi
                           />
                         </div>
 
-                        {/* Image Upload for Place */}
+                        {/* Single Image Upload for Day */}
                         <div className="space-y-2">
-                          <Label>Place Photos</Label>
+                          <Label htmlFor={`dayPhoto-${index}`}>
+                            Day Photo <span className="text-xs text-slate-500 font-normal">(1 photo)</span>
+                          </Label>
                           <div className="space-y-2">
-                            <div className="border border-dashed border-slate-300 rounded-md p-3 text-center hover:bg-slate-50 cursor-pointer relative transition-all" style={{ borderRadius: '6px' }}>
-                              <input
-                                type="file"
-                                multiple
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const files = Array.from(e.target.files || []);
-                                  const currentImages = day.images || [];
-                                  updateItineraryDay(index, 'images', [...currentImages, ...files]);
-                                }}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                              />
-                              <Upload className="h-5 w-5 mx-auto text-slate-400 mb-1" />
-                              <span className="text-xs font-medium text-slate-700 block">Click to upload photos</span>
-                            </div>
+                            {((day.images && day.images.length > 0) || (day.imageUrls && day.imageUrls.length > 0) || day.imageUrl) ? (
+                              <div className="relative border border-slate-200 rounded-md bg-slate-50/70 p-2.5 flex items-center gap-3 group" style={{ borderRadius: '6px' }}>
+                                {day.images && day.images.length > 0 && day.images[0] ? (
+                                  <div className="relative h-14 w-20 rounded-md overflow-hidden border border-slate-200 bg-white shrink-0 shadow-xs" style={{ borderRadius: '6px' }}>
+                                    <img 
+                                      src={day.images[0] instanceof File ? URL.createObjectURL(day.images[0]) : String(day.images[0])} 
+                                      alt={`Day ${day.day}`} 
+                                      className="w-full h-full object-cover" 
+                                    />
+                                    <div className="absolute top-1 left-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded shadow-xs">New</div>
+                                  </div>
+                                ) : (day.imageUrls && day.imageUrls.length > 0) || day.imageUrl ? (
+                                  <div className="relative h-14 w-20 rounded-md overflow-hidden border border-slate-200 bg-white shrink-0 shadow-xs" style={{ borderRadius: '6px' }}>
+                                    <img 
+                                      src={day.imageUrls?.[0] || day.imageUrl} 
+                                      alt={`Day ${day.day}`} 
+                                      className="w-full h-full object-cover" 
+                                    />
+                                  </div>
+                                ) : null}
 
-                            {((day.imageUrls?.length || 0) + (day.images?.length || 0)) > 0 && (
-                              <div className="flex flex-wrap gap-1.5 border border-slate-200 p-1.5 rounded-md bg-slate-50/50 max-h-24 overflow-y-auto" style={{ borderRadius: '6px' }}>
-                                {day.imageUrls?.map((url, idx) => (
-                                  <div key={`day-existing-${idx}`} className="relative h-10 w-10 rounded-md overflow-hidden border border-slate-200 bg-white group shadow-xs shrink-0" style={{ borderRadius: '6px' }}>
-                                    <img src={url} alt={`Place ${idx + 1}`} className="w-full h-full object-cover" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold text-slate-700 truncate">
+                                    {day.images && day.images.length > 0 && day.images[0]?.name ? day.images[0].name : 'Uploaded Day Photo'}
+                                  </p>
+                                  <div className="flex items-center gap-3 mt-1">
+                                    <label className="text-[11px] font-semibold text-orange-600 hover:text-orange-700 cursor-pointer hover:underline">
+                                      Change Photo
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            updateItineraryDay(index, { images: [file], imageUrls: [], imageUrl: '' });
+                                          }
+                                          e.target.value = '';
+                                        }}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                    <span className="text-slate-300 text-xs">•</span>
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        const updatedUrls = (day.imageUrls || []).filter((_, i) => i !== idx);
-                                        updateItineraryDay(index, 'imageUrls', updatedUrls);
+                                        updateItineraryDay(index, { images: [], imageUrls: [], imageUrl: '' });
                                       }}
-                                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                      className="text-[11px] font-semibold text-red-500 hover:text-red-700 cursor-pointer flex items-center gap-1 hover:underline"
                                     >
-                                      <Trash2 className="h-3 w-3 text-white" />
+                                      <Trash2 className="h-3 w-3" />
+                                      Remove
                                     </button>
                                   </div>
-                                ))}
-
-                                {day.images?.map((file, idx) => {
-                                  const previewUrl = URL.createObjectURL(file);
-                                  return (
-                                    <div key={`day-new-${idx}`} className="relative h-10 w-10 rounded-md overflow-hidden border border-slate-200 bg-white group shadow-xs shrink-0" style={{ borderRadius: '6px' }}>
-                                      <img src={previewUrl} alt={`New place ${idx + 1}`} className="w-full h-full object-cover" />
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const updatedFiles = (day.images || []).filter((_, i) => i !== idx);
-                                          updateItineraryDay(index, 'images', updatedFiles);
-                                        }}
-                                        className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                      >
-                                        <Trash2 className="h-3 w-3 text-white" />
-                                      </button>
-                                    </div>
-                                  );
-                                })}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="border border-dashed border-slate-300 rounded-md p-3 text-center hover:bg-slate-50 hover:border-orange-400 cursor-pointer relative transition-all" style={{ borderRadius: '6px' }}>
+                                <input
+                                  id={`dayPhoto-${index}`}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      updateItineraryDay(index, { images: [file], imageUrls: [], imageUrl: '' });
+                                    }
+                                    e.target.value = '';
+                                  }}
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                />
+                                <Upload className="h-5 w-5 mx-auto text-slate-400 mb-1" />
+                                <span className="text-xs font-semibold text-slate-700 block">Click to upload 1 photo</span>
+                                <span className="text-[10px] text-slate-400 block mt-0.5">PNG, JPG, WEBP</span>
                               </div>
                             )}
                           </div>

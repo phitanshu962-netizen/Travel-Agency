@@ -34,7 +34,6 @@ import {
   Banknote,
   Plus,
   Utensils,
-  Home,
   Tag,
   Sunrise,
   Compass,
@@ -43,6 +42,8 @@ import {
   Globe,
   Users,
   User,
+  Maximize2,
+  Sparkles,
 } from 'lucide-react';
 
 interface PackageDetailViewProps {
@@ -351,6 +352,7 @@ export default function PackageDetailView({
   const [expandedDays, setExpandedDays] = useState<number[]>([]);
   const [expandedFAQs, setExpandedFAQs] = useState<number[]>([]);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showCompareToast, setShowCompareToast] = useState(false);
   const [compareToastMessage, setCompareToastMessage] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -639,6 +641,40 @@ export default function PackageDetailView({
     }
   }, [allImages]);
 
+  // Lock body scroll and handle keyboard navigation for Gallery & Lightbox
+  useEffect(() => {
+    const isAnyModalOpen = showAllPhotos || lightboxIndex !== null || selectedGalleryImage !== null;
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          if (lightboxIndex !== null) {
+            setLightboxIndex(null);
+          } else if (selectedGalleryImage !== null) {
+            setSelectedGalleryImage(null);
+          } else if (showAllPhotos) {
+            setShowAllPhotos(false);
+          }
+        } else if (e.key === 'ArrowRight') {
+          if (lightboxIndex !== null && allImages.length > 1) {
+            setLightboxIndex(prev => (prev !== null ? (prev + 1) % allImages.length : 0));
+          }
+        } else if (e.key === 'ArrowLeft') {
+          if (lightboxIndex !== null && allImages.length > 1) {
+            setLightboxIndex(prev => (prev !== null ? (prev === 0 ? allImages.length - 1 : prev - 1) : 0));
+          }
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [showAllPhotos, lightboxIndex, selectedGalleryImage, allImages.length]);
+
   const handleAddReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newReview.comment.trim()) return;
@@ -818,27 +854,11 @@ export default function PackageDetailView({
     return Array.from(cleanedPlaces);
   };
 
-  // Generate breadcrumb
-  const getBreadcrumb = () => {
-    const parts: string[] = ['Home'];
-    if (listing.packageType === 'domestic') {
-      parts.push('Domestic');
-      const states = listing.stateNames && listing.stateNames.length > 0 ? listing.stateNames.join(', ') : listing.stateName;
-      if (states) parts.push(states);
-    } else {
-      parts.push('International');
-      const countries = listing.countryNames && listing.countryNames.length > 0 ? listing.countryNames.join(', ') : listing.countryName;
-      if (countries) parts.push(countries);
-    }
-    const locationName = listing.packageType === 'international' ? listing.countryName : listing.stateName;
-    const cleanTitle = (listing.title || locationName || 'Package').replace(/\s*\(.*?\)\s*$/, '').trim();
-    parts.push(cleanTitle || 'Package');
-    return parts;
-  };
+
 
   const locationName = listing.packageType === 'international' ? listing.countryName : listing.stateName;
   const detailTitle = listing.title || locationName || 'Travel Package';
-  const breadcrumb = getBreadcrumb();
+
   const packageCode = `PKG${listing.id?.slice(-4).toUpperCase() || '0000'}`;
 
   // Helper to parse and format experience types with proper commas
@@ -1055,32 +1075,18 @@ export default function PackageDetailView({
 
         {/* Hero content overlay */}
         <div className="relative z-20 h-full flex flex-col justify-between px-3.5 sm:px-6 pt-3.5 sm:pt-6 pb-4 sm:pb-5 max-w-7xl mx-auto">
-          {/* Top row: breadcrumb + action buttons */}
+          {/* Top row: Back button + action buttons */}
           <div className="flex items-center justify-between gap-2">
-            {/* Breadcrumb (Desktop) & Back Button */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onBack}
-                className="flex items-center gap-1.5 text-white bg-black/40 hover:bg-black/60 active:scale-95 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold transition-all border border-white/25 shadow-sm"
-                style={{ borderRadius: '6px' }}
-                aria-label="Go back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back</span>
-              </button>
-
-              <nav className="hidden md:flex items-center gap-1.5 text-xs text-white/80">
-                <button onClick={onBack} className="hover:text-white transition-colors flex items-center gap-1">
-                  <Home className="h-3.5 w-3.5" /> Home
-                </button>
-                {breadcrumb.slice(1).map((part, i) => (
-                  <React.Fragment key={i}>
-                    <ChevronRight className="h-3 w-3 text-white/50" />
-                    <span className={i === breadcrumb.length - 2 ? 'text-white font-medium' : 'hover:text-white cursor-pointer transition-colors'}>{part}</span>
-                  </React.Fragment>
-                ))}
-              </nav>
-            </div>
+            {/* Back Button */}
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1.5 text-white bg-black/40 hover:bg-black/60 active:scale-95 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold transition-all border border-white/25 shadow-sm"
+              style={{ borderRadius: '6px' }}
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back</span>
+            </button>
 
             {/* Action buttons */}
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -1997,63 +2003,160 @@ export default function PackageDetailView({
 
       {/* ─── FULL SCREEN PHOTO GALLERY MODAL ────────────────────── */}
       {showAllPhotos && (
-        <div className="fixed inset-0 bg-white z-[200] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-          <div className="sticky top-0 bg-white border-b border-stone-200 z-10 px-4 md:px-8 py-3 flex items-center shadow-sm">
+        <div className="fixed inset-0 bg-white z-[200] flex flex-col animate-in fade-in duration-200">
+          {/* Top Clean Header */}
+          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200 px-4 sm:px-8 py-3 flex items-center shadow-xs">
+            {/* Back Button */}
             <button
-              className="flex items-center gap-2 text-gray-900 font-bold hover:bg-stone-100 px-3 md:px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 text-stone-700 hover:text-stone-900 font-semibold hover:bg-stone-100 px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer text-sm"
               onClick={() => setShowAllPhotos(false)}
             >
-              <ArrowLeft className="h-5 w-5" /> Back
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back</span>
             </button>
-            <div className="flex-1 flex justify-center overflow-x-auto">
-              <div className="flex items-center gap-6 md:gap-10 text-sm font-medium text-stone-500 whitespace-nowrap">
-                <button className="text-orange-600 border-b-2 border-orange-500 pb-1 px-2">
-                  All Images ({allImages.length})
-                </button>
-                <button className="hover:text-stone-900 pb-1 px-2 transition-colors">Destinations</button>
-                <button className="hover:text-stone-900 pb-1 px-2 transition-colors">Activities</button>
-                <button className="hover:text-stone-900 pb-1 px-2 transition-colors">Stays</button>
-              </div>
-            </div>
-            <div className="w-[100px] hidden md:block" />
+
+
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-stone-50">
-            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-              {allImages.map((image, index) => (
-                <div
-                  key={index}
-                  className="aspect-video rounded-xl overflow-hidden bg-stone-200 group cursor-pointer"
-                  onClick={() => setSelectedGalleryImage(image)}
-                >
-                  <img
-                    src={optimizeImageUrl(image, { width: 1200, quality: 85, format: 'auto', cacheBust: false })}
-                    alt={locationName ? `${locationName} - ${listing.title || 'Travel Package'} - Gallery Image ${index + 1}` : `Gallery Image ${index + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                    loading={index < 4 ? 'eager' : 'lazy'}
-                    decoding="async"
-                  />
+          {/* Clean White Gallery Area */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 bg-white">
+            <div className="max-w-6xl mx-auto">
+              {allImages.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {allImages.map((image, index) => (
+                    <div
+                      key={index}
+                      className="aspect-[4/3] rounded-2xl overflow-hidden bg-stone-100 group cursor-pointer border border-stone-200/80 hover:shadow-lg transition-all duration-300"
+                      onClick={() => setLightboxIndex(index)}
+                    >
+                      <img
+                        src={optimizeImageUrl(image, { width: 1200, quality: 88, format: 'auto', cacheBust: false })}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                        loading={index < 6 ? 'eager' : 'lazy'}
+                        decoding="async"
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="flex flex-col items-center justify-center h-80 text-stone-400 space-y-3">
+                  <Camera className="h-12 w-12 opacity-40" />
+                  <p className="text-sm">No photos available.</p>
+                </div>
+              )}
             </div>
-            {allImages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-64 text-stone-400">
-                <Camera className="h-16 w-16 mb-4 opacity-40" />
-                <p className="text-lg">No photos available for this package.</p>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* ─── TRAVELLER PHOTO LIGHTBOX MODAL ─────────────────────── */}
+      {/* ─── IMMERSIVE FULL-SCREEN LIGHTBOX & FILMSTRIP ─────────── */}
+      {lightboxIndex !== null && allImages.length > 0 && (
+        <div
+          className="fixed inset-0 bg-black/96 z-[260] flex flex-col justify-between select-none animate-in fade-in duration-200"
+          onClick={() => setLightboxIndex(null)}
+        >
+          {/* Lightbox Top Bar */}
+          <div
+            className="flex items-center justify-between px-4 sm:px-8 py-4 bg-gradient-to-b from-black/80 to-transparent z-10"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <span className="bg-white/10 backdrop-blur-md text-white text-xs font-mono font-semibold px-3 py-1 rounded-full border border-white/15">
+                {lightboxIndex + 1} / {allImages.length}
+              </span>
+              <span className="text-stone-300 text-xs sm:text-sm font-medium truncate max-w-[200px] sm:max-w-md hidden xs:inline">
+                {listing.title || locationName || 'Travel Photo'}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setLightboxIndex(null)}
+              className="p-2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 active:scale-90 rounded-full backdrop-blur-md border border-white/15 transition-all cursor-pointer"
+              aria-label="Close fullscreen view"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Lightbox Center Viewport with Arrows */}
+          <div
+            className="relative flex-1 flex items-center justify-center p-2 sm:p-6 min-h-0"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Prev Arrow */}
+            {allImages.length > 1 && (
+              <button
+                onClick={() => setLightboxIndex(prev => (prev !== null ? (prev === 0 ? allImages.length - 1 : prev - 1) : 0))}
+                className="absolute left-2 sm:left-6 z-20 p-2.5 sm:p-3.5 rounded-full bg-black/60 hover:bg-black/85 text-white/80 hover:text-white backdrop-blur-md border border-white/20 hover:scale-110 active:scale-95 transition-all shadow-2xl cursor-pointer"
+                aria-label="Previous photo"
+              >
+                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+              </button>
+            )}
+
+            {/* Active Image */}
+            <div className="relative max-w-5xl max-h-[72vh] flex items-center justify-center">
+              <img
+                src={optimizeImageUrl(allImages[lightboxIndex], { width: 1800, quality: 90, format: 'auto', cacheBust: false })}
+                alt={`Photo ${lightboxIndex + 1}`}
+                className="max-h-[72vh] max-w-full object-contain rounded-xl shadow-2xl"
+              />
+            </div>
+
+            {/* Next Arrow */}
+            {allImages.length > 1 && (
+              <button
+                onClick={() => setLightboxIndex(prev => (prev !== null ? (prev + 1) % allImages.length : 0))}
+                className="absolute right-2 sm:right-6 z-20 p-2.5 sm:p-3.5 rounded-full bg-black/60 hover:bg-black/85 text-white/80 hover:text-white backdrop-blur-md border border-white/20 hover:scale-110 active:scale-95 transition-all shadow-2xl cursor-pointer"
+                aria-label="Next photo"
+              >
+                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Filmstrip Carousel */}
+          {allImages.length > 1 && (
+            <div
+              className="bg-gradient-to-t from-black via-black/90 to-transparent pt-3 pb-5 px-4 z-10 flex justify-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 overflow-x-auto max-w-4xl py-1 px-2">
+                {allImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setLightboxIndex(idx)}
+                    className={`relative shrink-0 w-14 sm:w-16 h-10 sm:h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                      idx === lightboxIndex
+                        ? 'border-orange-500 scale-105 shadow-md shadow-orange-500/50 opacity-100 ring-2 ring-orange-500/30'
+                        : 'border-white/20 opacity-50 hover:opacity-90 hover:border-white/50'
+                    }`}
+                  >
+                    <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── STANDALONE SINGLE PHOTO LIGHTBOX (FOR REVIEWS) ───────── */}
       {selectedGalleryImage && (
         <div
-          className="fixed inset-0 bg-black/92 z-[300] flex items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[300] flex items-center justify-center p-4 animate-in fade-in"
           onClick={() => setSelectedGalleryImage(null)}
         >
-          <div className="max-w-4xl max-h-[85vh] overflow-hidden rounded-xl" onClick={e => e.stopPropagation()}>
-            <img src={selectedGalleryImage} alt={locationName ? `${locationName} - ${listing.title || 'Travel Package'} - Full size photo` : "Full size photo"} className="w-full h-full object-contain" />
+          <button
+            onClick={() => setSelectedGalleryImage(null)}
+            className="absolute top-5 right-5 p-2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full border border-white/15 transition-all cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
+            <img src={selectedGalleryImage} alt="Full size photo" className="w-full h-full object-contain" />
           </div>
         </div>
       )}

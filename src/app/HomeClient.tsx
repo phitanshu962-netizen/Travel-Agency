@@ -669,7 +669,11 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
 
   useEffect(() => {
     if (searchTerm && typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0, 0);
+      const scrollContainer = document.getElementById('user-dashboard-scroll-container');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = 0;
+      }
     }
   }, [searchTerm]);
 
@@ -1150,6 +1154,8 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
       'Group Tour': 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&q=80&w=400',
       'Fix Departure Tour': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=400',
       'Honeymoon Tour': 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&q=80&w=400',
+      'Spiritual Tour': 'https://images.unsplash.com/photo-1681797849305-206966d6a5bf?auto=format&fit=crop&q=80&w=400',
+      'Pilgrimage': 'https://images.unsplash.com/photo-1681797849305-206966d6a5bf?auto=format&fit=crop&q=80&w=400',
       'Kashmir': 'https://images.unsplash.com/photo-1566228015668-4c45dbc4e2f5?auto=format&fit=crop&q=80&w=400',
       'Himachal': 'https://images.unsplash.com/photo-1605649487212-47bdab064df7?auto=format&fit=crop&q=80&w=400',
       'South': 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&q=80&w=400',
@@ -1163,7 +1169,7 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
       'Leh Ladakh': 'https://images.unsplash.com/photo-1621415263409-2259bdd2ac0d?auto=format&fit=crop&q=80&w=400',
       'Manali': 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&q=80&w=400',
       'Trekking': 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=400',
-      'Snow Enjoyment': 'https://images.unsplash.com/photo-1482862549707-f63cb32c5fd9?auto=format&fit=crop&q=80&w=400',
+      'Snow Enjoyment': 'https://images.unsplash.com/photo-1548777123-e216912df7d8?auto=format&fit=crop&q=80&w=400',
       'Adventure': 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=400',
       'Water Sports': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=400',
       'Summer Retreats': 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&q=80&w=400',
@@ -2095,10 +2101,10 @@ export default function HomeClient({ initialListings = [], routeMode }: { initia
 
   // Reset scroll position when user switches tabs in the dashboard
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
     const scrollContainer = document.getElementById('user-dashboard-scroll-container');
     if (scrollContainer) {
-      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollContainer.scrollTop = 0;
     }
   }, [userActiveSection]);
 

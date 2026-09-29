@@ -123,7 +123,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
               alignItems: 'center',
               background: '#fff',
               border: '1.5px solid rgba(0,0,0,0.1)',
-              borderRadius: 12,
+              borderRadius: '6px',
               overflow: 'hidden',
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
               transition: 'border-color 0.2s',
@@ -176,7 +176,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
                 background: 'linear-gradient(135deg,#f97316,#ea580c)',
                 color: '#fff',
                 border: 'none',
-                borderRadius: 12,
+                borderRadius: '6px',
                 padding: '13px 24px',
                 fontSize: 14,
                 fontWeight: 600,
@@ -202,7 +202,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
                     background: selectedCategory === cat ? '#ea580c' : '#fff',
                     color: selectedCategory === cat ? '#fff' : '#64748b',
                     border: selectedCategory === cat ? '1.5px solid #ea580c' : '1.5px solid rgba(0,0,0,0.08)',
-                    borderRadius: 20,
+                    borderRadius: '6px',
                     padding: '7px 16px',
                     fontSize: 13,
                     fontWeight: selectedCategory === cat ? 600 : 500,
@@ -240,7 +240,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
       {/* Blog content */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 80px' }}>
         {filteredBlogs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 40px', background: '#ffffff', borderRadius: 20, border: '1px solid rgba(0,0,0,0.06)' }}>
+          <div style={{ textAlign: 'center', padding: '80px 40px', background: '#ffffff', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.06)' }}>
             <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
               <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/>
@@ -253,7 +253,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
             </p>
             <button
               onClick={() => { setInputValue(''); setSearchQuery(''); setSelectedCategory('All'); }}
-              style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 28px', fontWeight: 600, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 14px rgba(249,115,22,0.2)' }}
+              style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#fff', border: 'none', borderRadius: '6px', padding: '12px 28px', fontWeight: 600, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 14px rgba(249,115,22,0.2)' }}
             >
               Browse All Articles
             </button>
@@ -276,7 +276,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
                     style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
-                      borderRadius: 18,
+                      borderRadius: '6px',
                       overflow: 'hidden',
                       border: '1px solid rgba(0,0,0,0.07)',
                       background: '#fff',
@@ -304,7 +304,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
                       {(() => {
                         const p = CATEGORY_PALETTE[featured.category] || CATEGORY_PALETTE.default;
                         return (
-                          <span style={{ display: 'inline-block', background: p.bg, color: p.text, border: `1px solid ${p.border}`, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, marginBottom: 14, alignSelf: 'flex-start', letterSpacing: 0.3 }}>
+                          <span style={{ display: 'inline-block', background: p.bg, color: p.text, border: `1px solid ${p.border}`, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: '6px', marginBottom: 14, alignSelf: 'flex-start', letterSpacing: 0.3 }}>
                             {featured.category}
                           </span>
                         );
@@ -360,7 +360,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
                           style={{
                             background: '#fff',
                             border: '1px solid rgba(0,0,0,0.07)',
-                            borderRadius: 14,
+                            borderRadius: '6px',
                             overflow: 'hidden',
                             cursor: 'pointer',
                             height: '100%',
@@ -391,7 +391,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
                               fontSize: 10,
                               fontWeight: 700,
                               padding: '3px 9px',
-                              borderRadius: 20,
+                              borderRadius: '6px',
                               backdropFilter: 'blur(10px)',
                               backgroundColor: 'rgba(255,255,255,0.88)',
                             }}>

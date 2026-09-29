@@ -707,9 +707,9 @@ export const EXPERIENCE_THEME_IMAGES: Record<string, string> = {
   'Heritage & Culture': 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&q=80&w=1200', // Iconic Amber Fort & Rajasthan royal palace architecture
   'Nature & Wildlife': 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&q=80&w=1200', // Majestic safari elephants in wild natural sanctuary
   'Trekking & Mountains': 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1200', // High mountain ridge trekking & panoramic alpine trail
-  'Spiritual & Pilgrimage': 'https://images.unsplash.com/photo-1545129139-1beb780cf337?auto=format&fit=crop&q=80&w=1200', // Sacred Golden Temple & holy sarovar waters illuminated at night
+  'Spiritual & Pilgrimage': 'https://images.unsplash.com/photo-1681797849305-206966d6a5bf?auto=format&fit=crop&q=80&w=1200', // Sacred Varanasi ancient temples & holy Ganga ghats
   'Honeymoon & Couples': 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&q=80&w=1200', // Romantic couple sunset escape
-  'Snow & Winter': 'https://images.unsplash.com/photo-1482862549707-f63cb32c5fd9?auto=format&fit=crop&q=80&w=1200', // Pristine snow-blanketed alpine pine trees & winter mountains
+  'Snow & Winter': 'https://images.unsplash.com/photo-1548777123-e216912df7d8?auto=format&fit=crop&q=80&w=1200', // Pristine snow-blanketed alpine pine trees & winter mountains
   'Beach & Coastal': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1200', // Turquoise ocean waves, tropical sandy shores & backwaters
   'Adventure & Outdoors': 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=1200', // Starlit outdoor campfire & camping under pine forest
   'Sightseeing & Local Tours': 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&q=80&w=1200', // Iconic city landmarks & cultural sightseeing

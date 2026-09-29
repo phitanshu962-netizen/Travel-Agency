@@ -48,7 +48,7 @@ export default function BlogShareBar({ url: initialUrl, title, className = '' }:
         .share-icon-btn {
           width: 30px;
           height: 30px;
-          border-radius: 50%;
+          border-radius: 6px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
