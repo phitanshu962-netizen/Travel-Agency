@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import MobileBottomNav, { MobileNavTab } from '@/components/MobileBottomNav';
 
 interface Blog {
   id: string;
@@ -64,10 +66,19 @@ function formatDate(d: string) {
 }
 
 export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
+  const router = useRouter();
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleNavTab = (tab: MobileNavTab) => {
+    if (tab === 'explore') router.push('/');
+    else if (tab === 'agents') router.push('/travel-agents');
+    else if (tab === 'stories') router.push('/blog');
+    else if (tab === 'messages') router.push('/?section=chat');
+    else if (tab === 'profile') router.push('/?section=profile');
+  };
 
   const handleSearch = useCallback(() => {
     setSearchQuery(inputValue.trim());
@@ -111,11 +122,11 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
   return (
     <div>
       {/* Search & Filter */}
-      <section style={{ padding: '0 24px 40px', position: 'relative', zIndex: 10 }}>
+      <section className="px-4 sm:px-6 pb-8 sm:pb-10 relative z-10">
         <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Search bar with button */}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5 items-stretch sm:items-center">
             <div style={{
               flex: 1,
               position: 'relative',
@@ -238,7 +249,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
       </section>
 
       {/* Blog content */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 80px' }}>
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pb-20 sm:pb-24">
         {filteredBlogs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px 40px', background: '#ffffff', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.06)' }}>
             <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
@@ -272,7 +283,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
 
                 <Link href={`/blog/${featured.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
                   <article
-                    className="featured-card"
+                    className="featured-card p-5 sm:p-8"
                     style={{
                       borderRadius: '8px',
                       overflow: 'hidden',
@@ -280,7 +291,6 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
                       background: '#fff',
                       boxShadow: '0 8px 32px rgba(0,0,0,0.05)',
                       cursor: 'pointer',
-                      padding: '32px 36px',
                     }}
                   >
                     {/* Content */}
@@ -334,7 +344,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
                   </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {restBlogs.map((blog, i) => {
                     const palette = CATEGORY_PALETTE[blog.category] || CATEGORY_PALETTE.default;
                     return (
@@ -404,6 +414,7 @@ export default function BlogClient({ initialBlogs }: { initialBlogs: Blog[] }) {
           </>
         )}
       </div>
+      <MobileBottomNav activeTab="stories" onTabClick={handleNavTab} />
     </div>
   );
 }

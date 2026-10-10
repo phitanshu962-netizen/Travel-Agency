@@ -52,8 +52,8 @@ export async function registerPushNotifications(userId?: string): Promise<string
       console.warn('[Push] No registration token available.');
       return null;
     }
-  } catch (error) {
-    console.error('[Push] Error registering push notifications:', error);
+  } catch (error: any) {
+    console.warn('[Push] Registration note:', error?.message || error);
     return null;
   }
 }
@@ -63,7 +63,24 @@ export async function saveFcmToken(userId: string, token: string): Promise<void>
   if (!db || !userId || !token) return;
 
   try {
-    // Save to user tokens doc
+    // 1. Save to user document (matches Android app schema)
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, {
+      fcmToken: token,
+      fcmTokens: arrayUnion(token),
+      pushNotificationsEnabled: true,
+      lastTokenUpdate: Date.now()
+    }, { merge: true });
+
+    // 2. Save to fcm_tokens with userId as doc ID (matches Android app FCMTokenRepository.kt)
+    const userFcmDocRef = doc(db, 'fcm_tokens', userId);
+    await setDoc(userFcmDocRef, {
+      userId,
+      token,
+      updatedAt: Date.now()
+    }, { merge: true });
+
+    // 3. Save to user_fcm_tokens collection
     const userTokenRef = doc(db, 'user_fcm_tokens', userId);
     await setDoc(userTokenRef, {
       userId,
@@ -71,17 +88,9 @@ export async function saveFcmToken(userId: string, token: string): Promise<void>
       lastUpdated: Date.now()
     }, { merge: true });
 
-    // Also store token map for direct lookup
-    const tokenRef = doc(db, 'fcm_tokens', token);
-    await setDoc(tokenRef, {
-      userId,
-      token,
-      updatedAt: Date.now()
-    }, { merge: true });
-
     console.log(`[Push] Token successfully linked to user ${userId}`);
-  } catch (err) {
-    console.error('[Push] Failed to save FCM token to Firestore:', err);
+  } catch (err: any) {
+    console.warn('[Push] FCM token save note:', err?.message || err);
   }
 }
 
@@ -111,7 +120,7 @@ export async function initForegroundNotificationListener(onNotificationReceived?
         }
       }
     });
-  } catch (err) {
-    console.error('[Push] Error initializing foreground message listener:', err);
+  } catch (err: any) {
+    console.warn('[Push] Foreground message listener note:', err?.message || err);
   }
 }

@@ -71,7 +71,7 @@ export default function WishlistView({
   });
 
   return (
-    <div className="w-full bg-[#fcfdfd] min-h-screen py-6 sm:py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="w-full bg-[#fcfdfd] min-h-screen py-6 sm:py-8 px-4 sm:px-6 lg:px-8 font-sans pb-24 sm:pb-8">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header & Controls Strip (Rendered when wishlist has items) */}

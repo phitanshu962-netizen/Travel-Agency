@@ -142,7 +142,7 @@ export default function LandingHome({
   };
 
   return (
-    <div className="w-full bg-white text-slate-900 h-[calc(100vh-4rem)] md:h-[calc(100dvh-4rem)] min-h-[560px] max-h-[calc(100vh-4rem)] flex flex-col justify-between overflow-y-auto lg:overflow-hidden select-none">
+    <div className="w-full bg-white text-slate-900 min-h-[calc(100dvh-4rem)] lg:h-[calc(100dvh-4rem)] lg:max-h-[calc(100dvh-4rem)] flex flex-col justify-between overflow-y-auto lg:overflow-hidden select-none pb-16 lg:pb-0">
       {/* ─── MAIN HERO CONTAINER ────────────────────────────────────────── */}
       <div className="relative w-full flex-1 flex flex-col justify-between pt-5 sm:pt-7 pb-2 px-4 sm:px-6 overflow-hidden">
         {/* Scenic Background Image matching Mockup */}
@@ -170,186 +170,197 @@ export default function LandingHome({
           </p>
 
           {/* ─── SEARCH BAR ────────────────────────────────────────── */}
-          <div className="mt-4 sm:mt-5 max-w-3xl mx-auto relative z-40">
+          <div className="mt-3.5 sm:mt-5 max-w-3xl mx-auto relative z-40">
             <form
               onSubmit={handleSearchSubmit}
-              className="relative z-50 bg-white/95 backdrop-blur-sm p-1.5 sm:p-2 shadow-[0_10px_35px_-5px_rgba(0,0,0,0.08)] border border-slate-200/90 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 transition-all hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
-              style={{ borderRadius: '6px' }}
+              className="relative z-50 bg-white/95 backdrop-blur-md p-1 sm:p-1.5 rounded-2xl sm:rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-slate-200/90 transition-all hover:shadow-[0_12px_36px_rgba(0,0,0,0.12)] max-w-2xl sm:max-w-3xl mx-auto"
             >
-              {/* Field 1: Destination Search Input */}
-              <div ref={searchBoxRef} className="relative flex-1 flex items-center min-w-0 px-3 py-1">
-                <Search className="h-4 w-4 text-slate-400 shrink-0 mr-2.5" />
-                <input
-                  type="text"
-                  value={destinationInput}
-                  onChange={(e) => {
-                    setDestinationInput(e.target.value);
-                    setShowDestDropdown(true);
-                  }}
-                  placeholder="Where do you want to go?"
-                  className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                />
-
-                {destinationInput && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDestinationInput('');
-                      setShowDestDropdown(false);
+              <div className="flex flex-col sm:flex-row sm:items-center">
+                {/* Field 1: Destination Search Input + Mobile Inline Search Button */}
+                <div ref={searchBoxRef} className="relative flex-1 flex items-center min-w-0 pl-3 pr-1.5 py-1.5 sm:py-1">
+                  <Search className="h-4 w-4 text-slate-400 shrink-0 mr-2" />
+                  <input
+                    type="text"
+                    value={destinationInput}
+                    onChange={(e) => {
+                      setDestinationInput(e.target.value);
+                      setShowDestDropdown(true);
                     }}
-                    className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer mr-1"
+                    placeholder="Where do you want to go?"
+                    className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  />
+
+                  {destinationInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDestinationInput('');
+                        setShowDestDropdown(false);
+                      }}
+                      className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer mr-1"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+
+                  {/* Autocomplete Dropdown - Only when user is actively typing a query */}
+                  {showDestDropdown && destinationInput.trim().length >= 2 && filteredDestinations.length > 0 && (
+                    <div
+                      className="absolute left-0 right-0 top-[calc(100%+8px)] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.16)] border border-slate-200 rounded-xl py-1.5 z-[100] text-left max-h-52 overflow-y-auto"
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
+                        Matching Destinations
+                      </p>
+                      {filteredDestinations.map((dest, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            setDestinationInput(dest);
+                            setShowDestDropdown(false);
+                            onNavigateToDestinations(dest);
+                          }}
+                          className="w-full px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-orange-50 hover:text-[#FF5500] flex items-center gap-2 transition-colors text-left cursor-pointer"
+                        >
+                          <MapPin className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+                          <span>{dest}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Mobile-only Search Button: Compact pill on right side of input */}
+                  <button
+                    type="submit"
+                    className="sm:hidden bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-xl shadow-xs text-xs cursor-pointer shrink-0 ml-1 transition-all"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    Search
                   </button>
-                )}
+                </div>
 
-                {/* Autocomplete Dropdown - Only when user is actively typing a query */}
-                {showDestDropdown && destinationInput.trim().length >= 2 && filteredDestinations.length > 0 && (
-                  <div
-                    className="absolute left-0 right-0 top-[calc(100%+8px)] bg-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 py-1.5 z-[100] text-left max-h-52 overflow-y-auto"
-                    style={{ borderRadius: '6px' }}
-                  >
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
-                      Matching Destinations
-                    </p>
-                    {filteredDestinations.map((dest, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          setDestinationInput(dest);
-                          setShowDestDropdown(false);
-                          onNavigateToDestinations(dest);
-                        }}
-                        className="w-full px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-orange-50 hover:text-[#FF5500] flex items-center gap-2 transition-colors text-left cursor-pointer"
+                {/* Secondary Filters: Row 2 on Mobile (side-by-side) / Inline on Desktop */}
+                <div className="flex items-center border-t border-slate-100 sm:border-t-0 sm:contents">
+                  {/* Desktop Divider 1 */}
+                  <div className="hidden sm:block w-px h-6 bg-slate-200/90 shrink-0" />
+
+                  {/* Field 2: Travel Dates Dropdown */}
+                  <div ref={dateDropdownRef} className="relative flex-1 sm:flex-initial sm:shrink-0 px-2.5 sm:px-3 py-1.5 sm:py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDateDropdown(!showDateDropdown);
+                        setShowTravelerDropdown(false);
+                        setShowDestDropdown(false);
+                      }}
+                      className="flex items-center gap-1.5 text-[11px] sm:text-[13px] font-medium text-slate-700 hover:text-slate-900 cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
+                    >
+                      <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className={`truncate max-w-[95px] sm:max-w-none ${selectedDates !== 'Travel dates' ? 'text-slate-900 font-semibold' : ''}`}>
+                        {selectedDates}
+                      </span>
+                      <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
+                    </button>
+
+                    {showDateDropdown && (
+                      <div
+                        className="absolute left-0 sm:right-0 sm:left-auto top-[calc(100%+8px)] w-48 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.16)] border border-slate-200 rounded-xl py-1.5 z-[100] text-left"
                       >
-                        <MapPin className="h-3.5 w-3.5 text-orange-400 shrink-0" />
-                        <span>{dest}</span>
-                      </button>
-                    ))}
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
+                          Select Season / Month
+                        </p>
+                        {DATE_OPTIONS.map((opt, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDates(opt.label);
+                              setShowDateDropdown(false);
+                            }}
+                            className={`w-full px-3 py-1.5 text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between ${
+                              selectedDates === opt.label
+                                ? 'bg-orange-50 text-[#FF5500]'
+                                : 'text-slate-700 hover:bg-orange-50/60 hover:text-[#FF5500]'
+                            }`}
+                          >
+                            <span>{opt.label}</span>
+                            {selectedDates === opt.label && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#FF5500]" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Divider 1 */}
-              <div className="hidden sm:block w-px h-6 bg-slate-200 shrink-0" />
+                  {/* Hairline Divider between Dates & Travelers on Mobile */}
+                  <div className="w-px h-4 bg-slate-200/80 shrink-0 sm:hidden" />
 
-              {/* Field 2: Travel Dates Dropdown */}
-              <div ref={dateDropdownRef} className="relative shrink-0 px-3 py-1">
+                  {/* Desktop Divider 2 */}
+                  <div className="hidden sm:block w-px h-6 bg-slate-200/90 shrink-0" />
+
+                  {/* Field 3: Travelers Dropdown */}
+                  <div ref={travelerDropdownRef} className="relative flex-1 sm:flex-initial sm:shrink-0 px-2.5 sm:px-3 py-1.5 sm:py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTravelerDropdown(!showTravelerDropdown);
+                        setShowDateDropdown(false);
+                        setShowDestDropdown(false);
+                      }}
+                      className="flex items-center gap-1.5 text-[11px] sm:text-[13px] font-medium text-slate-700 hover:text-slate-900 cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
+                    >
+                      <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className={`truncate max-w-[95px] sm:max-w-none ${selectedTravelers !== 'Travelers' ? 'text-slate-900 font-semibold' : ''}`}>
+                        {selectedTravelers}
+                      </span>
+                      <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
+                    </button>
+
+                    {showTravelerDropdown && (
+                      <div
+                        className="absolute right-0 top-[calc(100%+8px)] w-52 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.16)] border border-slate-200 rounded-xl py-1.5 z-[100] text-left"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
+                          Who is traveling?
+                        </p>
+                        {TRAVELER_OPTIONS.map((opt, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setSelectedTravelers(opt.label);
+                              setShowTravelerDropdown(false);
+                            }}
+                            className={`w-full px-3 py-1.5 text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between ${
+                              selectedTravelers === opt.label
+                                ? 'bg-orange-50 text-[#FF5500]'
+                                : 'text-slate-700 hover:bg-orange-50/60 hover:text-[#FF5500]'
+                            }`}
+                          >
+                            <span>{opt.label}</span>
+                            {selectedTravelers === opt.label && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#FF5500]" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Desktop Search Button */}
                 <button
-                  type="button"
-                  onClick={() => {
-                    setShowDateDropdown(!showDateDropdown);
-                    setShowTravelerDropdown(false);
-                    setShowDestDropdown(false);
-                  }}
-                  className="flex items-center gap-1.5 text-xs sm:text-[13px] font-medium text-slate-700 hover:text-slate-900 cursor-pointer w-full sm:w-auto justify-between sm:justify-start"
+                  type="submit"
+                  className="hidden sm:inline-flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold px-7 py-2.5 rounded-full transition-all duration-200 shadow-md shadow-amber-500/25 border border-amber-400/50 text-xs sm:text-sm cursor-pointer shrink-0 ml-1"
                 >
-                  <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                  <span className={selectedDates !== 'Travel dates' ? 'text-slate-900 font-semibold' : ''}>
-                    {selectedDates}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                  Search
                 </button>
-
-                {showDateDropdown && (
-                  <div
-                    className="absolute left-0 sm:right-0 sm:left-auto top-[calc(100%+8px)] w-48 bg-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 py-1.5 z-[100] text-left"
-                    style={{ borderRadius: '6px' }}
-                  >
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
-                      Select Season / Month
-                    </p>
-                    {DATE_OPTIONS.map((opt, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          setSelectedDates(opt.label);
-                          setShowDateDropdown(false);
-                        }}
-                        className={`w-full px-3 py-1.5 text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between ${
-                          selectedDates === opt.label
-                            ? 'bg-orange-50 text-[#FF5500]'
-                            : 'text-slate-700 hover:bg-orange-50/60 hover:text-[#FF5500]'
-                        }`}
-                      >
-                        <span>{opt.label}</span>
-                        {selectedDates === opt.label && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#FF5500]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-
-              {/* Divider 2 */}
-              <div className="hidden sm:block w-px h-6 bg-slate-200 shrink-0" />
-
-              {/* Field 3: Travelers Dropdown */}
-              <div ref={travelerDropdownRef} className="relative shrink-0 px-3 py-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowTravelerDropdown(!showTravelerDropdown);
-                    setShowDateDropdown(false);
-                    setShowDestDropdown(false);
-                  }}
-                  className="flex items-center gap-1.5 text-xs sm:text-[13px] font-medium text-slate-700 hover:text-slate-900 cursor-pointer w-full sm:w-auto justify-between sm:justify-start"
-                >
-                  <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                  <span className={selectedTravelers !== 'Travelers' ? 'text-slate-900 font-semibold' : ''}>
-                    {selectedTravelers}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-                </button>
-
-                {showTravelerDropdown && (
-                  <div
-                    className="absolute right-0 top-[calc(100%+8px)] w-52 bg-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 py-1.5 z-[100] text-left"
-                    style={{ borderRadius: '6px' }}
-                  >
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
-                      Who is traveling?
-                    </p>
-                    {TRAVELER_OPTIONS.map((opt, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          setSelectedTravelers(opt.label);
-                          setShowTravelerDropdown(false);
-                        }}
-                        className={`w-full px-3 py-1.5 text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between ${
-                          selectedTravelers === opt.label
-                            ? 'bg-orange-50 text-[#FF5500]'
-                            : 'text-slate-700 hover:bg-orange-50/60 hover:text-[#FF5500]'
-                        }`}
-                      >
-                        <span>{opt.label}</span>
-                        {selectedTravelers === opt.label && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#FF5500]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Search Button */}
-              <button
-                type="submit"
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold px-7 py-2.5 transition-all duration-200 shadow-md shadow-amber-500/25 border border-amber-400/50 text-xs sm:text-sm cursor-pointer shrink-0 mt-1 sm:mt-0"
-                style={{ borderRadius: '6px' }}
-              >
-                Search
-              </button>
             </form>
 
             {/* Popular Destination Tags */}
-            <div className="mt-3 relative z-10 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-1">
-              <span className="text-xs font-bold text-slate-900 mr-1 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]">
+            <div className="mt-2.5 sm:mt-3 relative z-10 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-1">
+              <span className="text-[11px] sm:text-xs font-bold text-slate-900 mr-1 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]">
                 Popular:
               </span>
               {POPULAR_TAGS.map((tag) => (
@@ -357,8 +368,7 @@ export default function LandingHome({
                   key={tag}
                   type="button"
                   onClick={() => handleSelectPopularTag(tag)}
-                  className="px-3 py-1 bg-white/95 hover:bg-white text-slate-800 hover:text-orange-600 font-bold text-xs transition-all shadow-2xs border border-slate-200/90 hover:border-orange-500 backdrop-blur-xs cursor-pointer hover:shadow-xs"
-                  style={{ borderRadius: '6px' }}
+                  className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-white/95 hover:bg-white text-slate-800 hover:text-orange-600 font-semibold text-[11px] sm:text-xs rounded-full transition-all shadow-2xs border border-slate-200/90 hover:border-orange-500 backdrop-blur-xs cursor-pointer hover:shadow-xs"
                 >
                   {tag}
                 </button>
@@ -367,35 +377,41 @@ export default function LandingHome({
           </div>
         </div>
 
-        {/* ─── 2. 4 VALUE PROPOSITIONS (DIRECT ON PAGE - NO CONTAINER) ─── */}
-        <div className="relative z-10 w-full mt-3 sm:mt-4">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-300/60">
+        {/* ─── 2. 4 VALUE PROPOSITIONS (FROSTED GLASS CONTAINER) ─── */}
+        <div className="relative z-10 w-full mt-3.5 sm:mt-5 px-3 sm:px-6">
+          <div className="max-w-4xl mx-auto bg-white/92 backdrop-blur-md rounded-2xl p-2.5 sm:p-3 border border-white/80 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
               {/* Item 1 */}
-              <div className="flex flex-col items-center text-center px-2 py-1.5 sm:py-0">
-                <Users className="h-5 w-5 text-[#FF5500] mb-1 shrink-0 drop-shadow-xs" />
+              <div className="flex flex-col items-center text-center p-2 sm:p-1.5 rounded-xl bg-slate-50/60 sm:bg-transparent">
+                <div className="w-8 h-8 rounded-full bg-orange-100/80 border border-orange-200/60 flex items-center justify-center text-[#FF5500] mb-1.5 shrink-0 shadow-2xs">
+                  <Users className="h-4 w-4" />
+                </div>
                 <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 leading-tight">
                   Multiple Travel Agents
                 </h3>
                 <p className="text-[10px] sm:text-[11px] text-slate-600 font-medium leading-tight mt-0.5">
-                  Get options from many verified agents
+                  Get options from verified agents
                 </p>
               </div>
 
               {/* Item 2 */}
-              <div className="flex flex-col items-center text-center px-2 py-1.5 sm:py-0">
-                <MessageSquare className="h-5 w-5 text-[#FF5500] mb-1 shrink-0 drop-shadow-xs" />
+              <div className="flex flex-col items-center text-center p-2 sm:p-1.5 rounded-xl bg-slate-50/60 sm:bg-transparent sm:border-l sm:border-slate-200/60">
+                <div className="w-8 h-8 rounded-full bg-orange-100/80 border border-orange-200/60 flex items-center justify-center text-[#FF5500] mb-1.5 shrink-0 shadow-2xs">
+                  <MessageSquare className="h-4 w-4" />
+                </div>
                 <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 leading-tight">
                   Chat Directly
                 </h3>
                 <p className="text-[10px] sm:text-[11px] text-slate-600 font-medium leading-tight mt-0.5">
-                  Discuss, negotiate and customize
+                  Discuss, negotiate & customize
                 </p>
               </div>
 
               {/* Item 3 */}
-              <div className="flex flex-col items-center text-center px-2 py-1.5 sm:py-0">
-                <IndianRupee className="h-5 w-5 text-[#FF5500] mb-1 shrink-0 drop-shadow-xs" />
+              <div className="flex flex-col items-center text-center p-2 sm:p-1.5 rounded-xl bg-slate-50/60 sm:bg-transparent sm:border-l sm:border-slate-200/60">
+                <div className="w-8 h-8 rounded-full bg-orange-100/80 border border-orange-200/60 flex items-center justify-center text-[#FF5500] mb-1.5 shrink-0 shadow-2xs">
+                  <IndianRupee className="h-4 w-4" />
+                </div>
                 <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 leading-tight">
                   No Commission
                 </h3>
@@ -405,13 +421,15 @@ export default function LandingHome({
               </div>
 
               {/* Item 4 */}
-              <div className="flex flex-col items-center text-center px-2 py-1.5 sm:py-0">
-                <ShieldCheck className="h-5 w-5 text-[#FF5500] mb-1 shrink-0 drop-shadow-xs" />
+              <div className="flex flex-col items-center text-center p-2 sm:p-1.5 rounded-xl bg-slate-50/60 sm:bg-transparent sm:border-l sm:border-slate-200/60">
+                <div className="w-8 h-8 rounded-full bg-orange-100/80 border border-orange-200/60 flex items-center justify-center text-[#FF5500] mb-1.5 shrink-0 shadow-2xs">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
                 <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 leading-tight">
                   Verified Agents
                 </h3>
                 <p className="text-[10px] sm:text-[11px] text-slate-600 font-medium leading-tight mt-0.5">
-                  Safe, reliable and trusted
+                  Safe, reliable & trusted
                 </p>
               </div>
             </div>
@@ -446,9 +464,9 @@ export default function LandingHome({
 
             {/* Right Column (3 Steps with Chevrons) */}
             <div className="md:col-span-8">
-              <div className="flex items-center justify-between gap-1 sm:gap-2">
+              <div className="grid grid-cols-1 sm:flex items-stretch sm:items-center justify-between gap-3 sm:gap-2">
                 {/* Step 1 */}
-                <div className="flex items-start gap-2 sm:gap-2.5 flex-1 min-w-0">
+                <div className="flex items-start gap-2.5 sm:gap-2.5 flex-1 min-w-0 bg-slate-50/70 sm:bg-transparent p-2 sm:p-0 rounded-lg sm:rounded-none">
                   <span
                     className="w-5 h-5 bg-orange-100 text-[#FF5500] font-black flex items-center justify-center text-[11px] shrink-0 mt-0.5"
                     style={{ borderRadius: '4px' }}
@@ -472,7 +490,7 @@ export default function LandingHome({
                 <ChevronRight className="h-4 w-4 text-slate-300 shrink-0 hidden sm:block mx-1" />
 
                 {/* Step 2 */}
-                <div className="flex items-start gap-2 sm:gap-2.5 flex-1 min-w-0">
+                <div className="flex items-start gap-2.5 sm:gap-2.5 flex-1 min-w-0 bg-slate-50/70 sm:bg-transparent p-2 sm:p-0 rounded-lg sm:rounded-none">
                   <span
                     className="w-5 h-5 bg-orange-100 text-[#FF5500] font-black flex items-center justify-center text-[11px] shrink-0 mt-0.5"
                     style={{ borderRadius: '4px' }}
@@ -496,7 +514,7 @@ export default function LandingHome({
                 <ChevronRight className="h-4 w-4 text-slate-300 shrink-0 hidden sm:block mx-1" />
 
                 {/* Step 3 */}
-                <div className="flex items-start gap-2 sm:gap-2.5 flex-1 min-w-0">
+                <div className="flex items-start gap-2.5 sm:gap-2.5 flex-1 min-w-0 bg-slate-50/70 sm:bg-transparent p-2 sm:p-0 rounded-lg sm:rounded-none">
                   <span
                     className="w-5 h-5 bg-orange-100 text-[#FF5500] font-black flex items-center justify-center text-[11px] shrink-0 mt-0.5"
                     style={{ borderRadius: '4px' }}

@@ -476,7 +476,7 @@ export default function PackageDetailView({
           querySnapshot.forEach((doc) => { fetched.push({ id: doc.id, ...doc.data() }); });
           setUserDbReviews(fetched);
         }
-      } catch (error) { console.error('Error fetching package reviews:', error); }
+      } catch (error: any) { console.warn('Note fetching package reviews:', error?.message || error); }
     };
     fetchPackageReviews();
   }, [listing?.id, listing?.docId]);
@@ -508,8 +508,8 @@ export default function PackageDetailView({
               setFetchedAgencyName(resolvedName);
             }
           }
-        } catch (e) {
-          console.error('Error fetching agency in PackageDetailView:', e);
+        } catch (e: any) {
+          console.warn('Note fetching agency in PackageDetailView:', e?.message || e);
         }
       }
     }

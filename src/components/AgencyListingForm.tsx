@@ -6,8 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Upload, ClipboardList, X, Globe, Palmtree } from 'lucide-react';
+import { Plus, Trash2, Upload, ClipboardList, X, Globe, Palmtree, ArrowLeft } from 'lucide-react';
 import { getDbInstance } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { compressImage } from '@/lib/imageUtils';
@@ -762,19 +761,47 @@ export default function AgencyListingForm({ agencyId, onSuccess, onCancel, initi
     }
   };
 
+  const isFormDirty = Boolean(
+    watch('title')?.trim() ||
+    watch('cost')?.trim() ||
+    (placesCovered && placesCovered.length > 0 && placesCovered[0]?.name)
+  );
+
+  const handleCancelWithConfirmation = () => {
+    if (isFormDirty && !initialData) {
+      if (typeof window !== 'undefined' && window.confirm('Discard unsaved package details? Your changes will be lost.')) {
+        if (onCancel) onCancel();
+        else window.history.back();
+      }
+    } else {
+      if (onCancel) onCancel();
+      else window.history.back();
+    }
+  };
+
   return (
     <div className="w-full space-y-4 sm:space-y-6">
       {/* Modern Header */}
-      <div className="flex flex-col gap-1.5 sm:gap-2 mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5 sm:gap-3">
-          <div className="p-2 sm:p-2.5 bg-amber-50 text-orange-600 rounded-md shadow-xs border border-orange-100" style={{ borderRadius: '6px' }}>
-            <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <span className="truncate">{initialData ? 'Edit Travel Package' : 'Create New Travel Package'}</span>
-        </h1>
-        <p className="text-slate-500 text-xs sm:text-sm md:text-base">
-          Fill in all the details below to configure your travel package listing.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 bg-amber-50 text-orange-600 rounded-md shadow-xs border border-orange-100" style={{ borderRadius: '6px' }}>
+              <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+            <span className="truncate">{initialData ? 'Edit Travel Package' : 'Create New Travel Package'}</span>
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm md:text-base">
+            Fill in all the details below to configure your travel package listing.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleCancelWithConfirmation}
+          className="self-start sm:self-center px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Listings</span>
+        </button>
       </div>
 
       {/* Form Container */}
@@ -1745,13 +1772,7 @@ export default function AgencyListingForm({ agencyId, onSuccess, onCancel, initi
               <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (onCancel) {
-                      onCancel();
-                    } else {
-                      window.history.back();
-                    }
-                  }}
+                  onClick={handleCancelWithConfirmation}
                   className="w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer bg-white/90 border border-slate-200/80 text-slate-700 hover:bg-white hover:text-slate-900 hover:border-slate-300 hover:shadow-sm hover:scale-[1.02]"
                   style={{ borderRadius: '6px' }}
                 >

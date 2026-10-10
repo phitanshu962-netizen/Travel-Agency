@@ -49,6 +49,24 @@ export async function getUserFcmTokens(db: admin.firestore.Firestore, userId: st
     console.warn(`[FCM Server] users doc lookup note for ${userId}:`, e);
   }
 
+  try {
+    // 3. Check fcm_tokens/{userId} (written by Android clients and direct registrations)
+    const fcmTokenDoc = await db.collection('fcm_tokens').doc(userId).get();
+    if (fcmTokenDoc.exists) {
+      const data = fcmTokenDoc.data();
+      if (data) {
+        if (typeof data.token === 'string' && data.token.trim().length > 10) {
+          tokenSet.add(data.token.trim());
+        }
+        if (typeof data.fcmToken === 'string' && data.fcmToken.trim().length > 10) {
+          tokenSet.add(data.fcmToken.trim());
+        }
+      }
+    }
+  } catch (e) {
+    console.warn(`[FCM Server] fcm_tokens doc lookup note for ${userId}:`, e);
+  }
+
   return Array.from(tokenSet);
 }
 
@@ -80,7 +98,7 @@ export async function sendWebPushNotification(options: SendPushNotificationOptio
     },
     webpush: {
       headers: {
-        Urgency: 'high',
+        Urgency: 'normal',
         TTL: '86400' // 24 hours retention
       },
       notification: {
@@ -88,8 +106,7 @@ export async function sendWebPushNotification(options: SendPushNotificationOptio
         body,
         icon,
         badge: icon,
-        requireInteraction: true,
-        vibrate: [200, 100, 200],
+        requireInteraction: false,
         actions: [
           {
             action: 'open',

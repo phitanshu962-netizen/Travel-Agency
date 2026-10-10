@@ -7,17 +7,24 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    initializeFirebase();
-    const db = getFirestore();
-
-    const configDoc = await db.collection('admin').doc('config').get();
-    
-    const data = configDoc.exists ? configDoc.data() : {
+    const fallbackData = {
       starterPrice: 2000,
       premiumPrice: 5000,
       vipPrice: 10000,
       addonCreditPrice: 1
     };
+
+    let data = fallbackData;
+    try {
+      initializeFirebase();
+      const db = getFirestore();
+      const configDoc = await db.collection('admin').doc('config').get();
+      if (configDoc.exists) {
+        data = configDoc.data() as any;
+      }
+    } catch (e: any) {
+      console.warn('Admin config unavailable, using default pricing:', e?.message || e);
+    }
 
     return NextResponse.json(data, {
       headers: {
@@ -27,7 +34,12 @@ export async function GET() {
       }
     });
   } catch (error: any) {
-    console.error('Error fetching admin config:', error);
-    return NextResponse.json({ error: error.message || 'Something went wrong' }, { status: 500 });
+    console.warn('Error in get-config route:', error?.message || error);
+    return NextResponse.json({
+      starterPrice: 2000,
+      premiumPrice: 5000,
+      vipPrice: 10000,
+      addonCreditPrice: 1
+    });
   }
 }

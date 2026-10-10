@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface AuthModalProps {
@@ -45,6 +45,20 @@ export default function AuthModal({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCountryCodes, setShowCountryCodes] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -109,19 +123,22 @@ export default function AuthModal({
 
   return (
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0 sm:p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative flex w-full max-w-3xl h-[580px] max-h-[90vh] overflow-hidden shadow-2xl bg-white border border-slate-200"
-        style={{ borderRadius: '6px' }}
+        className="relative flex flex-col md:flex-row w-full max-w-3xl max-sm:max-h-[92dvh] sm:h-[580px] sm:max-h-[90vh] overflow-hidden shadow-2xl bg-white border border-slate-200 rounded-t-2xl sm:rounded-md animate-in slide-in-from-bottom sm:slide-in-from-none duration-200"
       >
+        {/* Mobile Drag Pill */}
+        <div className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-0.5 shrink-0 bg-white">
+          <div className="w-10 h-1 rounded-full bg-slate-300" />
+        </div>
+
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-gray-600 hover:text-gray-900 transition-all shadow-xs cursor-pointer border border-slate-200"
-          style={{ borderRadius: '6px' }}
+          className="absolute top-2.5 sm:top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-gray-600 hover:text-gray-900 transition-all shadow-xs cursor-pointer border border-slate-200 rounded-full sm:rounded-md"
           aria-label="Close"
         >
           <X className="w-4 h-4" />

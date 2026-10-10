@@ -33,6 +33,8 @@ import AdminDestinationStories from '@/components/AdminDestinationStories';
 import CheckoutModal from '@/components/CheckoutModal';
 import AgencyWelcomeModal from '@/components/AgencyWelcomeModal';
 import LandingDiscovery from '@/components/LandingDiscovery';
+import MobileBottomNav from '@/components/MobileBottomNav';
+import { useModalBackHandler } from '@/hooks/useModalHistory';
 import LandingHome from '@/components/LandingHome';
 import TravelAgentsView from '@/components/TravelAgentsView';
 import HowItWorksView from '@/components/HowItWorksView';
@@ -522,11 +524,23 @@ export default function HomeClient({
       } else {
         setUserActiveSection(sectionParam);
       }
-      if (typeof window !== 'undefined') {
-        window.history.replaceState({}, '', window.location.pathname);
-      }
     }
   }, [sectionParam, user, loading]);
+
+  // Synchronize browser Back & Forward button navigation for sections
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePopState = () => {
+      const currentParam = new URLSearchParams(window.location.search).get('section');
+      if (currentParam) {
+        setUserActiveSection(currentParam);
+      } else if (!routeMode) {
+        setUserActiveSection('home');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [routeMode]);
 
   const fetchPricingConfig = async () => {
     try {
@@ -544,8 +558,8 @@ export default function HomeClient({
           }));
         }
       }
-    } catch (e) {
-      console.error('Error fetching pricing config:', e);
+    } catch (e: any) {
+      console.warn('Note fetching pricing config:', e?.message || e);
     }
   };
 
@@ -1251,6 +1265,39 @@ export default function HomeClient({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<{ category: string; subcategory?: string; title: string } | null>(null);
   const [dashboardViewMode, setDashboardViewMode] = useState<'categories' | 'all'>('categories');
   const [selectedStory, setSelectedStory] = useState<any | null>(null);
+
+  // ─── Modal, Drawer & In-App View Hardware Back Button Handlers ───
+  useModalBackHandler(showAuthModal, () => setShowAuthModal(false), 'auth_modal');
+  useModalBackHandler(showBookingForm, () => setShowBookingForm(false), 'booking_form');
+  useModalBackHandler(showComparison, () => setShowComparison(false), 'package_comparison');
+  useModalBackHandler(showPincodeModal, () => setShowPincodeModal(false), 'pincode_modal');
+  useModalBackHandler(showReviewModal, () => setShowReviewModal(false), 'review_modal');
+  useModalBackHandler(showListingForm, () => setShowListingForm(false), 'listing_form');
+  useModalBackHandler(showBulkUpload, () => setShowBulkUpload(false), 'bulk_upload');
+  useModalBackHandler(showAgencyWelcomeModal, () => setShowAgencyWelcomeModal(false), 'agency_welcome_modal');
+  useModalBackHandler(mobileMenuOpen, () => setMobileMenuOpen(false), 'mobile_menu_drawer');
+  useModalBackHandler(agencyMobileMenuOpen, () => setAgencyMobileMenuOpen(false), 'agency_mobile_menu_drawer');
+
+  // Pseudo-page views back handlers
+  useModalBackHandler(Boolean(viewingListing), () => setViewingListing(null), 'viewing_listing');
+  useModalBackHandler(Boolean(selectedAgencyProfile), () => {
+    setSelectedAgencyProfile(null);
+    if (fromSection) setUserActiveSection(fromSection);
+  }, 'selected_agency_profile');
+  useModalBackHandler(Boolean(selectedStory), () => setSelectedStory(null), 'selected_story');
+
+  const isMobileActiveChat = Boolean(
+    userActiveSection === 'chat' && 
+    currentChatAgency && 
+    typeof window !== 'undefined' && 
+    window.innerWidth < 768
+  );
+  useModalBackHandler(isMobileActiveChat, () => {
+    setCurrentChatAgency('');
+    setCurrentChatAgencyName('');
+    setCurrentChatAgencyIsOnline(false);
+    setCurrentChatAgencyLogo(null);
+  }, 'mobile_chat_conversation');
 
   useEffect(() => {
     if (userActiveSection !== 'listings' || viewingListing || showBookingForm || showComparison || searchTerm) {
@@ -2132,8 +2179,8 @@ export default function HomeClient({
         setAdminBuyerReplies([]);
         setAdminSellerReplies([]);
       }
-    }, (error) => {
-      console.error('Error fetching custom quick replies:', error);
+    }, (error: any) => {
+      console.warn('Note fetching custom quick replies:', error?.message || error);
     });
     return () => unsubscribe();
   }, []);
@@ -2215,7 +2262,7 @@ export default function HomeClient({
               wishlistData = [...wishlistData, pendingWishlist];
               updateDoc(doc(dbInstance, 'users', user.uid), {
                 wishlist: wishlistData
-              }).catch(console.error);
+              }).catch((e: any) => console.warn('Wishlist update note:', e?.message || e));
             }
           }
 
@@ -2230,8 +2277,8 @@ export default function HomeClient({
           if (!uData.wishlist && !pendingWishlist) {
             updateDoc(doc(dbInstance, 'users', user.uid), {
               wishlist: []
-            }).catch((error) => {
-              console.error('❌ Error initializing wishlist field:', error);
+            }).catch((error: any) => {
+              console.warn('Wishlist field initialization note:', error?.message || error);
             });
           }
         }
@@ -5559,27 +5606,29 @@ export default function HomeClient({
               </div>
             </div>
 
-            {/* Mobile Search Bar (Directly below the top header bar) */}
-            <div className="md:hidden px-3.5 sm:px-4 pb-2.5 pt-0.5 border-t border-slate-100/80 bg-white/95">
-              <AutocompleteSearch
-                placeholder="Search for destination"
-                typewriterPrefix="Search for "
-                typewriter={["Rajasthan", "Kerala", "Kashmir", "Goa", "Himachal Pradesh", "Dubai", "Assam", "Thailand"]}
-                value={searchTerm}
-                onChange={(val) => setSearchTerm(val)}
-                onSelect={(val) => {
-                  const resolved = resolveDestinationWithAutocorrect(val);
-                  setSearchTerm(resolved.displayName);
-                  setUserActiveSection('listings');
-                  setViewingListing(null);
-                  setShowComparison(false);
-                }}
-                suggestions={allDestinations}
-                inputClassName="w-full pl-10 pr-4 py-2 rounded-md text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-500/40 focus:outline-none border border-slate-200 text-sm h-10 shadow-sm font-medium"
-                inputStyle={{ borderRadius: '6px' }}
-                iconClassName="left-3.5 top-3 text-slate-400"
-              />
-            </div>
+            {/* Mobile Search Bar (Only shown on non-home pages so home hero search isn't duplicated) */}
+            {userActiveSection !== 'home' && (
+              <div className="md:hidden px-3.5 sm:px-4 pb-2.5 pt-0.5 border-t border-slate-100/80 bg-white/95">
+                <AutocompleteSearch
+                  placeholder="Search for destination"
+                  typewriterPrefix="Search for "
+                  typewriter={["Rajasthan", "Kerala", "Kashmir", "Goa", "Himachal Pradesh", "Dubai", "Assam", "Thailand"]}
+                  value={searchTerm}
+                  onChange={(val) => setSearchTerm(val)}
+                  onSelect={(val) => {
+                    const resolved = resolveDestinationWithAutocorrect(val);
+                    setSearchTerm(resolved.displayName);
+                    setUserActiveSection('listings');
+                    setViewingListing(null);
+                    setShowComparison(false);
+                  }}
+                  suggestions={allDestinations}
+                  inputClassName="w-full pl-10 pr-4 py-2 rounded-md text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-500/40 focus:outline-none border border-slate-200 text-sm h-10 shadow-sm font-medium"
+                  inputStyle={{ borderRadius: '6px' }}
+                  iconClassName="left-3.5 top-3 text-slate-400"
+                />
+              </div>
+            )}
           </header>
 
 
@@ -8163,6 +8212,73 @@ export default function HomeClient({
                 </button>
               </div>
             </div>
+          )}
+
+          {/* ─── PUBLIC / TRAVELER MOBILE BOTTOM NAVIGATION BAR ─── */}
+          {!viewingListing && !showBookingForm && !showAuthModal && !(userActiveSection === 'chat' && currentChatAgency) && (
+            <MobileBottomNav
+              activeTab={
+                userActiveSection === 'home' || userActiveSection === 'destinations' || userActiveSection === 'listings'
+                  ? 'explore'
+                  : userActiveSection === 'chat'
+                  ? 'messages'
+                  : userActiveSection
+              }
+              unreadCount={userConversations?.reduce((acc: number, c: any) => acc + (c.unreadCount || 0), 0) || 0}
+              onTabClick={(tab) => {
+                if (tab === 'explore') {
+                  setUserActiveSection('home');
+                  setViewingListing(null);
+                  setSelectedCategoryFilter(null);
+                  setDashboardViewMode('categories');
+                  setSearchTerm('');
+                  setShowBookingForm(false);
+                  setShowComparison(false);
+                  setSelectedStory(null);
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState({ section: 'home' }, '', '/');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                } else if (tab === 'agents') {
+                  setUserActiveSection('agents');
+                  setSelectedAgencyProfile(null);
+                  setViewingListing(null);
+                  setShowBookingForm(false);
+                  setShowComparison(false);
+                  setSelectedStory(null);
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState({ section: 'agents' }, '', '/?section=agents');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                } else if (tab === 'stories') {
+                  window.location.href = '/blog';
+                } else if (tab === 'messages') {
+                  if (!user) {
+                    setAuthModalTab('login');
+                    setShowAuthModal(true);
+                    return;
+                  }
+                  setFromSection(userActiveSection);
+                  setUserActiveSection('chat');
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState({ section: 'chat' }, '', '/?section=chat');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                } else if (tab === 'profile') {
+                  if (!user) {
+                    setAuthModalTab('login');
+                    setShowAuthModal(true);
+                    return;
+                  }
+                  setFromSection(userActiveSection);
+                  setUserActiveSection('profile');
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState({ section: 'profile' }, '', '/?section=profile');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }
+              }}
+            />
           )}
 
           {/* Auth Modal overlay for User Dashboard */}

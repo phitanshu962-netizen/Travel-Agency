@@ -158,9 +158,23 @@ export default async function BlogPage() {
             <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
               <img src="/tripdm-logo.png" alt="TripDM Logo" style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
             </Link>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Link href="/" className="nav-link" style={{ color: '#64748b', fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s' }}>
-                Find Travel Agents →
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              <div className="hidden md:flex items-center gap-6">
+                <Link href="/?section=destinations" className="nav-link" style={{ color: '#475569', fontSize: 14, fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}>
+                  Destinations
+                </Link>
+                <Link href="/travel-agents" className="nav-link" style={{ color: '#475569', fontSize: 14, fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}>
+                  Travel Agents
+                </Link>
+                <Link href="/how-it-works" className="nav-link" style={{ color: '#475569', fontSize: 14, fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}>
+                  How It Works
+                </Link>
+                <Link href="/blog" className="nav-link" style={{ color: '#ea580c', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+                  Travel Stories
+                </Link>
+              </div>
+              <Link href="/agencytripdm" className="nav-link" style={{ color: '#ea580c', fontSize: 14, fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}>
+                For Agencies →
               </Link>
             </div>
           </div>

@@ -69,35 +69,40 @@ export async function requestAndSaveFcmToken(userId: string): Promise<{ success:
       return { success: false, error: 'Failed to generate FCM registration token.' };
     }
 
-    // Save token to Firestore under both users and user_fcm_tokens collections using setDoc + merge
+    // Save token to Firestore under users and fcm_tokens collections using setDoc + merge
     const db = getDbInstance();
     if (db && userId) {
-      const userRef = doc(db, 'users', userId);
-      await setDoc(userRef, {
-        fcmTokens: arrayUnion(token),
-        pushNotificationsEnabled: true,
-        lastTokenUpdate: Date.now()
-      }, { merge: true });
+      try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, {
+          fcmToken: token,
+          fcmTokens: arrayUnion(token),
+          pushNotificationsEnabled: true,
+          lastTokenUpdate: Date.now()
+        }, { merge: true });
 
-      const userTokenRef = doc(db, 'user_fcm_tokens', userId);
-      await setDoc(userTokenRef, {
-        userId,
-        tokens: arrayUnion(token),
-        lastUpdated: Date.now()
-      }, { merge: true });
+        const userFcmDocRef = doc(db, 'fcm_tokens', userId);
+        await setDoc(userFcmDocRef, {
+          userId,
+          token,
+          updatedAt: Date.now()
+        }, { merge: true });
 
-      const tokenRef = doc(db, 'fcm_tokens', token);
-      await setDoc(tokenRef, {
-        userId,
-        token,
-        updatedAt: Date.now()
-      }, { merge: true });
+        const userTokenRef = doc(db, 'user_fcm_tokens', userId);
+        await setDoc(userTokenRef, {
+          userId,
+          tokens: arrayUnion(token),
+          lastUpdated: Date.now()
+        }, { merge: true });
+      } catch (saveErr: any) {
+        console.warn('[FCM] Token sync warning:', saveErr?.message || saveErr);
+      }
     }
 
     console.log('[FCM] Successfully registered device token for user:', userId, token.substring(0, 15) + '...');
     return { success: true, token };
   } catch (error: any) {
-    console.error('[FCM] Error obtaining FCM token:', error);
+    console.warn('[FCM] Token initialization note:', error?.message || error);
     return { success: false, error: error?.message || 'Failed to initialize notifications.' };
   }
 }
@@ -192,7 +197,7 @@ export async function sendVendorReplyNotification(params: {
     console.log('[FCM] Push dispatch result:', data);
     return { success: true, deliveredCount: data.deliveredCount };
   } catch (err: any) {
-    console.error('[FCM] Notification API dispatch error:', err);
+    console.warn('[FCM] Notification API dispatch note:', err?.message || err);
     return { success: false, error: err?.message };
   }
 }

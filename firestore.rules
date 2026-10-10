@@ -43,8 +43,32 @@ service cloud.firestore {
     }
 
     // FCM tokens collection
-    match /fcm_tokens/{userId} {
+    match /fcm_tokens/{tokenId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // User FCM tokens collection
+    match /user_fcm_tokens/{userId} {
       allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Reviews collection - public read, authenticated create
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Destination stories - public read, admin write
+    match /destination_stories/{storyId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Admin collection
+    match /admin/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Listings collection - authenticated users can read approved listings, agencies can manage their own, admins can manage all

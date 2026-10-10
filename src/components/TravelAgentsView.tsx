@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useModalBackHandler } from '@/hooks/useModalHistory';
 import {
   Search,
   MapPin,
@@ -368,6 +369,11 @@ export default function TravelAgentsView({
   const [mapZoom, setMapZoom] = useState(1);
   const [selectedMapCity, setSelectedMapCity] = useState<string | null>(null);
   const [activePhotoIndexes, setActivePhotoIndexes] = useState<Record<string, number>>({});
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [mobileViewMode, setMobileViewMode] = useState<'list' | 'map'>('list');
+
+  // Handle hardware Back button for mobile filter bottom sheet drawer
+  useModalBackHandler(mobileFilterOpen, () => setMobileFilterOpen(false), 'travel_agents_mobile_filter');
 
   // Sync initialAgencies prop if parent passes updated list
   useEffect(() => {
@@ -934,6 +940,170 @@ export default function TravelAgentsView({
     });
   };
 
+  const activeFiltersCount =
+    selectedDestinations.length +
+    selectedTripTypes.length +
+    selectedLocations.length +
+    selectedRatings.length +
+    selectedLanguages.length +
+    (selectedMapCity ? 1 : 0);
+
+  const renderFilterControls = () => (
+    <>
+      {/* Filter Group 1: Destination Expertise */}
+      <div className="py-1.5 border-b border-slate-100">
+        <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+          Destination Expertise
+        </h4>
+        {/* Mini Search inside destinations */}
+        <div className="relative mb-1.5">
+          <Search className="h-3 w-3 text-slate-400 absolute left-2 top-1.5" />
+          <input
+            type="text"
+            value={destSearchQuery}
+            onChange={(e) => setDestSearchQuery(e.target.value)}
+            placeholder="Search destination..."
+            className="w-full bg-slate-50 border border-slate-200 pl-6.5 pr-2 py-0.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-400"
+            style={{ borderRadius: '4px' }}
+          />
+        </div>
+        <div className="space-y-0.5 max-h-48 overflow-y-auto">
+          {destinationOptions.map((dest) => {
+            const isChecked = selectedDestinations.includes(dest);
+            return (
+              <label
+                key={dest}
+                className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none py-0.5"
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggleSelection(dest, selectedDestinations, setSelectedDestinations)}
+                  className="rounded-xs border-slate-300 text-[#FF5500] focus:ring-orange-500 h-3.5 w-3.5 accent-[#FF5500] cursor-pointer"
+                />
+                <span>{dest}</span>
+              </label>
+            );
+          })}
+        </div>
+        {POPULAR_DESTINATIONS_FILTER.length > 4 && !destSearchQuery && (
+          <button
+            type="button"
+            onClick={() => setShowMoreDestinations(!showMoreDestinations)}
+            className="mt-1 text-[11px] font-semibold text-[#FF5500] hover:underline cursor-pointer"
+          >
+            {showMoreDestinations ? 'Show less' : 'Show more ⌵'}
+          </button>
+        )}
+      </div>
+
+      {/* Filter Group 2: Trip Type */}
+      <div className="py-1.5 border-b border-slate-100">
+        <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+          Trip Type
+        </h4>
+        <div className="space-y-0.5">
+          {visibleTripTypes.map((type) => {
+            const isChecked = selectedTripTypes.includes(type);
+            return (
+              <label
+                key={type}
+                className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none py-0.5"
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggleSelection(type, selectedTripTypes, setSelectedTripTypes)}
+                  className="rounded-xs border-slate-300 text-[#FF5500] focus:ring-orange-500 h-3.5 w-3.5 accent-[#FF5500] cursor-pointer"
+                />
+                <span>{type}</span>
+              </label>
+            );
+          })}
+        </div>
+        {TRIP_TYPES.length > 4 && (
+          <button
+            type="button"
+            onClick={() => setShowMoreTripTypes(!showMoreTripTypes)}
+            className="mt-1 text-[11px] font-semibold text-[#FF5500] hover:underline cursor-pointer"
+          >
+            {showMoreTripTypes ? 'Show less' : 'Show more ⌵'}
+          </button>
+        )}
+      </div>
+
+      {/* Filter Group 3: Agent Location */}
+      <div className="py-1.5 border-b border-slate-100">
+        <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+          Agent Location
+        </h4>
+        <div className="space-y-0.5">
+          {['India', 'International'].map((loc) => {
+            const isChecked = selectedLocations.includes(loc);
+            return (
+              <label
+                key={loc}
+                className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none py-0.5"
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggleSelection(loc, selectedLocations, setSelectedLocations)}
+                  className="rounded-xs border-slate-300 text-[#FF5500] focus:ring-orange-500 h-3.5 w-3.5 accent-[#FF5500] cursor-pointer"
+                />
+                <span>{loc}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Filter Group 4: Rating */}
+      <div className="pt-1.5">
+        <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+          Rating
+        </h4>
+        <div className="space-y-0.5">
+          {RATING_FILTER_OPTIONS.map((opt) => {
+            const isChecked = selectedRatings.includes(opt.minRating);
+            return (
+              <label
+                key={opt.minRating}
+                className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none py-0.5"
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => {
+                    if (selectedRatings.includes(opt.minRating)) {
+                      setSelectedRatings(selectedRatings.filter((r) => r !== opt.minRating));
+                    } else {
+                      setSelectedRatings([...selectedRatings, opt.minRating]);
+                    }
+                  }}
+                  className="rounded-xs border-slate-300 text-[#FF5500] focus:ring-orange-500 h-3.5 w-3.5 accent-[#FF5500] cursor-pointer"
+                />
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((starIdx) => (
+                    <Star
+                      key={starIdx}
+                      className={`w-3 h-3 ${
+                        starIdx <= opt.starsFilled
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'fill-slate-200 text-slate-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-[11px] text-slate-600 font-medium ml-0.5">{opt.label}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="w-full bg-white text-slate-900 min-h-screen">
       {/* ─── 1. TOP HERO SECTION FOR TRAVEL AGENTS (Clean layout with centered search) ─── */}
@@ -1060,7 +1230,7 @@ export default function TravelAgentsView({
               LEFT SIDEBAR: FILTERS (Direct on Page - No Container Box)
              ══════════════════════════════════════════════════════════════════ */}
           <aside
-            className="lg:col-span-3 xl:col-span-2 bg-transparent p-0 lg:sticky lg:top-20 space-y-2 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none"
+            className="hidden lg:block lg:col-span-3 xl:col-span-2 bg-transparent p-0 lg:sticky lg:top-20 space-y-2 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none"
           >
             {/* Header: Filters + Reset */}
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
@@ -1068,12 +1238,7 @@ export default function TravelAgentsView({
                 <SlidersHorizontal className="h-3.5 w-3.5 text-slate-700" />
                 <h3 className="text-xs sm:text-sm font-bold text-slate-900">Filters</h3>
               </div>
-              {(selectedDestinations.length > 0 ||
-                selectedTripTypes.length > 0 ||
-                selectedLocations.length > 0 ||
-                selectedRatings.length > 0 ||
-                selectedLanguages.length > 0 ||
-                selectedMapCity) && (
+              {activeFiltersCount > 0 && (
                 <button
                   type="button"
                   onClick={handleResetFilters}
@@ -1085,163 +1250,13 @@ export default function TravelAgentsView({
               )}
             </div>
 
-            {/* Filter Group 1: Destination Expertise */}
-            <div className="py-1.5 border-b border-slate-100">
-              <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                Destination Expertise
-              </h4>
-              {/* Mini Search inside destinations */}
-              <div className="relative mb-1.5">
-                <Search className="h-3 w-3 text-slate-400 absolute left-2 top-1.5" />
-                <input
-                  type="text"
-                  value={destSearchQuery}
-                  onChange={(e) => setDestSearchQuery(e.target.value)}
-                  placeholder="Search destination..."
-                  className="w-full bg-slate-50 border border-slate-200 pl-6.5 pr-2 py-0.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-400"
-                  style={{ borderRadius: '4px' }}
-                />
-              </div>
-              <div className="space-y-0.5">
-                {destinationOptions.map((dest) => {
-                  const isChecked = selectedDestinations.includes(dest);
-                  return (
-                    <label
-                      key={dest}
-                      className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none py-0.5"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleSelection(dest, selectedDestinations, setSelectedDestinations)}
-                        className="rounded-xs border-slate-300 text-[#FF5500] focus:ring-orange-500 h-3.5 w-3.5 accent-[#FF5500] cursor-pointer"
-                      />
-                      <span>{dest}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              {POPULAR_DESTINATIONS_FILTER.length > 4 && !destSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setShowMoreDestinations(!showMoreDestinations)}
-                  className="mt-1 text-[11px] font-semibold text-[#FF5500] hover:underline cursor-pointer"
-                >
-                  {showMoreDestinations ? 'Show less' : 'Show more ⌵'}
-                </button>
-              )}
-            </div>
-
-            {/* Filter Group 2: Trip Type */}
-            <div className="py-1.5 border-b border-slate-100">
-              <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                Trip Type
-              </h4>
-              <div className="space-y-0.5">
-                {visibleTripTypes.map((type) => {
-                  const isChecked = selectedTripTypes.includes(type);
-                  return (
-                    <label
-                      key={type}
-                      className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none py-0.5"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleSelection(type, selectedTripTypes, setSelectedTripTypes)}
-                        className="rounded-xs border-slate-300 text-[#FF5500] focus:ring-orange-500 h-3.5 w-3.5 accent-[#FF5500] cursor-pointer"
-                      />
-                      <span>{type}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              {TRIP_TYPES.length > 4 && (
-                <button
-                  type="button"
-                  onClick={() => setShowMoreTripTypes(!showMoreTripTypes)}
-                  className="mt-1 text-[11px] font-semibold text-[#FF5500] hover:underline cursor-pointer"
-                >
-                  {showMoreTripTypes ? 'Show less' : 'Show more ⌵'}
-                </button>
-              )}
-            </div>
-
-            {/* Filter Group 3: Agent Location */}
-            <div className="py-1.5 border-b border-slate-100">
-              <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                Agent Location
-              </h4>
-              <div className="space-y-0.5">
-                {['India', 'International'].map((loc) => {
-                  const isChecked = selectedLocations.includes(loc);
-                  return (
-                    <label
-                      key={loc}
-                      className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none py-0.5"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleSelection(loc, selectedLocations, setSelectedLocations)}
-                        className="rounded-xs border-slate-300 text-[#FF5500] focus:ring-orange-500 h-3.5 w-3.5 accent-[#FF5500] cursor-pointer"
-                      />
-                      <span>{loc}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Filter Group 4: Rating */}
-            <div className="pt-1.5">
-              <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                Rating
-              </h4>
-              <div className="space-y-0.5">
-                {RATING_FILTER_OPTIONS.map((opt) => {
-                  const isChecked = selectedRatings.includes(opt.minRating);
-                  return (
-                    <label
-                      key={opt.minRating}
-                      className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none py-0.5"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {
-                          if (selectedRatings.includes(opt.minRating)) {
-                            setSelectedRatings(selectedRatings.filter((r) => r !== opt.minRating));
-                          } else {
-                            setSelectedRatings([...selectedRatings, opt.minRating]);
-                          }
-                        }}
-                        className="rounded-xs border-slate-300 text-[#FF5500] focus:ring-orange-500 h-3.5 w-3.5 accent-[#FF5500] cursor-pointer"
-                      />
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((starIdx) => (
-                          <Star
-                            key={starIdx}
-                            className={`w-3 h-3 ${
-                              starIdx <= opt.starsFilled
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'fill-slate-200 text-slate-200'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-[11px] text-slate-600 font-medium ml-0.5">{opt.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
+            {renderFilterControls()}
           </aside>
 
           {/* ══════════════════════════════════════════════════════════════════
               CENTER COLUMN: TRAVEL AGENTS LIST (Larger, Spacious Focus)
              ══════════════════════════════════════════════════════════════════ */}
-          <main className="lg:col-span-6 xl:col-span-7 space-y-4">
+          <main className="lg:col-span-6 xl:col-span-7 space-y-4 pb-24 lg:pb-0">
             {/* Center Header: Count + Sort Dropdown (Clean typography on page background) */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 mb-2 border-b border-slate-200">
               <div>
@@ -1292,7 +1307,32 @@ export default function TravelAgentsView({
               </div>
             )}
 
-            {/* Travel Agency Cards List */}
+            {/* Mobile View: Real Map Component when user switches to Map mode */}
+            {mobileViewMode === 'map' && (
+              <div className="lg:hidden w-full bg-white rounded-xl border border-slate-200 p-2 shadow-xs mb-4">
+                <div className="flex items-center justify-between px-2 py-1.5 mb-1.5 border-b border-slate-100">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#FF5500]" />
+                    Agents on Map
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMobileViewMode('list')}
+                    className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
+                  >
+                    Switch to List View →
+                  </button>
+                </div>
+                <TravelAgentsRealMap
+                  pins={mapPins}
+                  selectedCity={selectedMapCity}
+                  onSelectCity={setSelectedMapCity}
+                />
+              </div>
+            )}
+
+            {/* Travel Agency Cards List (hidden on mobile if user explicitly switched to Map mode) */}
+            <div className={mobileViewMode === 'map' ? 'hidden lg:block space-y-4' : 'space-y-4'}>
             {filteredAgencies.length === 0 ? (
               <div
                 className="bg-white p-8 border border-slate-200 text-center"
@@ -1598,12 +1638,13 @@ export default function TravelAgentsView({
                 );
               })
             )}
+            </div>
           </main>
 
           {/* ══════════════════════════════════════════════════════════════════
               RIGHT SIDEBAR: MAP & TOP DESTINATIONS (Single Page View - Compact & Sticky)
              ══════════════════════════════════════════════════════════════════ */}
-          <aside className="lg:col-span-3 space-y-4 lg:sticky lg:top-20 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none">
+          <aside className="hidden lg:block lg:col-span-3 space-y-4 lg:sticky lg:top-20 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none">
             {/* 1. REAL DYNAMIC TRAVEL AGENTS MAP WIDGET */}
             <div className="bg-transparent p-0">
               {/* Map Title & Toggle */}
@@ -1734,6 +1775,108 @@ export default function TravelAgentsView({
           </aside>
         </div>
       </div>
+
+      {/* ─── MOBILE FLOATING ACTION PILL (FILTERS & MAP/LIST) ─── */}
+      <div className="lg:hidden fixed bottom-18 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-slate-900/95 text-white backdrop-blur-md px-4 py-2 rounded-full shadow-[0_8px_25px_rgba(0,0,0,0.35)] border border-white/15 select-none">
+        <button
+          type="button"
+          onClick={() => setMobileFilterOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-white hover:text-orange-400 transition-colors cursor-pointer"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 text-orange-400" />
+          <span>Filters</span>
+          {activeFiltersCount > 0 && (
+            <span className="bg-[#FF5500] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full ml-0.5">
+              {activeFiltersCount}
+            </span>
+          )}
+        </button>
+        <div className="w-[1px] h-4 bg-white/20" />
+        <button
+          type="button"
+          onClick={() => setMobileViewMode(mobileViewMode === 'list' ? 'map' : 'list')}
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-white hover:text-orange-400 transition-colors cursor-pointer"
+        >
+          {mobileViewMode === 'list' ? (
+            <>
+              <Compass className="w-3.5 h-3.5 text-orange-400" />
+              <span>Map</span>
+            </>
+          ) : (
+            <>
+              <Users className="w-3.5 h-3.5 text-orange-400" />
+              <span>List</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* ─── MOBILE FILTERS BOTTOM SHEET MODAL ─── */}
+      {mobileFilterOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-200"
+            onClick={() => setMobileFilterOpen(false)}
+          />
+
+          {/* Bottom Sheet Modal */}
+          <div className="relative z-10 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-200 border-t border-slate-200">
+            {/* Drag Pill */}
+            <div className="w-full flex items-center justify-center pt-2.5 pb-1">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-[#FF5500]" />
+                <h3 className="text-sm font-bold text-slate-900">Filter Travel Agents</h3>
+                {activeFiltersCount > 0 && (
+                  <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {activeFiltersCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="text-xs font-semibold text-[#FF5500] hover:underline cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-500 flex items-center justify-center cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Filters Content */}
+            <div className="p-4 overflow-y-auto space-y-3 flex-1">
+              {renderFilterControls()}
+            </div>
+
+            {/* Sticky Action Button */}
+            <div className="p-4 border-t border-slate-100 bg-white">
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(false)}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-[0.98] cursor-pointer"
+              >
+                Show {filteredAgencies.length} Travel {filteredAgencies.length === 1 ? 'Agent' : 'Agents'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

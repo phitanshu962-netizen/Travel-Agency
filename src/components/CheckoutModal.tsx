@@ -63,8 +63,19 @@ export default function CheckoutModal({
       setDiscountAmount(0);
       setIsProcessing(false);
       setStatusMessage(null);
+
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -314,8 +325,13 @@ export default function CheckoutModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-gray-100 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transition-all max-h-[92vh]">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white border border-gray-100 rounded-t-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transition-all max-h-[92vh] animate-in slide-in-from-bottom sm:slide-in-from-none duration-200">
+        {/* Mobile Drag Pill */}
+        <div className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-0.5 shrink-0 bg-slate-900">
+          <div className="w-10 h-1 rounded-full bg-slate-600" />
+        </div>
+
         {/* Header Bar */}
         <div className="px-4 sm:px-6 py-3.5 sm:py-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between relative shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3">

@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useComparison } from '@/contexts/ComparisonContext';
 import { getDbInstance } from '@/lib/firebase';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
-
+import { useModalBackHandler } from '@/hooks/useModalHistory';
 
 export default function PackageClientView({ listing }: { listing: any }) {
   const router = useRouter();
@@ -20,6 +20,18 @@ export default function PackageClientView({ listing }: { listing: any }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [enrichedListing, setEnrichedListing] = useState(listing);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Modal & Drawer history handlers
+  useModalBackHandler(mobileMenuOpen, () => setMobileMenuOpen(false), 'package_mobile_menu');
+  useModalBackHandler(showAuthModal, () => setShowAuthModal(false), 'package_auth_modal');
+
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1 && document.referrer.includes(window.location.host)) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  };
 
   // User name helpers matching HomeClient.tsx
   const userFirstName =
@@ -621,11 +633,19 @@ export default function PackageClientView({ listing }: { listing: any }) {
 
         {/* Mobile Header Layout */}
         <div className="flex md:hidden items-center justify-between px-3 sm:px-4 h-16 w-full">
-          {/* Left: Hamburger Button & Logo */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Left: Back Button, Hamburger Menu & Logo */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={handleBack}
+              className="p-2 -ml-1 text-slate-700 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors focus:outline-none"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 -ml-1 text-slate-700 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+              className="p-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
               aria-label="Open navigation menu"
             >
               <Menu className="h-6 w-6" />
@@ -635,7 +655,7 @@ export default function PackageClientView({ listing }: { listing: any }) {
               className="cursor-pointer flex items-center"
               onClick={() => router.push('/')}
             >
-              <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-11 sm:h-[50px] w-auto object-contain py-0.5" />
+              <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-10 sm:h-[48px] w-auto object-contain py-0.5" />
             </div>
           </div>
 
@@ -730,7 +750,7 @@ export default function PackageClientView({ listing }: { listing: any }) {
       <div className="flex-1 bg-gray-50">
         <PackageDetailView 
           listing={enrichedListing} 
-          onBack={() => router.push('/')}
+          onBack={handleBack}
           onBook={() => router.push(`/?action=book&packageId=${enrichedListing.id}`)}
           onChat={() => {
             const agencyId = enrichedListing.agencyId || enrichedListing.userId;
