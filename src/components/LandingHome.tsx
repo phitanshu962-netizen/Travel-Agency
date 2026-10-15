@@ -184,7 +184,7 @@ export default function LandingHome({
   };
 
   return (
-    <div className="w-full bg-white text-slate-900 h-[calc(100dvh-4rem)] md:h-[calc(100dvh-4rem)] md:max-h-[calc(100dvh-4rem)] flex flex-col justify-between overflow-x-hidden overflow-y-auto md:overflow-hidden select-none pb-[68px] md:pb-0">
+    <div className="w-full bg-white text-slate-900 min-h-[calc(100svh-4rem)] md:h-[calc(100dvh-4rem)] md:max-h-[calc(100dvh-4rem)] flex flex-col justify-between md:overflow-hidden pb-[76px] md:pb-0">
       {/* ─── UNIFIED HERO CANVAS: TITLE, SUBTITLE, SEARCH BAR, SCENIC VISTA & 4 VALUE PROPOSITIONS ─── */}
       <div className="relative w-full flex-1 flex flex-col justify-evenly md:justify-between overflow-visible md:overflow-hidden min-h-0 shrink-0 md:shrink">
         {/* Full-bleed Scenic Background Image across the entire hero canvas - DESKTOP ONLY */}
@@ -300,6 +300,7 @@ export default function LandingHome({
                   <div ref={dateDropdownRef} className="relative flex-1 sm:flex-initial sm:shrink-0 px-2.5 sm:px-3 py-1 sm:py-0.5">
                     <button
                       type="button"
+                      suppressHydrationWarning
                       onClick={() => {
                         setShowDateDropdown(!showDateDropdown);
                         setShowTravelerDropdown(false);
@@ -325,6 +326,7 @@ export default function LandingHome({
                           <button
                             key={i}
                             type="button"
+                            suppressHydrationWarning
                             onClick={() => {
                               setSelectedDates(opt.label);
                               setShowDateDropdown(false);
@@ -352,6 +354,7 @@ export default function LandingHome({
                   <div ref={travelerDropdownRef} className="relative flex-1 sm:flex-initial sm:shrink-0 px-2.5 sm:px-3 py-1 sm:py-0.5">
                     <button
                       type="button"
+                      suppressHydrationWarning
                       onClick={() => {
                         setShowTravelerDropdown(!showTravelerDropdown);
                         setShowDateDropdown(false);

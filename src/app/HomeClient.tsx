@@ -5603,6 +5603,7 @@ export default function HomeClient({
               {/* Left: Hamburger Button & Logo */}
               <div className="flex items-center gap-2 sm:gap-3">
                 <button
+                  suppressHydrationWarning
                   onClick={() => setMobileMenuOpen(true)}
                   className="p-2 -ml-1 text-slate-700 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
                   aria-label="Open navigation menu"
@@ -5622,6 +5623,7 @@ export default function HomeClient({
               <div className="flex items-center gap-1 sm:gap-1.5">
                 {/* Compare Icon with Badge */}
                 <button
+                  suppressHydrationWarning
                   onClick={() => {
                     setFromSection(userActiveSection);
                     setUserActiveSection('listings');
@@ -5641,6 +5643,7 @@ export default function HomeClient({
                 {/* Messages Icon (Only for non-agency users / travelers) */}
                 {(!userData || userData.role !== 'agency') && (
                   <button
+                    suppressHydrationWarning
                     onClick={() => {
                       if (!user) {
                         setAuthModalTab('login');
@@ -5681,6 +5684,7 @@ export default function HomeClient({
                       </a>
                     )}
                     <button
+                      suppressHydrationWarning
                       onClick={() => {
                         setFromSection(userActiveSection);
                         setUserActiveSection('profile');
@@ -5704,6 +5708,7 @@ export default function HomeClient({
                   </div>
                 ) : (
                   <button
+                    suppressHydrationWarning
                     onClick={() => {
                       setAuthModalTab('login');
                       setShowAuthModal(true);
