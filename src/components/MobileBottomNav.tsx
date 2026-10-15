@@ -39,7 +39,7 @@ export default function MobileBottomNav({
           onClick={() => handleTab('explore')}
           className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
             activeTab === 'explore' || activeTab === 'home' || activeTab === 'destinations'
-              ? 'text-orange-600 font-bold'
+              ? 'text-slate-900 font-bold'
               : 'text-slate-500 hover:text-slate-800'
           }`}
           aria-label="Explore packages and destinations"
@@ -54,7 +54,7 @@ export default function MobileBottomNav({
           onClick={() => handleTab('agents')}
           className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
             activeTab === 'agents'
-              ? 'text-orange-600 font-bold'
+              ? 'text-slate-900 font-bold'
               : 'text-slate-500 hover:text-slate-800'
           }`}
           aria-label="Find Travel Agents"
@@ -69,7 +69,7 @@ export default function MobileBottomNav({
           onClick={() => handleTab('stories')}
           className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
             activeTab === 'stories'
-              ? 'text-orange-600 font-bold'
+              ? 'text-slate-900 font-bold'
               : 'text-slate-500 hover:text-slate-800'
           }`}
           aria-label="Travel Guides and Stories"
@@ -84,7 +84,7 @@ export default function MobileBottomNav({
           onClick={() => handleTab('messages')}
           className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-lg transition-colors relative cursor-pointer ${
             activeTab === 'messages' || activeTab === 'chat'
-              ? 'text-orange-600 font-bold'
+              ? 'text-slate-900 font-bold'
               : 'text-slate-500 hover:text-slate-800'
           }`}
           aria-label="Messages"
@@ -106,7 +106,7 @@ export default function MobileBottomNav({
           onClick={() => handleTab('profile')}
           className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
             activeTab === 'profile'
-              ? 'text-orange-600 font-bold'
+              ? 'text-slate-900 font-bold'
               : 'text-slate-500 hover:text-slate-800'
           }`}
           aria-label="Account Profile"

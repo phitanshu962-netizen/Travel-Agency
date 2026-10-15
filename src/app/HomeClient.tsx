@@ -5071,7 +5071,7 @@ export default function HomeClient({
                 </div>
 
                 {/* User Status Card */}
-                <div className="p-4 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border-b border-slate-100">
+                <div className="p-4 bg-slate-50/70 border-b border-slate-100">
                   {user && userData ? (
                     <div className="flex items-center gap-3">
                       {(profilePhotoUrl || userData?.avatarUrl) ? (
@@ -5098,16 +5098,19 @@ export default function HomeClient({
                         <h4 className="text-sm font-bold text-slate-900">Welcome to TripDM</h4>
                         <p className="text-xs text-slate-500">Direct Message with verified travel agents</p>
                       </div>
-                      <Button
+                      <button
+                        type="button"
                         onClick={() => {
                           setMobileMenuOpen(false);
                           setAuthModalTab('login');
                           setShowAuthModal(true);
                         }}
-                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-xs py-2 h-9 rounded-xl shadow-sm"
+                        className="w-full bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-950 font-bold text-xs py-2 h-9 border border-slate-300 shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        style={{ borderRadius: '6px' }}
                       >
-                        <User className="h-4 w-4 mr-1.5" /> Sign In / Register
-                      </Button>
+                        <User className="h-4 w-4 text-slate-700" />
+                        <span>Sign In / Register</span>
+                      </button>
                     </div>
                   )}
 
@@ -5119,7 +5122,7 @@ export default function HomeClient({
                         className="w-full flex items-center justify-between p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-semibold transition-all"
                       >
                         <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-gray-600" />
+                          <Building2 className="h-4 w-4 text-slate-700" />
                           <span>Go to Agency Portal</span>
                         </div>
                         <ChevronRight className="h-4 w-4 text-gray-400" />
@@ -5160,7 +5163,7 @@ export default function HomeClient({
                       setMobileMenuOpen(false);
                     }}
                     suggestions={allDestinations}
-                    inputClassName="w-full pl-9 pr-3 py-2 rounded-md text-slate-900 bg-slate-100/90 focus:bg-white focus:ring-2 focus:ring-orange-500/40 focus:outline-none border border-slate-200 text-xs h-9 shadow-none font-medium"
+                    inputClassName="w-full pl-9 pr-3 py-2 rounded-md text-slate-900 bg-slate-100/90 focus:bg-white focus:ring-2 focus:ring-slate-300 focus:outline-none border border-slate-200 text-xs h-9 shadow-none font-medium"
                     inputStyle={{ borderRadius: '6px' }}
                     iconClassName="left-3 top-2.5 text-slate-400"
                   />
@@ -5175,12 +5178,12 @@ export default function HomeClient({
                     onClick={handleNavigateToLanding}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       userActiveSection === 'home' && !showComparison && !viewingListing
-                        ? 'bg-orange-50 text-orange-600 font-bold'
+                        ? 'bg-slate-100 text-slate-900 font-bold'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Compass className="h-4 w-4 text-orange-500" />
+                      <Compass className="h-4 w-4 text-slate-700" />
                       <span>Home</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5201,12 +5204,12 @@ export default function HomeClient({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       (userActiveSection === 'destinations' || userActiveSection === 'listings') && !showComparison && !viewingListing
-                        ? 'bg-orange-50 text-orange-600 font-bold'
+                        ? 'bg-slate-100 text-slate-900 font-bold'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <MapPin className="h-4 w-4 text-orange-500" />
+                      <MapPin className="h-4 w-4 text-slate-700" />
                       <span>Destinations</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5225,12 +5228,12 @@ export default function HomeClient({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       userActiveSection === 'agents'
-                        ? 'bg-orange-50 text-[#FF5500] font-bold'
+                        ? 'bg-slate-100 text-slate-900 font-bold'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Building2 className={`h-4 w-4 ${userActiveSection === 'agents' ? 'text-[#FF5500]' : 'text-blue-500'}`} />
+                      <Building2 className="h-4 w-4 text-slate-700" />
                       <span>Travel Agents</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5249,12 +5252,12 @@ export default function HomeClient({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       userActiveSection === 'how-it-works'
-                        ? 'bg-orange-50 text-[#FF5500] font-bold'
+                        ? 'bg-slate-100 text-slate-900 font-bold'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Sparkles className={`h-4 w-4 ${userActiveSection === 'how-it-works' ? 'text-[#FF5500]' : 'text-amber-500'}`} />
+                      <Sparkles className="h-4 w-4 text-slate-700" />
                       <span>How It Works</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5267,7 +5270,7 @@ export default function HomeClient({
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-purple-500" />
+                      <FileText className="h-4 w-4 text-slate-700" />
                       <span>Travel Stories</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5288,17 +5291,17 @@ export default function HomeClient({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       userActiveSection === 'wishlist'
-                        ? 'bg-orange-50 text-orange-600 font-bold'
+                        ? 'bg-slate-100 text-slate-900 font-bold'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Heart className="h-4 w-4 text-rose-500" />
+                      <Heart className="h-4 w-4 text-slate-700" />
                       <span>My Wishlist</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {wishlist.length > 0 && (
-                        <span className="bg-rose-100 text-rose-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                        <span className="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-full">
                           {wishlist.length}
                         </span>
                       )}
@@ -5322,12 +5325,12 @@ export default function HomeClient({
                       }}
                       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                         userActiveSection === 'chat'
-                          ? 'bg-orange-50 text-orange-600 font-bold'
+                          ? 'bg-slate-100 text-slate-900 font-bold'
                           : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <MessageSquare className="h-4 w-4 text-emerald-500" />
+                        <MessageSquare className="h-4 w-4 text-slate-700" />
                         <span>Messages & Enquiries</span>
                       </div>
                       <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5348,17 +5351,16 @@ export default function HomeClient({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       userActiveSection === 'profile'
-                        ? 'bg-orange-50 text-orange-600 font-bold'
+                        ? 'bg-slate-100 text-slate-900 font-bold'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <User className="h-4 w-4 text-purple-500" />
+                      <User className="h-4 w-4 text-slate-700" />
                       <span>My Profile & Bookings</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
                   </button>
-
 
                   <div className="pt-4">
                     <p className="text-[10px] uppercase font-bold text-slate-400 px-3 pb-1 tracking-wider">Explore More</p>
@@ -5367,7 +5369,7 @@ export default function HomeClient({
                       className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                     >
                       <div className="flex items-center gap-3">
-                        <FileText className="h-4 w-4 text-amber-500" />
+                        <FileText className="h-4 w-4 text-slate-700" />
                         <span>Travel Guides & Stories</span>
                       </div>
                       <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5376,12 +5378,12 @@ export default function HomeClient({
                       href="/agencytripdm"
                       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                         userData?.role === 'agency'
-                          ? 'bg-orange-50 text-orange-600 font-bold border border-orange-200'
+                          ? 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
                           : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Briefcase className="h-4 w-4 text-orange-500" />
+                        <Briefcase className="h-4 w-4 text-slate-700" />
                         <span>{userData?.role === 'agency' ? 'Agency Portal Dashboard' : 'For Travel Agencies'}</span>
                       </div>
                       <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5391,7 +5393,7 @@ export default function HomeClient({
                       className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                     >
                       <div className="flex items-center gap-3">
-                        <Shield className="h-4 w-4 text-slate-400" />
+                        <Shield className="h-4 w-4 text-slate-700" />
                         <span>Policies & Terms</span>
                       </div>
                       <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -5683,7 +5685,7 @@ export default function HomeClient({
                         setFromSection(userActiveSection);
                         setUserActiveSection('profile');
                       }}
-                      className="ml-0.5 p-0.5 rounded-full ring-2 ring-orange-400 focus:outline-none"
+                      className="ml-0.5 p-0.5 rounded-full ring-2 ring-slate-300 focus:outline-none"
                       aria-label="User Profile"
                     >
                       {(profilePhotoUrl || userData?.avatarUrl) ? (
@@ -5706,7 +5708,8 @@ export default function HomeClient({
                       setAuthModalTab('login');
                       setShowAuthModal(true);
                     }}
-                    className="ml-1 px-2.5 py-1 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                    className="ml-1 px-3 py-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-300 shadow-2xs transition-colors"
+                    style={{ borderRadius: '6px' }}
                   >
                     Login
                   </button>
@@ -10588,7 +10591,7 @@ export default function HomeClient({
               onClick={() => setAgencyActiveSection('listings')}
               className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors cursor-pointer ${
                 agencyActiveSection === 'listings'
-                  ? 'text-orange-600 font-bold'
+                  ? 'text-slate-900 font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -10600,7 +10603,7 @@ export default function HomeClient({
               onClick={() => setAgencyActiveSection('chat')}
               className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors relative cursor-pointer ${
                 agencyActiveSection === 'chat'
-                  ? 'text-orange-600 font-bold'
+                  ? 'text-slate-900 font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -10619,7 +10622,7 @@ export default function HomeClient({
               onClick={() => setAgencyActiveSection('credits')}
               className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors cursor-pointer ${
                 agencyActiveSection === 'credits'
-                  ? 'text-orange-600 font-bold'
+                  ? 'text-slate-900 font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -10631,7 +10634,7 @@ export default function HomeClient({
               onClick={() => setAgencyActiveSection('transactions')}
               className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors cursor-pointer ${
                 agencyActiveSection === 'transactions'
-                  ? 'text-orange-600 font-bold'
+                  ? 'text-slate-900 font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -10643,7 +10646,7 @@ export default function HomeClient({
               onClick={() => setAgencyActiveSection('settings')}
               className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors cursor-pointer ${
                 agencyActiveSection === 'settings'
-                  ? 'text-orange-600 font-bold'
+                  ? 'text-slate-900 font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >

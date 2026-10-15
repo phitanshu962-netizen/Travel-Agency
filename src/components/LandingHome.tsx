@@ -184,12 +184,12 @@ export default function LandingHome({
   };
 
   return (
-    <div className="w-full bg-white text-slate-900 h-[calc(100dvh-4rem)] md:h-[calc(100dvh-4rem)] md:max-h-[calc(100dvh-4rem)] flex flex-col justify-between overflow-x-hidden overflow-y-auto md:overflow-hidden select-none pb-[72px] md:pb-0">
+    <div className="w-full bg-white text-slate-900 h-[calc(100dvh-4rem)] md:h-[calc(100dvh-4rem)] md:max-h-[calc(100dvh-4rem)] flex flex-col justify-between overflow-x-hidden overflow-y-auto md:overflow-hidden select-none pb-[68px] md:pb-0">
       {/* ─── UNIFIED HERO CANVAS: TITLE, SUBTITLE, SEARCH BAR, SCENIC VISTA & 4 VALUE PROPOSITIONS ─── */}
-      <div className="relative w-full flex-1 flex flex-col justify-between overflow-visible md:overflow-hidden min-h-0">
+      <div className="relative w-full flex-1 flex flex-col justify-evenly md:justify-between overflow-visible md:overflow-hidden min-h-0 shrink-0 md:shrink">
         {/* Full-bleed Scenic Background Image across the entire hero canvas - DESKTOP ONLY */}
         <div
-          className="hidden md:block absolute inset-0 bg-cover bg-no-repeat bg-[center_18%] sm:bg-[84%_42%] md:bg-[85%_42%] lg:bg-[86%_40%]"
+          className="hidden md:block absolute inset-0 bg-cover bg-no-repeat bg-[center_14%] sm:bg-[84%_36%] md:bg-[85%_36%] lg:bg-[86%_50%]"
           style={{
             backgroundImage: "url('/hero-traveler-vista.jpeg')",
           }}
@@ -201,29 +201,30 @@ export default function LandingHome({
         {/* Soft bottom gradient - DESKTOP ONLY */}
         <div className="hidden md:block absolute inset-x-0 bottom-0 h-36 sm:h-44 bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none" />
 
-        {/* ── UPPER FLOW: HEADLINE, SUBTITLE, SEARCH BAR & POPULAR TAGS ── */}
-        <div className="relative z-20 w-full pt-7 sm:pt-10 md:pt-12 px-3 sm:px-6 text-center">
+        {/* ── BLOCK 1: HEADLINE & SUBTITLE ── */}
+        <div className="relative z-20 w-full pt-2 sm:pt-6 md:pt-12 px-3 sm:px-6 text-center">
           <div className="max-w-3xl mx-auto px-2">
             {/* Main Headline */}
-            <h1 className="text-2xl sm:text-3xl md:text-[34px] lg:text-[38px] font-black text-slate-900 tracking-tight leading-[1.12]">
-              Find Travel Agents <br className="hidden sm:inline" />
+            <h1 className="text-2xl sm:text-3xl md:text-[34px] lg:text-[38px] font-black text-slate-900 tracking-tight leading-[1.18]">
+              Find Travel Agents <br />
               for <span className="text-[#FF5500]">Your Next Trip</span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-xs sm:text-[12.5px] md:text-[13px] text-slate-600 font-medium text-center max-w-xl mx-auto mt-1.5 sm:mt-1.5 leading-snug px-2">
+            <p className="text-xs sm:text-[12.5px] md:text-[13px] text-slate-600 font-medium text-center max-w-xl mx-auto mt-2 sm:mt-1.5 leading-relaxed px-2">
               Search destinations and connect directly with multiple verified travel agents. <br className="hidden sm:inline" />
               Compare options, chat, customize and book — with zero commission on package price.
             </p>
           </div>
+        </div>
 
-          {/* ─── SEARCH BAR & POPULAR TAGS (POSITIONED FURTHER DOWN) ─── */}
-          <div className="mt-4 sm:mt-7 md:mt-8 max-w-4xl mx-auto px-2">
-            {/* SEARCH BAR */}
-            <form
-              onSubmit={handleSearchSubmit}
-              className="relative z-50 bg-white p-1 sm:p-1.5 rounded-2xl sm:rounded-full border border-slate-200/90 transition-colors shadow-xs hover:shadow-xs hover:border-slate-300 max-w-2xl sm:max-w-3xl mx-auto"
-            >
+        {/* ── BLOCK 2: SEARCH BAR & POPULAR TAGS ── */}
+        <div className="relative z-20 w-full md:mt-8 max-w-4xl mx-auto px-3 sm:px-6 text-center">
+          {/* SEARCH BAR */}
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative z-50 bg-white p-1 sm:p-1.5 rounded-2xl sm:rounded-full border border-slate-200/90 transition-colors shadow-xs hover:shadow-xs hover:border-slate-300 max-w-2xl sm:max-w-3xl mx-auto"
+          >
               <div className="flex flex-col sm:flex-row sm:items-center">
                 {/* Field 1: Destination Search Input + Mobile Inline Search Button */}
                 <div ref={searchBoxRef} className="relative flex-1 flex items-center min-w-0 pl-3 pr-1.5 py-1 sm:py-0.5">
@@ -402,7 +403,7 @@ export default function LandingHome({
             </form>
 
             {/* Popular Destination Tags */}
-            <div className="mt-3.5 sm:mt-2.5 relative z-10 flex items-center justify-start sm:justify-center gap-1 sm:gap-1.5 px-1 overflow-x-auto no-scrollbar sm:flex-wrap max-w-full py-0.5">
+            <div className="mt-2 sm:mt-2.5 relative z-10 flex items-center justify-start sm:justify-center gap-1 sm:gap-1.5 px-1 overflow-x-auto no-scrollbar sm:flex-wrap max-w-full py-0.5">
               <span className="text-[10.5px] sm:text-[11.5px] font-bold text-slate-900 mr-1 shrink-0">
                 Popular:
               </span>
@@ -418,60 +419,60 @@ export default function LandingHome({
               ))}
             </div>
           </div>
-        </div>
 
-        {/* ── LOWER PART: 4 VALUE PROPOSITIONS ── */}
-        <div className="relative z-20 w-full my-auto md:mt-auto md:mb-0 pt-2 sm:pt-3 pb-2 sm:pb-3 px-3 sm:px-6 bg-transparent md:bg-gradient-to-t md:from-white md:via-white/85 md:to-transparent">
+        {/* ── BLOCK 3: 4 VALUE PROPOSITIONS ── */}
+        <div className="relative z-20 w-full md:mt-auto md:mb-0 pt-1.5 sm:pt-3 pb-1 sm:pb-3 px-2 sm:px-6 bg-transparent md:bg-gradient-to-t md:from-white md:via-white/85 md:to-transparent">
           <div className="max-w-4xl mx-auto py-0.5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-4 gap-1 sm:gap-2">
               {/* Item 1 */}
-              <div className="flex flex-col items-center text-center p-1 sm:p-1">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
-                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-900" />
+              <div className="flex flex-col items-center text-center p-0.5 sm:p-1">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-slate-900" />
                 </div>
-                <h3 className="text-xs sm:text-[12.5px] font-bold text-slate-900 leading-tight">
-                  Multiple Travel Agents
+                <h3 className="text-[9.5px] sm:text-xs md:text-[12.5px] font-bold text-slate-900 leading-tight">
+                  <span className="sm:hidden">Multiple Agents</span>
+                  <span className="hidden sm:inline">Multiple Travel Agents</span>
                 </h3>
-                <p className="text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
+                <p className="hidden md:block text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
                   Get options from many verified agents
                 </p>
               </div>
 
               {/* Item 2 */}
-              <div className="flex flex-col items-center text-center p-1 sm:p-1 sm:border-l sm:border-slate-200/80">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
-                  <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-900" />
+              <div className="flex flex-col items-center text-center p-0.5 sm:p-1 border-l border-slate-200/80">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
+                  <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 text-slate-900" />
                 </div>
-                <h3 className="text-xs sm:text-[12.5px] font-bold text-slate-900 leading-tight">
+                <h3 className="text-[9.5px] sm:text-xs md:text-[12.5px] font-bold text-slate-900 leading-tight">
                   Chat Directly
                 </h3>
-                <p className="text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
+                <p className="hidden md:block text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
                   Discuss, negotiate and customize
                 </p>
               </div>
 
               {/* Item 3 */}
-              <div className="flex flex-col items-center text-center p-1 sm:p-1 sm:border-l sm:border-slate-200/80">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
-                  <IndianRupee className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-900" />
+              <div className="flex flex-col items-center text-center p-0.5 sm:p-1 border-l border-slate-200/80">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
+                  <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4 text-slate-900" />
                 </div>
-                <h3 className="text-xs sm:text-[12.5px] font-bold text-slate-900 leading-tight">
+                <h3 className="text-[9.5px] sm:text-xs md:text-[12.5px] font-bold text-slate-900 leading-tight">
                   No Commission
                 </h3>
-                <p className="text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
+                <p className="hidden md:block text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
                   You pay the agency directly
                 </p>
               </div>
 
               {/* Item 4 */}
-              <div className="flex flex-col items-center text-center p-1 sm:p-1 sm:border-l sm:border-slate-200/80">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
-                  <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-900" />
+              <div className="flex flex-col items-center text-center p-0.5 sm:p-1 border-l border-slate-200/80">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
+                  <ShieldCheck className="h-3 w-3 sm:h-4 sm:w-4 text-slate-900" />
                 </div>
-                <h3 className="text-xs sm:text-[12.5px] font-bold text-slate-900 leading-tight">
+                <h3 className="text-[9.5px] sm:text-xs md:text-[12.5px] font-bold text-slate-900 leading-tight">
                   Verified Agents
                 </h3>
-                <p className="text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
+                <p className="hidden md:block text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
                   Safe, reliable and trusted
                 </p>
               </div>
@@ -481,102 +482,106 @@ export default function LandingHome({
       </div>
 
       {/* ─── 3. HOW TRIPDM WORKS SECTION (CLEAN BOTTOM BAR) ───────────── */}
-      <div id="how-it-works" className="relative z-10 w-full shrink-0 border-t border-slate-100 bg-white py-2 sm:py-2 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center">
+      <div id="how-it-works" className="relative z-10 w-full shrink-0 border-t border-slate-100 bg-white py-1.5 sm:py-2 shadow-xs">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-1.5 md:gap-4 items-center">
             {/* Left Column (Heading & Learn More) */}
             <div className="md:col-span-4 flex items-center md:block justify-between">
               <div>
-                <h2 className="text-sm sm:text-base md:text-lg font-black text-slate-900 tracking-tight leading-tight">
+                <h2 className="text-xs sm:text-base md:text-lg font-black text-slate-900 tracking-tight leading-tight">
                   How TripDM Works
                 </h2>
-                <p className="text-[10px] sm:text-[11px] text-slate-500 font-normal mt-0.5">
+                <p className="text-[9.5px] sm:text-[11px] text-slate-500 font-normal mt-0.5">
                   Plan and book your trip with travel agents in 3 simple steps.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigateToHowItWorks ? onNavigateToHowItWorks() : onNavigateToDestinations()}
-                className="md:mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-slate-200 hover:border-slate-400 text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-bold text-[11px] transition-all cursor-pointer shadow-2xs shrink-0 rounded-lg"
+                className="md:mt-2 inline-flex items-center gap-1 px-2.5 py-1 sm:px-3.5 sm:py-1.5 bg-white border border-slate-200 hover:border-slate-400 text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-bold text-[10.5px] sm:text-[11px] transition-all cursor-pointer shadow-2xs shrink-0"
+                style={{ borderRadius: '6px' }}
               >
                 <span>Learn More</span>
-                <ArrowRight className="h-3 w-3" />
+                <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
               </button>
             </div>
 
             {/* Right Column (3 Steps with Chevrons) */}
-            <div className="md:col-span-8 mt-2 md:mt-0 pt-1 md:pt-0">
-              <div className="grid grid-cols-1 sm:flex items-stretch sm:items-center justify-between gap-2 sm:gap-2">
+            <div className="md:col-span-8 mt-1 md:mt-0 pt-0.5 md:pt-0">
+              <div className="grid grid-cols-3 sm:flex items-stretch sm:items-start justify-between gap-1.5 sm:gap-2">
                 {/* Step 1 */}
-                <div className="flex items-center gap-3 flex-1 min-w-0 bg-[#F8FAFC] border border-slate-100 sm:border-0 sm:bg-transparent p-2.5 sm:p-0 rounded-xl sm:rounded-none">
+                <div className="flex items-center sm:items-start gap-1 sm:gap-2.5 flex-1 min-w-0 bg-transparent border-0 p-0 rounded-none">
                   <span
-                    className="w-6 h-6 sm:w-5 sm:h-5 bg-white sm:bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-[11px] shrink-0 rounded-md shadow-2xs"
+                    className="w-4 h-4 sm:w-5 sm:h-5 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-[9.5px] sm:text-[11px] shrink-0"
+                    style={{ borderRadius: '4px' }}
                   >
                     1
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <Search className="h-3.5 w-3.5 text-slate-800 shrink-0" />
-                      <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 truncate">
+                    <div className="flex items-center gap-1 sm:gap-1.5 h-4 sm:h-5">
+                      <Search className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-800 shrink-0" />
+                      <h4 className="text-[10.5px] sm:text-[13px] font-bold text-slate-900 truncate">
                         Search
                       </h4>
                     </div>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-0.5">
+                    <p className="hidden md:block text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-0.5">
                       Enter your destination and find multiple travel agents.
                     </p>
                   </div>
                 </div>
 
                 {/* Chevron 1 */}
-                <ChevronRight className="h-4 w-4 text-slate-300 shrink-0 hidden sm:block mx-1" />
+                <ChevronRight className="h-4 w-4 text-slate-300 shrink-0 hidden md:block mx-1 mt-0.5" />
 
                 {/* Step 2 */}
-                <div className="flex items-center gap-3 flex-1 min-w-0 bg-[#F8FAFC] border border-slate-100 sm:border-0 sm:bg-transparent p-2.5 sm:p-0 rounded-xl sm:rounded-none">
+                <div className="flex items-center sm:items-start gap-1 sm:gap-2.5 flex-1 min-w-0 bg-transparent border-0 p-0 rounded-none">
                   <span
-                    className="w-6 h-6 sm:w-5 sm:h-5 bg-white sm:bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-[11px] shrink-0 rounded-md shadow-2xs"
+                    className="w-4 h-4 sm:w-5 sm:h-5 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-[9.5px] sm:text-[11px] shrink-0"
+                    style={{ borderRadius: '4px' }}
                   >
                     2
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <MessageSquare className="h-3.5 w-3.5 text-slate-800 shrink-0" />
-                      <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 truncate">
+                    <div className="flex items-center gap-1 sm:gap-1.5 h-4 sm:h-5">
+                      <MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-800 shrink-0" />
+                      <h4 className="text-[10.5px] sm:text-[13px] font-bold text-slate-900 truncate">
                         Chat
                       </h4>
                     </div>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-0.5">
+                    <p className="hidden md:block text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-0.5">
                       DM agents, compare options and customize your trip.
                     </p>
                   </div>
                 </div>
 
                 {/* Chevron 2 */}
-                <ChevronRight className="h-4 w-4 text-slate-300 shrink-0 hidden sm:block mx-1" />
+                <ChevronRight className="h-4 w-4 text-slate-300 shrink-0 hidden md:block mx-1 mt-0.5" />
 
                 {/* Step 3 */}
-                <div className="flex items-center gap-3 flex-1 min-w-0 bg-[#F8FAFC] border border-slate-100 sm:border-0 sm:bg-transparent p-2.5 sm:p-0 rounded-xl sm:rounded-none">
+                <div className="flex items-center sm:items-start gap-1 sm:gap-2.5 flex-1 min-w-0 bg-transparent border-0 p-0 rounded-none">
                   <span
-                    className="w-6 h-6 sm:w-5 sm:h-5 bg-white sm:bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-[11px] shrink-0 rounded-md shadow-2xs"
+                    className="w-4 h-4 sm:w-5 sm:h-5 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-[9.5px] sm:text-[11px] shrink-0"
+                    style={{ borderRadius: '4px' }}
                   >
                     3
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <Ticket className="h-3.5 w-3.5 text-slate-800 shrink-0" />
-                      <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 truncate">
+                    <div className="flex items-center gap-1 sm:gap-1.5 h-4 sm:h-5">
+                      <Ticket className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-800 shrink-0" />
+                      <h4 className="text-[10.5px] sm:text-[13px] font-bold text-slate-900 truncate">
                         Book Directly
                       </h4>
                     </div>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-0.5">
+                    <p className="hidden md:block text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-0.5">
                       Finalize and book with agency — no commission.
                     </p>
                   </div>
                 </div>
               </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }

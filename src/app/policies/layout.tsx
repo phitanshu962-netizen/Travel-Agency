@@ -104,7 +104,7 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
             </div>
 
             {/* User Status Card */}
-            <div className="p-4 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border-b border-slate-100">
+            <div className="p-4 bg-slate-50/70 border-b border-slate-100">
               {user ? (
                 <div className="flex items-center gap-3">
                   {userAvatar ? (
@@ -136,9 +136,11 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                       setMobileMenuOpen(false);
                       setShowAuthModal(true);
                     }}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-xs py-2 h-9 rounded-xl shadow-sm flex items-center justify-center gap-1.5"
+                    className="w-full bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-950 font-bold text-xs py-2 h-9 border border-slate-300 shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    style={{ borderRadius: '6px' }}
                   >
-                    <User className="h-4 w-4" /> Sign In / Register
+                    <User className="h-4 w-4 text-slate-700" />
+                    <span>Sign In / Register</span>
                   </button>
                 </div>
               )}
@@ -157,7 +159,7 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Palmtree className="h-4 w-4 text-orange-500" />
+                  <Palmtree className="h-4 w-4 text-slate-700" />
                   <span>Explore Packages</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -172,7 +174,7 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Scale className="h-4 w-4 text-blue-500" />
+                  <Scale className="h-4 w-4 text-slate-700" />
                   <span>Compare Packages</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -192,7 +194,7 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Heart className="h-4 w-4 text-rose-500" />
+                  <Heart className="h-4 w-4 text-slate-700" />
                   <span>My Wishlist</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -208,7 +210,7 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <MessageSquare className="h-4 w-4 text-emerald-500" />
+                    <MessageSquare className="h-4 w-4 text-slate-700" />
                     <span>Messages & Enquiries</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -228,7 +230,7 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <User className="h-4 w-4 text-purple-500" />
+                  <User className="h-4 w-4 text-slate-700" />
                   <span>My Profile & Bookings</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -243,12 +245,12 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                     onClick={() => setMobileMenuOpen(false)}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                       isTabActive(tab.href)
-                        ? 'bg-orange-50 text-orange-600 font-bold'
-                        : 'text-slate-700 hover:bg-slate-100'
+                        ? 'bg-slate-100 text-slate-900 font-bold'
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Shield className="h-4 w-4 text-slate-400" />
+                      <Shield className="h-4 w-4 text-slate-700" />
                       <span>{tab.name}</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -436,7 +438,8 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
             ) : (
               <button
                 onClick={() => { setAuthModalTab('login'); setShowAuthModal(true); }}
-                className="px-2.5 py-1 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                className="px-3 py-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-300 shadow-2xs transition-colors"
+                style={{ borderRadius: '6px' }}
               >
                 Login
               </button>
