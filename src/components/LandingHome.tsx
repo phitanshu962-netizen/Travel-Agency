@@ -223,6 +223,7 @@ export default function LandingHome({
           {/* SEARCH BAR */}
           <form
             onSubmit={handleSearchSubmit}
+            suppressHydrationWarning
             className="relative z-50 bg-white p-1 sm:p-1.5 rounded-2xl sm:rounded-full border border-slate-200/90 transition-colors shadow-xs hover:shadow-xs hover:border-slate-300 max-w-2xl sm:max-w-3xl mx-auto"
           >
               <div className="flex flex-col sm:flex-row sm:items-center">
@@ -231,6 +232,7 @@ export default function LandingHome({
                   <Search className="h-4 w-4 text-slate-400 shrink-0 mr-2" />
                   <input
                     type="text"
+                    suppressHydrationWarning
                     value={destinationInput}
                     onChange={(e) => {
                       setDestinationInput(e.target.value);
@@ -282,6 +284,7 @@ export default function LandingHome({
                   {/* Mobile-only Search Button: Compact pill on right side of input */}
                   <button
                     type="submit"
+                    suppressHydrationWarning
                     className="sm:hidden bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-xl shadow-xs text-xs cursor-pointer shrink-0 ml-1 transition-all"
                   >
                     Search
@@ -421,17 +424,64 @@ export default function LandingHome({
           </div>
 
         {/* ── BLOCK 3: 4 VALUE PROPOSITIONS ── */}
-        <div className="relative z-20 w-full md:mt-auto md:mb-0 pt-1.5 sm:pt-3 pb-1 sm:pb-3 px-2 sm:px-6 bg-transparent md:bg-gradient-to-t md:from-white md:via-white/85 md:to-transparent">
+        <div className="relative z-20 w-full md:mt-auto md:mb-0 pt-1.5 sm:pt-3 pb-1 sm:pb-3 px-3 sm:px-6 bg-transparent md:bg-gradient-to-t md:from-white md:via-white/85 md:to-transparent">
           <div className="max-w-4xl mx-auto py-0.5">
-            <div className="grid grid-cols-4 gap-1 sm:gap-2">
+            {/* Mobile: 2 on Left, 2 on Right (Strictly Phone Side: md:hidden) */}
+            <div className="grid md:hidden grid-cols-2 gap-x-4 gap-y-3.5 w-full max-w-md mx-auto px-1 sm:px-2">
+              {/* Left Item 1: Multiple Agents */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-900 shrink-0">
+                  <Users className="h-4 w-4 text-slate-800" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-[13px] font-bold text-slate-900 leading-tight">Multiple Agents</h4>
+                  <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">Verified experts</p>
+                </div>
+              </div>
+
+              {/* Right Item 1: No Commission */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-900 shrink-0">
+                  <IndianRupee className="h-4 w-4 text-slate-800" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-[13px] font-bold text-slate-900 leading-tight">No Commission</h4>
+                  <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">0% middleman fee</p>
+                </div>
+              </div>
+
+              {/* Left Item 2: Chat Directly */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-900 shrink-0">
+                  <MessageSquare className="h-4 w-4 text-slate-800" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-[13px] font-bold text-slate-900 leading-tight">Chat Directly</h4>
+                  <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">Customize with agent</p>
+                </div>
+              </div>
+
+              {/* Right Item 2: Verified Agents */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-900 shrink-0">
+                  <ShieldCheck className="h-4 w-4 text-slate-800" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-[13px] font-bold text-slate-900 leading-tight">Verified Agents</h4>
+                  <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">100% verified & safe</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: 4 Columns in 1 line (md and up only) */}
+            <div className="hidden md:grid grid-cols-4 gap-1 sm:gap-2">
               {/* Item 1 */}
               <div className="flex flex-col items-center text-center p-0.5 sm:p-1">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-900 mb-1 shrink-0">
                   <Users className="h-3 w-3 sm:h-4 sm:w-4 text-slate-900" />
                 </div>
                 <h3 className="text-[9.5px] sm:text-xs md:text-[12.5px] font-bold text-slate-900 leading-tight">
-                  <span className="sm:hidden">Multiple Agents</span>
-                  <span className="hidden sm:inline">Multiple Travel Agents</span>
+                  Multiple Travel Agents
                 </h3>
                 <p className="hidden md:block text-[10px] sm:text-[10.5px] text-slate-500 font-medium leading-tight mt-0.5">
                   Get options from many verified agents

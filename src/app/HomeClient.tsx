@@ -5420,7 +5420,7 @@ export default function HomeClient({
           )}
 
           {/* Top Navigation Bar */}
-          <header className="header-transition text-gray-900 z-[100] sticky top-0 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200">
+          <header suppressHydrationWarning className="header-transition text-gray-900 z-[100] sticky top-0 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200">
             {/* Desktop Header Layout */}
             <div className="hidden md:flex max-w-7xl mx-auto items-center justify-between gap-4 lg:gap-8 px-4 sm:px-6 h-16 md:h-[70px] w-full">
               {/* Logo */}
@@ -5599,7 +5599,7 @@ export default function HomeClient({
             </div>
 
             {/* Mobile Header Layout */}
-            <div className="flex md:hidden items-center justify-between px-3 sm:px-4 h-16 w-full">
+            <div suppressHydrationWarning className="flex md:hidden items-center justify-between px-3 sm:px-4 h-16 w-full">
               {/* Left: Hamburger Button & Logo */}
               <div className="flex items-center gap-2 sm:gap-3">
                 <button

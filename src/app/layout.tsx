@@ -77,7 +77,7 @@ export default function RootLayout({
   injectImageStyles();
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {GA_MEASUREMENT_ID && (
           <>
@@ -104,6 +104,7 @@ export default function RootLayout({
         <MicrosoftClarity />
       </head>
       <body
+        suppressHydrationWarning
         className={`${poppins.variable} ${inter.variable} ${playfair.variable} ${dmSans.variable} ${jakarta.variable} ${outfit.variable} font-sans antialiased`}
       >
         <AuthProvider>
