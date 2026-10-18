@@ -616,7 +616,7 @@ export default function AgencyProfileView({
   };
 
   return (
-    <div className="w-full bg-white min-h-screen text-slate-900 pb-16">
+    <div className="w-full bg-white min-h-screen text-slate-900 pb-28 sm:pb-16">
       <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
         {/* ─── 1. HERO PANORAMIC BANNER (Direct on Page - No Container Box) ─── */}
         <div className="w-full relative overflow-hidden bg-white border-b border-slate-200 pb-2">
@@ -1044,20 +1044,20 @@ export default function AgencyProfileView({
 
             {/* SECTION 3: CUSTOMER REVIEWS */}
             <div id="section-reviews" className="bg-transparent py-6">
-              <div className="flex items-center justify-between gap-4 mb-4 pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+              <div className="flex items-center justify-between gap-2 mb-4 pb-2 border-b border-slate-100">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Star className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0" />
+                  <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight truncate">
                     Customer Reviews
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowWriteReviewModal(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 shadow-2xs hover:border-amber-400 hover:text-orange-600 transition-all active:scale-95 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 shadow-sm shadow-amber-500/25 transition-all cursor-pointer shrink-0"
                   style={{ borderRadius: '6px' }}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
                   <span>Write a Review</span>
                 </button>
               </div>
@@ -1109,7 +1109,7 @@ export default function AgencyProfileView({
                   </div>
 
                   {/* Real Reviews Cards List */}
-                  {dbReviews.length > 0 && (
+                  {dbReviews.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                       {dbReviews.map((rev) => (
                         <div
@@ -1174,6 +1174,26 @@ export default function AgencyProfileView({
                         </div>
                       ))}
                     </div>
+                  ) : (
+                    <div
+                      className="bg-slate-50 border border-slate-200/80 p-5 text-center flex flex-col items-center justify-center my-2"
+                      style={{ borderRadius: '6px' }}
+                    >
+                      <Star className="w-6 h-6 text-amber-400 mb-1.5" />
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900">No Review Stories Yet</h4>
+                      <p className="text-[11px] sm:text-xs text-slate-500 max-w-sm mt-0.5 mb-3">
+                        Traveled with {agencyDisplayName}? Share your ratings and trip photos to help other travelers.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowWriteReviewModal(true)}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2 px-5 text-xs cursor-pointer flex items-center gap-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all"
+                        style={{ borderRadius: '6px' }}
+                      >
+                        <Star className="w-3.5 h-3.5 fill-white text-white" />
+                        <span>Write a Review</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -1215,7 +1235,7 @@ export default function AgencyProfileView({
                 </p>
               </div>
 
-              <div className="pt-1">
+              <div className="pt-1 space-y-2">
                 <button
                   type="button"
                   onClick={handleChat}
@@ -1224,6 +1244,15 @@ export default function AgencyProfileView({
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Chat with Agent</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowWriteReviewModal(true)}
+                  className="w-full bg-white hover:bg-slate-50 active:scale-95 text-slate-700 font-bold py-2 text-xs border border-slate-300 shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  style={{ borderRadius: '6px' }}
+                >
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span>Write a Review</span>
                 </button>
               </div>
             </div>

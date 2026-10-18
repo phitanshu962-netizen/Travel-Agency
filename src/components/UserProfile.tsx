@@ -200,7 +200,7 @@ export default function UserProfile({
   const displayName = profileName || userData?.name || 'Traveler';
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 font-sans min-w-0 overflow-x-hidden">
+    <div className="w-full max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-6 pb-32 sm:pb-16 space-y-3.5 sm:space-y-6 font-sans min-w-0 overflow-x-hidden">
       
       {/* ========================================================
           1. CLEAN PROFILE HEADER BANNER & IDENTITY (Travel Agent Page Style)
@@ -210,7 +210,7 @@ export default function UserProfile({
         style={{ borderRadius: '8px' }}
       >
         {/* Cover Image Banner */}
-        <div className="h-28 sm:h-48 w-full relative overflow-hidden bg-slate-900">
+        <div className="h-24 sm:h-48 w-full relative overflow-hidden bg-slate-900">
           <img
             src="/profile-cover.jpg"
             alt="Profile Cover"
@@ -493,7 +493,7 @@ export default function UserProfile({
              ────────────────────────────────────────────────────────── */}
           {activeTab === 'profile' && (
             <div 
-              className="bg-white border border-slate-200 p-4 sm:p-7 shadow-2xs space-y-5 sm:space-y-6 animate-in fade-in duration-200 w-full min-w-0"
+              className="bg-white border border-slate-200 p-4 sm:p-7 pb-6 sm:pb-7 shadow-2xs space-y-5 sm:space-y-6 animate-in fade-in duration-200 w-full min-w-0"
               style={{ borderRadius: '8px' }}
             >
               <div className="border-b border-slate-100 pb-4 flex items-center justify-between min-w-0">
@@ -575,7 +575,7 @@ export default function UserProfile({
                   <Input
                     disabled
                     value={displayLocation}
-                    className="border-slate-200 text-sm font-medium h-10 bg-slate-50 text-slate-600"
+                    className="border-slate-200 text-sm font-medium h-10 bg-slate-50 text-slate-600 w-full"
                     style={{ borderRadius: '6px' }}
                   />
                 </div>
@@ -583,7 +583,7 @@ export default function UserProfile({
 
               {/* Inline Edit Buttons if Editing */}
               {isEditingProfile && (
-                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2.5 pt-4 pb-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsEditingProfile(false)}

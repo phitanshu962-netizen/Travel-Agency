@@ -444,6 +444,13 @@ export default function HomeClient({
       if (a) return 'agents';
       const s = new URLSearchParams(window.location.search).get('section');
       if (s) return s;
+      if (window.location.pathname === '/travel-agents' || window.location.pathname.startsWith('/travel-agents/')) {
+        return 'agents';
+      }
+      const saved = sessionStorage.getItem('tripdm_user_active_section');
+      if (saved && ['home', 'agents', 'destinations', 'how-it-works', 'chat', 'profile', 'wishlist'].includes(saved)) {
+        return saved;
+      }
     }
     return routeMode === 'agency' ? 'agencyDashboard' : routeMode === 'admin' ? 'adminDashboard' : 'home';
   });
@@ -771,14 +778,32 @@ export default function HomeClient({
       isPopStateRef.current = false;
       return;
     }
-    // Do not overwrite URL if user is viewing an agency profile
+    try {
+      sessionStorage.setItem('tripdm_user_active_section', userActiveSection);
+    } catch (_) {}
+
     const currentParams = new URLSearchParams(window.location.search);
-    if (currentParams.get('agencyId') && selectedAgencyProfile) {
+
+    // If user is viewing travel agents section
+    if (userActiveSection === 'agents') {
+      if (selectedAgencyProfile) {
+        const agencyIdentifier = selectedAgencyProfile.id || selectedAgencyProfile.userId || selectedAgencyProfile.email;
+        if (agencyIdentifier && currentParams.get('agencyId') !== agencyIdentifier) {
+          window.history.pushState({ section: 'agents', agencyId: agencyIdentifier }, '', `/?section=agents&agencyId=${agencyIdentifier}`);
+        }
+      } else {
+        if (currentParams.get('agencyId') || currentParams.get('section') !== 'agents') {
+          const targetUrl = window.location.pathname === '/travel-agents' ? '/travel-agents' : '/?section=agents';
+          window.history.pushState({ section: 'agents' }, '', targetUrl);
+        }
+      }
       return;
     }
+
+    // For any other section (chat, destinations, home, etc.): clear agencyId and sync section URL
     const currentParam = currentParams.get('section');
     const targetParam = userActiveSection === 'home' ? null : userActiveSection;
-    if (currentParam !== targetParam) {
+    if (currentParam !== targetParam || currentParams.has('agencyId')) {
       const newUrl = targetParam ? `/?section=${targetParam}` : '/';
       window.history.pushState({ section: userActiveSection }, '', newUrl);
     }
@@ -2176,14 +2201,26 @@ export default function HomeClient({
     // Direct redirect
     setCurrentChatAgency(agencyId);
     setCurrentChatAgencyName(agencyName);
+    try {
+      sessionStorage.setItem('user_current_chat_agency', agencyId);
+      sessionStorage.setItem('user_current_chat_agency_name', agencyName);
+      sessionStorage.setItem('tripdm_user_active_section', 'chat');
+    } catch (_) {}
     const matchedConv = userConversations.find(c => c.agencyId === agencyId);
     setCurrentChatAgencyIsOnline(matchedConv ? matchedConv.isOnline : false);
     if (listingData?.title) {
       setChatInput(`Hi, I am interested in "${listingData.title}"${duration ? ` (${duration})` : ''}${formattedPrice ? ` at ${formattedPrice}` : ''}. Could you please share more details?`);
     }
+    setSelectedAgencyProfile(null);
     setUserActiveSection('chat');
     setViewingListing(null);
     setShowComparison(false);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('agencyId');
+      url.searchParams.set('section', 'chat');
+      window.history.pushState({ section: 'chat' }, '', url.toString());
+    }
   };
 
   // Deduct credits/chats and unlock the customer connection for the agency
@@ -5403,11 +5440,16 @@ export default function HomeClient({
                     onClick={() => {
                       setMobileMenuOpen(false);
                       setUserActiveSection('agents');
+                      setSelectedAgencyProfile(null);
                       setViewingListing(null);
                       setShowBookingForm(false);
                       setShowComparison(false);
                       setSelectedStory(null);
-                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (typeof window !== 'undefined') {
+                        try { sessionStorage.setItem('tripdm_user_active_section', 'agents'); } catch (_) {}
+                        window.history.pushState({ section: 'agents' }, '', '/?section=agents');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       userActiveSection === 'agents'
@@ -5860,6 +5902,7 @@ export default function HomeClient({
                     <button
                       suppressHydrationWarning
                       onClick={() => {
+                        sessionStorage.setItem('tripdm_user_active_section', 'profile');
                         setFromSection(userActiveSection);
                         setUserActiveSection('profile');
                       }}
@@ -5896,8 +5939,8 @@ export default function HomeClient({
               </div>
             </div>
 
-            {/* Mobile Search Bar (Only shown on non-home pages so home hero search isn't duplicated) */}
-            {userActiveSection !== 'home' && (
+            {/* Mobile Search Bar (Only shown on non-home pages so home hero search isn't duplicated, hidden on profile and chat) */}
+            {userActiveSection !== 'home' && userActiveSection !== 'profile' && userActiveSection !== 'chat' && userActiveSection !== 'bookings' && (
               <div className="md:hidden px-3.5 sm:px-4 pb-2.5 pt-0.5 border-t border-slate-100/80 bg-white/95">
                 <AutocompleteSearch
                   placeholder="Search for destination"
@@ -5975,11 +6018,16 @@ export default function HomeClient({
                   }}
                   onNavigateToAgents={() => {
                     setUserActiveSection('agents');
+                    setSelectedAgencyProfile(null);
                     setViewingListing(null);
                     setShowBookingForm(false);
                     setShowComparison(false);
                     setSelectedStory(null);
-                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                    if (typeof window !== 'undefined') {
+                      try { sessionStorage.setItem('tripdm_user_active_section', 'agents'); } catch (_) {}
+                      window.history.pushState({ section: 'agents' }, '', '/?section=agents');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
                   }}
                   onNavigateToHowItWorks={() => {
                     setUserActiveSection('how-it-works');
@@ -6018,11 +6066,16 @@ export default function HomeClient({
                   }}
                   onNavigateToAgents={(targetDestination) => {
                     setUserActiveSection('agents');
+                    setSelectedAgencyProfile(null);
                     setViewingListing(null);
                     setShowBookingForm(false);
                     setShowComparison(false);
                     setSelectedStory(null);
-                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                    if (typeof window !== 'undefined') {
+                      try { sessionStorage.setItem('tripdm_user_active_section', 'agents'); } catch (_) {}
+                      window.history.pushState({ section: 'agents' }, '', '/?section=agents');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
                   }}
                   onInitiateChat={(data) => {
                     handleInitiateChat(data);
@@ -7815,51 +7868,53 @@ export default function HomeClient({
               )}
 
               {userActiveSection === 'profile' && (
-                <UserProfile
-                  user={user}
-                  userData={userData}
-                  wishlist={wishlist}
-                  listings={listings}
-                  agencies={allAgencies.length > 0 ? allAgencies : initialAgencies}
-                  profileName={profileName}
-                  setProfileName={setProfileName}
-                  profilePhone={profilePhone}
-                  setProfilePhone={setProfilePhone}
-                  profilePhotoUrl={profilePhotoUrl}
-                  handleProfilePhotoChange={handleProfilePhotoChange}
-                  handleDeleteProfilePhoto={handleDeleteProfilePhoto}
-                  isEditingProfile={isEditingProfile}
-                  setIsEditingProfile={setIsEditingProfile}
-                  savingProfile={savingProfile}
-                  handleSaveProfile={handleSaveProfile}
-                  onWishlistToggle={handleWishlistToggle}
-                  onInitiateChat={handleInitiateChat}
-                  onViewAgencyProfile={(agency) => {
-                    handleOpenAgencyProfile(agency, 'profile');
-                  }}
-                  onViewAgencyPackages={(agencyId, agencyName) => {
-                    setUserActiveSection('destinations');
-                    setSearchTerm(agencyName);
-                    setDashboardViewMode('all');
-                    setViewingListing(null);
-                    setShowComparison(false);
-                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  onViewListing={(listing) => {
-                    setViewingListing(listing);
-                    setShowComparison(false);
-                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  onExploreAgents={() => {
-                    handleCloseAgencyProfile();
-                    setUserActiveSection('agents');
-                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  onNavigateToChat={() => {
-                    setFromSection('profile');
-                    setUserActiveSection('chat');
-                  }}
-                />
+                <div className="w-full min-w-0 pb-16 sm:pb-0">
+                  <UserProfile
+                    user={user}
+                    userData={userData}
+                    wishlist={wishlist}
+                    listings={listings}
+                    agencies={allAgencies.length > 0 ? allAgencies : initialAgencies}
+                    profileName={profileName}
+                    setProfileName={setProfileName}
+                    profilePhone={profilePhone}
+                    setProfilePhone={setProfilePhone}
+                    profilePhotoUrl={profilePhotoUrl}
+                    handleProfilePhotoChange={handleProfilePhotoChange}
+                    handleDeleteProfilePhoto={handleDeleteProfilePhoto}
+                    isEditingProfile={isEditingProfile}
+                    setIsEditingProfile={setIsEditingProfile}
+                    savingProfile={savingProfile}
+                    handleSaveProfile={handleSaveProfile}
+                    onWishlistToggle={handleWishlistToggle}
+                    onInitiateChat={handleInitiateChat}
+                    onViewAgencyProfile={(agency) => {
+                      handleOpenAgencyProfile(agency, 'profile');
+                    }}
+                    onViewAgencyPackages={(agencyId, agencyName) => {
+                      setUserActiveSection('destinations');
+                      setSearchTerm(agencyName);
+                      setDashboardViewMode('all');
+                      setViewingListing(null);
+                      setShowComparison(false);
+                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onViewListing={(listing) => {
+                      setViewingListing(listing);
+                      setShowComparison(false);
+                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onExploreAgents={() => {
+                      handleCloseAgencyProfile();
+                      setUserActiveSection('agents');
+                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onNavigateToChat={() => {
+                      setFromSection('profile');
+                      setUserActiveSection('chat');
+                    }}
+                  />
+                </div>
               )}
 
               {userActiveSection === 'support' && (
@@ -8534,6 +8589,7 @@ export default function HomeClient({
                     setShowAuthModal(true);
                     return;
                   }
+                  sessionStorage.setItem('tripdm_user_active_section', 'profile');
                   setFromSection(userActiveSection);
                   setUserActiveSection('profile');
                   if (typeof window !== 'undefined') {
