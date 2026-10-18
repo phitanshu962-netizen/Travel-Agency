@@ -120,7 +120,14 @@ export const metadata: Metadata = {
 import { Suspense } from 'react';
 import PageLoader from '@/components/PageLoader';
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams
+}: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
+}) {
+  const resolvedParams = searchParams ? await Promise.resolve(searchParams) : {};
+  const defaultSection = typeof resolvedParams.section === 'string' ? resolvedParams.section : undefined;
+
   // Fetch initial data on the server for pure HTML SSR
   const { listings, agencies } = await getInitialData();
 
@@ -130,6 +137,7 @@ export default async function HomePage() {
       <HomeClient
         initialListings={listings}
         initialAgencies={agencies}
+        defaultSection={defaultSection}
         routeMode="user"
       />
     </Suspense>

@@ -55,6 +55,17 @@ export default function FilterSidebar({
     setSelectedDuration(initialFilters?.duration || null);
   }, [initialFilters]);
 
+  // Prevent background scrolling when filter sidebar is open on mobile
+  React.useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const toggleStyle = (styleId: string) => {
@@ -90,7 +101,7 @@ export default function FilterSidebar({
     <>
       {/* Mobile Dark Backdrop Overlay */}
       <div 
-        className="sm:hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs transition-opacity duration-200"
+        className="sm:hidden fixed inset-0 z-[140] bg-black/60 backdrop-blur-xs transition-opacity duration-200 touch-none"
         onClick={onClose}
       />
       
@@ -104,15 +115,15 @@ export default function FilterSidebar({
           MOBILE VIEW: Clean Bottom Sheet
           ========================================================= */}
       <div 
-        className="sm:hidden fixed inset-x-0 bottom-0 z-[101] bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-200 border-t border-slate-200 flex flex-col"
+        className="sm:hidden fixed inset-x-0 bottom-0 z-[140] bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-200 border-t border-slate-200 flex flex-col max-h-[85vh]"
       >
         {/* Drag Pill */}
-        <div className="w-full flex items-center justify-center pt-2.5 pb-1">
+        <div className="w-full flex items-center justify-center pt-2.5 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-slate-300" />
         </div>
 
         {/* Header */}
-        <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-orange-500" />
             <h2 className="text-sm font-bold text-slate-900">Filters</h2>
@@ -127,7 +138,7 @@ export default function FilterSidebar({
         </div>
 
         {/* Options */}
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto overscroll-contain touch-pan-y flex-1">
           {/* Section 1: Travel Style (Multi-select) */}
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
@@ -183,7 +194,7 @@ export default function FilterSidebar({
         </div>
 
         {/* Footer */}
-        <div className="p-3.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between gap-3">
+        <div className="p-3.5 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-100 bg-slate-50/80 flex items-center justify-between gap-3 shrink-0">
           <button 
             onClick={handleResetAll}
             className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors px-2 py-1.5 cursor-pointer"

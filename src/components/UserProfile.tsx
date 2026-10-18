@@ -200,17 +200,17 @@ export default function UserProfile({
   const displayName = profileName || userData?.name || 'Traveler';
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 font-sans">
+    <div className="w-full max-w-[1400px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 font-sans min-w-0 overflow-x-hidden">
       
       {/* ========================================================
           1. CLEAN PROFILE HEADER BANNER & IDENTITY (Travel Agent Page Style)
           ======================================================== */}
       <div 
-        className="bg-white border border-slate-200 shadow-2xs overflow-hidden"
+        className="bg-white border border-slate-200 shadow-2xs overflow-hidden w-full max-w-full"
         style={{ borderRadius: '8px' }}
       >
         {/* Cover Image Banner */}
-        <div className="h-36 sm:h-48 w-full relative overflow-hidden bg-slate-900">
+        <div className="h-28 sm:h-48 w-full relative overflow-hidden bg-slate-900">
           <img
             src="/profile-cover.jpg"
             alt="Profile Cover"
@@ -221,13 +221,13 @@ export default function UserProfile({
         </div>
 
         {/* Profile Info Row */}
-        <div className="px-6 sm:px-8 pb-6 pt-0 relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="px-4 sm:px-8 pb-5 sm:pb-6 pt-0 relative flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 min-w-0">
           
           {/* Avatar & User Details */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-14 sm:-mt-16 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-4 -mt-12 sm:-mt-16 text-center sm:text-left min-w-0 max-w-full">
             {/* Avatar with Internal Hover Controls */}
             <div 
-              className="relative group shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white bg-slate-100 shadow-md overflow-hidden flex items-center justify-center select-none"
+              className="relative group shrink-0 w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white bg-slate-100 shadow-md overflow-hidden flex items-center justify-center select-none"
             >
               {hasValidPhoto ? (
                 <img
@@ -238,7 +238,7 @@ export default function UserProfile({
                 />
               ) : (
                 <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-500">
-                  <User className="w-12 h-12 sm:w-14 sm:h-14 text-slate-500" />
+                  <User className="w-10 h-10 sm:w-14 sm:h-14 text-slate-500" />
                 </div>
               )}
 
@@ -268,21 +268,21 @@ export default function UserProfile({
                   title="Upload profile photo"
                   className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white cursor-pointer transition-opacity z-20"
                 >
-                  <Camera className="w-6 h-6" />
+                  <Camera className="w-5 h-5 sm:w-6 sm:h-6" />
                   <input type="file" accept="image/*" onChange={handleProfilePhotoChange} className="hidden" />
                 </label>
               )}
             </div>
 
             {/* Name & Metadata */}
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <div className="space-y-1 min-w-0 max-w-full">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2">
+                <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight truncate max-w-full">
                   {displayName}
                 </h1>
                 {isAgency ? (
                   <span 
-                    className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 px-2 py-0.5"
+                    className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 px-2 py-0.5 shrink-0"
                     style={{ borderRadius: '4px' }}
                   >
                     <CheckCircle className="w-3 h-3 text-amber-600" />
@@ -290,7 +290,7 @@ export default function UserProfile({
                   </span>
                 ) : (
                   <span 
-                    className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2 py-0.5"
+                    className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2 py-0.5 shrink-0"
                     style={{ borderRadius: '4px' }}
                   >
                     <CheckCircle className="w-3 h-3 text-emerald-600" />
@@ -299,25 +299,25 @@ export default function UserProfile({
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-slate-500 font-medium">
-                <span className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 text-xs text-slate-500 font-medium min-w-0">
+                <span className="flex items-center gap-1 shrink-0">
                   <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   {displayLocation}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 min-w-0 max-w-full truncate">
                   <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  {user?.email || 'No email attached'}
+                  <span className="truncate">{user?.email || 'No email attached'}</span>
                 </span>
               </div>
             </div>
           </div>
 
           {/* Action Buttons (Right) */}
-          <div className="flex items-center justify-center sm:justify-end gap-2.5 pt-2 sm:pt-0 shrink-0">
+          <div className="flex items-center justify-center sm:justify-end gap-2.5 pt-1 sm:pt-0 shrink-0 max-w-full">
             {isAgency && (
               <Link
                 href="/agencytripdm"
-                className="bg-white/80 border border-slate-200/80 hover:bg-white hover:border-orange-500 hover:text-orange-600 text-slate-700 font-bold py-2.5 px-5 text-xs sm:text-sm transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+                className="bg-white/80 border border-slate-200/80 hover:bg-white hover:border-orange-500 hover:text-orange-600 text-slate-700 font-bold py-2 sm:py-2.5 px-3.5 sm:px-5 text-xs sm:text-sm transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
                 style={{ borderRadius: '6px' }}
               >
                 <Building2 className="w-3.5 h-3.5 text-slate-600" />
@@ -332,7 +332,7 @@ export default function UserProfile({
                   setActiveTab('profile');
                   setIsEditingProfile(true);
                 }}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold py-2.5 px-6 text-xs sm:text-sm shadow-md shadow-amber-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer border border-amber-400/50"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold py-2 sm:py-2.5 px-4 sm:px-6 text-xs sm:text-sm shadow-md shadow-amber-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer border border-amber-400/50"
                 style={{ borderRadius: '6px' }}
               >
                 <Pencil className="w-3.5 h-3.5" />
@@ -346,39 +346,39 @@ export default function UserProfile({
       {/* ========================================================
           2. MAIN 2-COLUMN SECTION (Sidebar Navigation on Left + Content on Right)
           ======================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start w-full min-w-0">
         
         {/* ══════════════════════════════════════════════════════════
             LEFT SIDEBAR: ACTION TABS
            ══════════════════════════════════════════════════════════ */}
         <aside 
-          className="lg:col-span-4 bg-white border border-slate-200 p-4 shadow-2xs space-y-2.5 lg:sticky lg:top-20"
+          className="lg:col-span-4 bg-white border border-slate-200 p-3 sm:p-4 shadow-2xs space-y-2 sm:space-y-2.5 lg:sticky lg:top-20 w-full min-w-0"
           style={{ borderRadius: '8px' }}
         >
           {/* Tab 1: Personal Information */}
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
-            className={`w-full p-3.5 flex items-center justify-between text-left transition-all cursor-pointer group border ${
+            className={`w-full p-3 sm:p-3.5 flex items-center justify-between text-left transition-all cursor-pointer group border ${
               activeTab === 'profile'
                 ? 'bg-slate-50 border-slate-300 shadow-2xs'
                 : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
             }`}
             style={{ borderRadius: '6px' }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <div 
-                className={`w-10 h-10 flex items-center justify-center shrink-0 transition-transform ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center shrink-0 transition-transform ${
                   activeTab === 'profile'
                     ? 'bg-slate-900 text-white'
                     : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                 }`}
                 style={{ borderRadius: '6px' }}
               >
-                <User className="w-5 h-5" />
+                <User className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
               </div>
-              <div className="min-w-0">
-                <h4 className={`text-xs sm:text-sm font-bold ${activeTab === 'profile' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
+              <div className="min-w-0 truncate">
+                <h4 className={`text-xs sm:text-sm font-bold truncate ${activeTab === 'profile' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
                   Personal Information
                 </h4>
                 <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
@@ -386,33 +386,33 @@ export default function UserProfile({
                 </p>
               </div>
             </div>
-            <ChevronRight className={`w-4 h-4 transition-all shrink-0 ${activeTab === 'profile' ? 'text-slate-900 translate-x-0.5' : 'text-slate-400 group-hover:text-slate-600'}`} />
+            <ChevronRight className={`w-4 h-4 transition-all shrink-0 ml-1 ${activeTab === 'profile' ? 'text-slate-900 translate-x-0.5' : 'text-slate-400 group-hover:text-slate-600'}`} />
           </button>
 
           {/* Tab 2: My Wishlist (Saved Travel Agencies) */}
           <button
             type="button"
             onClick={() => setActiveTab('wishlist')}
-            className={`w-full p-3.5 flex items-center justify-between text-left transition-all cursor-pointer group border ${
+            className={`w-full p-3 sm:p-3.5 flex items-center justify-between text-left transition-all cursor-pointer group border ${
               activeTab === 'wishlist'
                 ? 'bg-slate-50 border-slate-300 shadow-2xs'
                 : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
             }`}
             style={{ borderRadius: '6px' }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <div 
-                className={`w-10 h-10 flex items-center justify-center shrink-0 transition-transform ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center shrink-0 transition-transform ${
                   activeTab === 'wishlist'
                     ? 'bg-rose-500 text-white'
                     : 'bg-rose-50 border border-rose-100 text-rose-600 group-hover:scale-105'
                 }`}
                 style={{ borderRadius: '6px' }}
               >
-                <Heart className={`w-5 h-5 ${activeTab === 'wishlist' ? 'fill-white text-white' : 'fill-rose-100 text-rose-600'}`} />
+                <Heart className={`w-4.5 h-4.5 sm:w-5 sm:h-5 ${activeTab === 'wishlist' ? 'fill-white text-white' : 'fill-rose-100 text-rose-600'}`} />
               </div>
-              <div className="min-w-0">
-                <h4 className={`text-xs sm:text-sm font-bold ${activeTab === 'wishlist' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
+              <div className="min-w-0 truncate">
+                <h4 className={`text-xs sm:text-sm font-bold truncate ${activeTab === 'wishlist' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
                   My Wishlist
                 </h4>
                 <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
@@ -420,7 +420,7 @@ export default function UserProfile({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-1">
               {wishlistedAgencies.length > 0 && (
                 <span className="bg-rose-100 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
                   {wishlistedAgencies.length}
@@ -435,18 +435,18 @@ export default function UserProfile({
             <button
               type="button"
               onClick={onNavigateToChat}
-              className="w-full p-3.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 flex items-center justify-between text-left transition-all cursor-pointer group shadow-2xs"
+              className="w-full p-3 sm:p-3.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 flex items-center justify-between text-left transition-all cursor-pointer group shadow-2xs"
               style={{ borderRadius: '6px' }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                 <div 
-                  className="w-10 h-10 bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 group-hover:scale-105 transition-transform"
+                  className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 group-hover:scale-105 transition-transform"
                   style={{ borderRadius: '6px' }}
                 >
-                  <MessageSquare className="w-5 h-5 text-blue-600" />
+                  <MessageSquare className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-blue-600" />
                 </div>
-                <div className="min-w-0">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-slate-900">
+                <div className="min-w-0 truncate">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-slate-900 truncate">
                     Chat with System
                   </h4>
                   <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
@@ -454,23 +454,23 @@ export default function UserProfile({
                   </p>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
             </button>
           ) : (
             <Link
               href="/agencytripdm"
-              className="w-full p-3.5 bg-white border border-slate-200 hover:border-orange-400 hover:bg-orange-50/20 flex items-center justify-between text-left transition-all cursor-pointer group shadow-2xs"
+              className="w-full p-3 sm:p-3.5 bg-white border border-slate-200 hover:border-orange-400 hover:bg-orange-50/20 flex items-center justify-between text-left transition-all cursor-pointer group shadow-2xs"
               style={{ borderRadius: '6px' }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                 <div 
-                  className="w-10 h-10 bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform"
+                  className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform"
                   style={{ borderRadius: '6px' }}
                 >
-                  <Building2 className="w-5 h-5 text-orange-600" />
+                  <Building2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-orange-600" />
                 </div>
-                <div className="min-w-0">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-orange-600">
+                <div className="min-w-0 truncate">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-orange-600 truncate">
                     Agency Portal
                   </h4>
                   <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
@@ -478,7 +478,7 @@ export default function UserProfile({
                   </p>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
             </Link>
           )}
         </aside>
@@ -486,27 +486,27 @@ export default function UserProfile({
         {/* ══════════════════════════════════════════════════════════
             RIGHT / PRIMARY: PERSONAL INFO OR WISHLISTED AGENCIES
            ══════════════════════════════════════════════════════════ */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 space-y-4 w-full min-w-0">
           
           {/* ──────────────────────────────────────────────────────────
               VIEW A: PERSONAL INFORMATION
              ────────────────────────────────────────────────────────── */}
           {activeTab === 'profile' && (
             <div 
-              className="bg-white border border-slate-200 p-6 sm:p-7 shadow-2xs space-y-6 animate-in fade-in duration-200"
+              className="bg-white border border-slate-200 p-4 sm:p-7 shadow-2xs space-y-5 sm:space-y-6 animate-in fade-in duration-200 w-full min-w-0"
               style={{ borderRadius: '8px' }}
             >
-              <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="border-b border-slate-100 pb-4 flex items-center justify-between min-w-0">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                   <div 
-                    className="w-9 h-9 bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold"
+                    className="w-8 h-8 sm:w-9 sm:h-9 bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold shrink-0"
                     style={{ borderRadius: '6px' }}
                   >
-                    <User className="w-4.5 h-4.5 text-orange-600" />
+                    <User className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-orange-600" />
                   </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900">Personal Information</h3>
-                    <p className="text-xs text-slate-500 font-normal">
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">Personal Information</h3>
+                    <p className="text-xs text-slate-500 font-normal truncate">
                       Your contact credentials and verified profile details
                     </p>
                   </div>
@@ -514,9 +514,9 @@ export default function UserProfile({
               </div>
 
               {/* Form Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 w-full min-w-0">
                 {/* Full Name */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Full Name
                   </Label>
@@ -525,7 +525,7 @@ export default function UserProfile({
                     value={profileName}
                     onChange={(e) => setProfileName(e.target.value)}
                     placeholder="Enter your full name"
-                    className={`border-slate-200 text-sm font-medium h-10 ${
+                    className={`border-slate-200 text-sm font-medium h-10 w-full ${
                       !isEditingProfile ? 'bg-slate-50 text-slate-800' : 'bg-white focus-visible:ring-orange-500'
                     }`}
                     style={{ borderRadius: '6px' }}
@@ -533,7 +533,7 @@ export default function UserProfile({
                 </div>
 
                 {/* Phone Number */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Phone Number
                   </Label>
@@ -542,7 +542,7 @@ export default function UserProfile({
                     value={profilePhone}
                     onChange={(e) => setProfilePhone(e.target.value)}
                     placeholder="e.g. +91 98765 43210"
-                    className={`border-slate-200 text-sm font-medium h-10 ${
+                    className={`border-slate-200 text-sm font-medium h-10 w-full ${
                       !isEditingProfile ? 'bg-slate-50 text-slate-800' : 'bg-white focus-visible:ring-orange-500'
                     }`}
                     style={{ borderRadius: '6px' }}
@@ -550,19 +550,19 @@ export default function UserProfile({
                 </div>
 
                 {/* Email (Always Read-Only) */}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-1.5 sm:col-span-2 min-w-0">
+                  <div className="flex flex-wrap items-center justify-between gap-1 min-w-0">
                     <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                       Email Address
                     </Label>
-                    <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+                    <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 shrink-0">
                       <CheckCircle className="w-3 h-3" /> Verified Account
                     </span>
                   </div>
                   <Input
                     disabled
                     value={user?.email || ''}
-                    className="border-slate-200 text-sm font-medium h-10 bg-slate-50 text-slate-600"
+                    className="border-slate-200 text-sm font-medium h-10 bg-slate-50 text-slate-600 w-full"
                     style={{ borderRadius: '6px' }}
                   />
                 </div>
@@ -841,7 +841,7 @@ export default function UserProfile({
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="mt-4 pt-2 flex flex-wrap items-center justify-end gap-2.5">
+                          <div className="mt-4 pt-2 flex flex-wrap items-center justify-end gap-2 sm:gap-2.5 w-full min-w-0">
                             {/* Remove from Wishlist Toggle Button */}
                             {onWishlistToggle && (
                               <button
@@ -875,7 +875,7 @@ export default function UserProfile({
                                   onViewListing(agency.packages[0]);
                                 }
                               }}
-                              className="bg-white/80 border border-slate-200/80 hover:bg-white hover:border-orange-500 hover:text-orange-600 text-slate-700 font-bold py-2.5 px-5 text-xs sm:text-sm transition-all cursor-pointer shadow-2xs"
+                              className="bg-white/80 border border-slate-200/80 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 text-slate-700 font-bold py-2.5 px-5 text-xs sm:text-sm transition-all cursor-pointer shadow-2xs"
                               style={{ borderRadius: '6px' }}
                             >
                               <span>View Profile</span>

@@ -405,7 +405,14 @@ export default function HomeClient({
   });
   const [pendingListings, setPendingListings] = useState<any[]>([]);
   const [agencyActiveSection, setAgencyActiveSection] = useState('listings');
-  const [userActiveSection, setUserActiveSection] = useState(defaultSection || (routeMode === 'agency' ? 'agencyDashboard' : routeMode === 'admin' ? 'adminDashboard' : 'home'));
+  const [userActiveSection, setUserActiveSection] = useState(() => {
+    if (defaultSection) return defaultSection;
+    if (typeof window !== 'undefined') {
+      const s = new URLSearchParams(window.location.search).get('section');
+      if (s) return s;
+    }
+    return routeMode === 'agency' ? 'agencyDashboard' : routeMode === 'admin' ? 'adminDashboard' : 'home';
+  });
   const [selectedCurrency, setSelectedCurrency] = useState('INR');
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [showAgencyWelcomeModal, setShowAgencyWelcomeModal] = useState(false);
@@ -529,31 +536,41 @@ export default function HomeClient({
   }, [user?.uid, loading]);
   
   useEffect(() => {
-    if (loading) return;
-    if (sectionParam) {
-      if (sectionParam === 'compare') {
-        setUserActiveSection('destinations');
-        setShowComparison(true);
-      } else if (sectionParam === 'destinations') {
-        setUserActiveSection('destinations');
-        setDashboardViewMode('categories');
-      } else if (sectionParam === 'home') {
-        setUserActiveSection('home');
-      } else if (sectionParam === 'chat' || sectionParam === 'messages') {
-        const hasCachedAuth = typeof window !== 'undefined' && localStorage.getItem('tripdm_auth_uid');
-        if (!user && !hasCachedAuth) {
-          setAuthModalTab('login');
-          setShowAuthModal(true);
-        } else {
-          setUserActiveSection('chat');
-        }
+    const target = sectionParam || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('section') : null);
+    if (!target) return;
+    if (target === 'compare') {
+      setUserActiveSection('destinations');
+      setShowComparison(true);
+    } else if (target === 'destinations') {
+      setUserActiveSection('destinations');
+      setDashboardViewMode('categories');
+    } else if (target === 'home') {
+      setUserActiveSection('home');
+    } else if (target === 'chat' || target === 'messages') {
+      if (loading) return;
+      const hasCachedAuth = typeof window !== 'undefined' && localStorage.getItem('tripdm_auth_uid');
+      if (!user && !hasCachedAuth) {
+        setAuthModalTab('login');
+        setShowAuthModal(true);
       } else {
-        setUserActiveSection(sectionParam);
+        setUserActiveSection('chat');
       }
+    } else if (target === 'profile') {
+      if (loading) return;
+      const hasCachedAuth = typeof window !== 'undefined' && localStorage.getItem('tripdm_auth_uid');
+      if (!user && !hasCachedAuth) {
+        setAuthModalTab('login');
+        setShowAuthModal(true);
+      } else {
+        setUserActiveSection('profile');
+      }
+    } else {
+      setUserActiveSection(target);
     }
   }, [sectionParam, user, loading]);
 
   const isPopStateRef = useRef(false);
+  const isFirstMountRef = useRef(true);
 
   // Synchronize browser Back & Forward button navigation for sections
   useEffect(() => {
@@ -589,6 +606,10 @@ export default function HomeClient({
   // Push section changes into browser history so browser Back (and Google Chrome back arrow) goes back within TripDM instead of exiting to Google
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      return;
+    }
     if (isPopStateRef.current) {
       isPopStateRef.current = false;
       return;
@@ -5040,7 +5061,7 @@ export default function HomeClient({
   if (routeMode === 'user' || (!routeMode && userData?.role !== 'agency' && userData?.role !== 'admin')) {
       const showHeaderSearch = isScrolled || (userActiveSection !== 'listings' || !!viewingListing || showBookingForm || showComparison);
       return (
-        <div className={`flex flex-col bg-white ${userActiveSection === 'chat' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+        <div className={`flex flex-col bg-white overflow-x-hidden w-full max-w-full ${userActiveSection === 'chat' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
           {/* Mobile Slide-in Navigation Sidebar Drawer */}
           {mobileMenuOpen && (
             <div className="fixed inset-0 z-[150] md:hidden">
@@ -5621,25 +5642,6 @@ export default function HomeClient({
 
               {/* Right: Quick Action Icons */}
               <div className="flex items-center gap-1 sm:gap-1.5">
-                {/* Compare Icon with Badge */}
-                <button
-                  suppressHydrationWarning
-                  onClick={() => {
-                    setFromSection(userActiveSection);
-                    setUserActiveSection('listings');
-                    setShowComparison(true);
-                  }}
-                  className="p-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-colors relative"
-                  aria-label="Compare packages"
-                >
-                  <Scale className="h-5 w-5" />
-                  {comparisonList.length > 0 && (
-                    <span className="absolute top-1 right-1 bg-slate-900 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">
-                      {comparisonList.length}
-                    </span>
-                  )}
-                </button>
-
                 {/* Messages Icon (Only for non-agency users / travelers) */}
                 {(!userData || userData.role !== 'agency') && (
                   <button
@@ -5750,12 +5752,12 @@ export default function HomeClient({
 
           {/* Main Dashboard Scroll Area */}
           <div
-            className={`flex-1 w-full min-w-0 ${
+            className={`flex-1 w-full min-w-0 overflow-x-hidden ${
               userActiveSection === 'chat' ? 'overflow-hidden flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] min-h-0' : ''
             }`}
             id="user-dashboard-scroll-container"
           >
-            <main className={`${(Boolean(viewingListing) || userActiveSection === 'home' || userActiveSection === 'agents' || userActiveSection === 'how-it-works' || userActiveSection === 'chat' || ((userActiveSection === 'listings' || userActiveSection === 'destinations') && searchTerm.trim() !== '') || (showComparison && (userActiveSection === 'listings' || userActiveSection === 'destinations'))) ? 'w-full flex-1 flex flex-col min-h-0 min-w-0 !p-0 !max-w-none' : (userActiveSection === 'profile' || userActiveSection === 'comparison' || userActiveSection === 'wishlist' || userActiveSection === 'listings' || userActiveSection === 'destinations') ? 'w-full max-w-[1600px] mx-auto px-4 sm:px-8' : 'px-6 max-w-7xl mx-auto w-full'} ${Boolean(viewingListing) || userActiveSection === 'chat' || userActiveSection === 'home' || userActiveSection === 'agents' || userActiveSection === 'how-it-works' || ((userActiveSection === 'listings' || userActiveSection === 'destinations') && searchTerm.trim() !== '') ? '' : (userActiveSection === 'wishlist' && wishlist.length === 0) ? 'pb-0' : (userActiveSection === 'comparison' || (showComparison && (userActiveSection === 'listings' || userActiveSection === 'destinations')) || userActiveSection === 'profile') ? 'pb-0' : 'pb-10'}`}>
+            <main className={`${(Boolean(viewingListing) || userActiveSection === 'home' || userActiveSection === 'agents' || userActiveSection === 'how-it-works' || userActiveSection === 'chat' || userActiveSection === 'profile' || ((userActiveSection === 'listings' || userActiveSection === 'destinations') && searchTerm.trim() !== '') || (showComparison && (userActiveSection === 'listings' || userActiveSection === 'destinations'))) ? 'w-full flex-1 flex flex-col min-h-0 min-w-0 !p-0 !max-w-none' : (userActiveSection === 'comparison' || userActiveSection === 'wishlist' || userActiveSection === 'listings' || userActiveSection === 'destinations') ? 'w-full max-w-[1600px] mx-auto px-4 sm:px-8' : 'px-6 max-w-7xl mx-auto w-full'} ${Boolean(viewingListing) || userActiveSection === 'chat' || userActiveSection === 'home' || userActiveSection === 'agents' || userActiveSection === 'how-it-works' || userActiveSection === 'profile' || ((userActiveSection === 'listings' || userActiveSection === 'destinations') && searchTerm.trim() !== '') ? '' : (userActiveSection === 'wishlist' && wishlist.length === 0) ? 'pb-0' : (userActiveSection === 'comparison' || (showComparison && (userActiveSection === 'listings' || userActiveSection === 'destinations'))) ? 'pb-0' : 'pb-10'}`}>
               {/* Header logic adjusted for non-listings sections (excludes bookings, profile, how-it-works which have their own layouts) */}
               {userActiveSection !== 'home' && userActiveSection !== 'agents' && userActiveSection !== 'how-it-works' && userActiveSection !== 'listings' && userActiveSection !== 'destinations' && userActiveSection !== 'bookings' && userActiveSection !== 'profile' && userActiveSection !== 'comparison' && userActiveSection !== 'wishlist' && userActiveSection !== 'chat' && (
                 <div className="mb-6 mt-6 px-6 max-w-7xl mx-auto flex justify-between items-center border-b pb-4 border-gray-200">

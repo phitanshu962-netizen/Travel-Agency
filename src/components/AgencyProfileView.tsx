@@ -1124,42 +1124,6 @@ export default function AgencyProfileView({
             </div>
           </div>
         </div>
-
-        {/* ─── 5. BOTTOM FULL-WIDTH HERO CTA ─── */}
-        <div
-          className="relative overflow-hidden p-8 sm:p-12 text-white shadow-xl bg-slate-900"
-          style={{ borderRadius: '8px' }}
-        >
-          {/* Panoramic Mountain Background */}
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-luminosity pointer-events-none"
-            style={{ backgroundImage: "url('/agency-profile-hero-banner.jpg')" }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/90 to-slate-900/60 pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="max-w-2xl text-center md:text-left">
-              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                Ready to Plan Your {primaryDestination} Trip?
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-200 mt-1.5 leading-relaxed">
-                Chat with {agency.name}, get customized itineraries and best prices directly from the agent — with no commission on package price.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={handleChat}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-bold py-3 px-8 text-xs sm:text-sm shadow-lg shadow-orange-500/30 border border-amber-400/50 transition-all cursor-pointer flex items-center gap-2"
-                style={{ borderRadius: '6px' }}
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Chat with Agent</span>
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ─── 6. INTERACTIVE SHARE MODAL ─── */}

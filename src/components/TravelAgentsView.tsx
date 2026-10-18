@@ -382,6 +382,17 @@ export default function TravelAgentsView({
   // Handle hardware Back button for mobile filter bottom sheet drawer
   useModalBackHandler(mobileFilterOpen, () => setMobileFilterOpen(false), 'travel_agents_mobile_filter');
 
+  // Prevent background scrolling when mobile filter drawer is open
+  useEffect(() => {
+    if (mobileFilterOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileFilterOpen]);
+
   // Sync initialAgencies prop if parent passes updated list
   useEffect(() => {
     if (initialAgencies && initialAgencies.length > 0) {
@@ -1638,12 +1649,12 @@ export default function TravelAgentsView({
                             className={`p-2.5 transition-all cursor-pointer shadow-2xs flex items-center justify-center border ${
                               wishlist.includes(agency.id) || agency.packages?.some((p: any) => wishlist.includes(p.id))
                                 ? 'bg-rose-50 border-rose-200 text-rose-600'
-                                : 'bg-white/80 border-slate-200/80 text-slate-500 hover:text-rose-600 hover:border-rose-200'
+                                : 'bg-white/80 border-slate-200/80 text-slate-500 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-700'
                             }`}
                             style={{ borderRadius: '6px' }}
                             title={wishlist.includes(agency.id) || agency.packages?.some((p: any) => wishlist.includes(p.id)) ? "Saved in Wishlist" : "Save to Wishlist"}
                           >
-                            <Heart className={`h-4 w-4 ${wishlist.includes(agency.id) || agency.packages?.some((p: any) => wishlist.includes(p.id)) ? 'fill-rose-600 text-rose-600' : 'text-slate-500 hover:text-rose-600'}`} />
+                            <Heart className={`h-4 w-4 ${wishlist.includes(agency.id) || agency.packages?.some((p: any) => wishlist.includes(p.id)) ? 'fill-rose-600 text-rose-600' : 'text-slate-500'}`} />
                           </button>
                         )}
 
@@ -1681,7 +1692,7 @@ export default function TravelAgentsView({
                               onViewListing(agency.packages[0]);
                             }
                           }}
-                          className="bg-white/80 border border-slate-200/80 hover:bg-white hover:border-orange-500 hover:text-orange-600 text-slate-700 font-bold py-2.5 px-6 text-xs sm:text-sm transition-all cursor-pointer shadow-2xs"
+                          className="bg-white/80 border border-slate-200/80 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 text-slate-700 font-bold py-2.5 px-6 text-xs sm:text-sm transition-all cursor-pointer shadow-2xs"
                           style={{ borderRadius: '6px' }}
                         >
                           <span>View Profile</span>
@@ -1867,22 +1878,22 @@ export default function TravelAgentsView({
 
       {/* ─── MOBILE FILTERS BOTTOM SHEET MODAL ─── */}
       {mobileFilterOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+        <div className="lg:hidden fixed inset-0 z-[140] flex flex-col justify-end">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-200"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-200 touch-none"
             onClick={() => setMobileFilterOpen(false)}
           />
 
           {/* Bottom Sheet Modal */}
           <div className="relative z-10 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-200 border-t border-slate-200">
             {/* Drag Pill */}
-            <div className="w-full flex items-center justify-center pt-2.5 pb-1">
+            <div className="w-full flex items-center justify-center pt-2.5 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-slate-300" />
             </div>
 
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-[#FF5500]" />
                 <h3 className="text-sm font-bold text-slate-900">Filter Travel Agents</h3>
@@ -1914,16 +1925,16 @@ export default function TravelAgentsView({
             </div>
 
             {/* Scrollable Filters Content */}
-            <div className="p-4 overflow-y-auto space-y-3 flex-1">
+            <div className="p-4 overflow-y-auto space-y-3 flex-1 overscroll-contain touch-pan-y">
               {renderFilterControls()}
             </div>
 
-            {/* Sticky Action Button */}
-            <div className="p-4 border-t border-slate-100 bg-white">
+            {/* Sticky Action Button - Above mobile navigation with safe area padding */}
+            <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-100 bg-white shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
               <button
                 type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center"
               >
                 Show {filteredAgencies.length} Travel {filteredAgencies.length === 1 ? 'Agent' : 'Agents'}
               </button>

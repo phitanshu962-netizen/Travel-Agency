@@ -39,6 +39,7 @@ import {
   prioritizeAgencyPackages,
   CanonicalDestination,
 } from '@/lib/destinationResolver';
+import { useModalBackHandler } from '@/hooks/useModalHistory';
 
 export interface AgencyData {
   id: string;
@@ -182,6 +183,20 @@ export default function DestinationAgentsSearchView({
   const [activePhotoIndexes, setActivePhotoIndexes] = useState<Record<string, number>>({});
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [mobileViewMode, setMobileViewMode] = useState<'list' | 'map'>('list');
+
+  // Handle hardware Back button for mobile filter bottom sheet drawer
+  useModalBackHandler(mobileFilterOpen, () => setMobileFilterOpen(false), 'destination_agents_mobile_filter');
+
+  // Prevent background scrolling when mobile filter drawer is open
+  useEffect(() => {
+    if (mobileFilterOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileFilterOpen]);
 
   const handlePrevPhoto = (agencyId: string, count: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1238,7 +1253,7 @@ export default function DestinationAgentsSearchView({
                               onClick={() => {
                                 if (onViewAgencyProfile) onViewAgencyProfile(agency);
                               }}
-                              className="bg-white border border-slate-200 hover:bg-slate-50 hover:border-orange-500 hover:text-orange-600 text-slate-700 font-bold py-2 px-4 text-xs transition-all cursor-pointer shadow-2xs"
+                              className="bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 text-slate-700 font-bold py-2 px-4 text-xs transition-all cursor-pointer shadow-2xs"
                               style={{ borderRadius: '6px' }}
                             >
                               <span>View Profile</span>
@@ -1582,22 +1597,22 @@ export default function DestinationAgentsSearchView({
 
       {/* ─── MOBILE FILTERS BOTTOM SHEET MODAL ─── */}
       {mobileFilterOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+        <div className="lg:hidden fixed inset-0 z-[140] flex flex-col justify-end">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-200"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-200 touch-none"
             onClick={() => setMobileFilterOpen(false)}
           />
 
           {/* Bottom Sheet Modal */}
           <div className="relative z-10 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-200 border-t border-slate-200">
             {/* Drag Pill */}
-            <div className="w-full flex items-center justify-center pt-2.5 pb-1">
+            <div className="w-full flex items-center justify-center pt-2.5 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-slate-300" />
             </div>
 
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-[#FF5500]" />
                 <h3 className="text-sm font-bold text-slate-900">Filter Travel Agents</h3>
@@ -1629,16 +1644,16 @@ export default function DestinationAgentsSearchView({
             </div>
 
             {/* Scrollable Filters Content */}
-            <div className="p-4 overflow-y-auto space-y-3 flex-1">
+            <div className="p-4 overflow-y-auto space-y-3 flex-1 overscroll-contain touch-pan-y">
               {renderFilterControls()}
             </div>
 
-            {/* Sticky Action Button */}
-            <div className="p-4 border-t border-slate-100 bg-white">
+            {/* Sticky Action Button - Above mobile navigation with safe area padding */}
+            <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-100 bg-white shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
               <button
                 type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center"
               >
                 Show {filteredAgencies.length} Travel {filteredAgencies.length === 1 ? 'Agent' : 'Agents'}
               </button>
