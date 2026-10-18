@@ -1259,7 +1259,7 @@ export default function HomeClient({
     if (loading) return;
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      const chatAgencyId = urlParams.get('chat') || urlParams.get('agencyId');
+      const chatParam = urlParams.get('chat');
       const actionParam = urlParams.get('action');
       const sectionParam = urlParams.get('section');
       const tabParam = urlParams.get('tab');
@@ -1293,37 +1293,42 @@ export default function HomeClient({
         }
       }
 
-      // Handle Traveler Deep Linking (e.g. /?action=chat&agencyId=...)
-      if (chatAgencyId || actionParam === 'chat' || sectionParam === 'chat' || sectionParam === 'messages' || tabParam === 'chat') {
-        if (routeMode !== 'agency') {
-          const targetAgencyId = chatAgencyId || '';
-          const targetAgencyName = agencyNameParam || 'Travel Agency';
-          const chatPackageId = urlParams.get('packageId');
-          if (chatPackageId) {
-            setSelectedChatPackageId(chatPackageId);
-          }
-          const hasCachedAuth = typeof window !== 'undefined' && localStorage.getItem('tripdm_auth_uid');
-          if (!user && !hasCachedAuth) {
-            if (targetAgencyId) {
-              sessionStorage.setItem('pending_chat_target', JSON.stringify({
-                agencyId: targetAgencyId,
-                agencyName: targetAgencyName,
-                packageId: chatPackageId || null
-              }));
-            }
-            setAuthModalTab('login');
-            setShowAuthModal(true);
-          } else {
-            setUserActiveSection('chat');
-            if (targetAgencyId) {
-              setCurrentChatAgency(targetAgencyId);
-              if (agencyNameParam) {
-                setCurrentChatAgencyName(agencyNameParam);
-              }
-            }
-          }
-          shouldCleanUrl = true;
+      // Handle Traveler Deep Linking (e.g. /?action=chat&agencyId=... or /?chat=...)
+      // NOTE: agencyId alone is used for viewing an agency profile (section=agents), do NOT hijack into chat!
+      const isChatIntent = Boolean(
+        chatParam ||
+        actionParam === 'chat' ||
+        (sectionParam === 'chat' || sectionParam === 'messages' || tabParam === 'chat')
+      );
+
+      if (isChatIntent && routeMode !== 'agency') {
+        const targetAgencyId = chatParam || (actionParam === 'chat' ? urlParams.get('agencyId') : '') || '';
+        const targetAgencyName = agencyNameParam || 'Travel Agency';
+        const chatPackageId = urlParams.get('packageId');
+        if (chatPackageId) {
+          setSelectedChatPackageId(chatPackageId);
         }
+        const hasCachedAuth = typeof window !== 'undefined' && localStorage.getItem('tripdm_auth_uid');
+        if (!user && !hasCachedAuth) {
+          if (targetAgencyId) {
+            sessionStorage.setItem('pending_chat_target', JSON.stringify({
+              agencyId: targetAgencyId,
+              agencyName: targetAgencyName,
+              packageId: chatPackageId || null
+            }));
+          }
+          setAuthModalTab('login');
+          setShowAuthModal(true);
+        } else {
+          setUserActiveSection('chat');
+          if (targetAgencyId) {
+            setCurrentChatAgency(targetAgencyId);
+            if (agencyNameParam) {
+              setCurrentChatAgencyName(agencyNameParam);
+            }
+          }
+        }
+        shouldCleanUrl = true;
       }
       
       if (bookListingId) {
