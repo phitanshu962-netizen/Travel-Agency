@@ -40,11 +40,98 @@ import {
   Heart,
   X,
 } from 'lucide-react';
-import { AgencyData } from './TravelAgentsView';
+import type { AgencyData as BaseAgencyData } from './TravelAgentsView';
+
+export interface AgencyData {
+  id: string;
+  name: string;
+  companyName?: string;
+  agencyName?: string;
+  displayName?: string;
+  ownerName?: string;
+  userId?: string;
+  email?: string;
+  phone?: string;
+  logoUrl?: string | null;
+  avatarUrl?: string | null;
+  agencyLogo?: string | null;
+  city?: string;
+  state?: string;
+  country?: string;
+  location?: string;
+  businessLocation?: string;
+  officeAddress?: string;
+  fullAddress?: string;
+  pincode?: string;
+  operatingFromOffice?: boolean;
+  operatingFromHome?: boolean;
+  verified?: boolean;
+  approved?: boolean;
+  rating?: number;
+  reviewCount?: number;
+  experienceYears?: number | string;
+  happyTravelersCount?: number | string;
+  description?: string;
+  bio?: string;
+  tagline?: string;
+  specialties?: string[];
+  destinations?: string[];
+  tripTypes?: string[];
+  languages?: string[];
+  packageImages?: string[];
+  packageCount?: number;
+  packages?: PackageListing[];
+  featured?: boolean;
+  latitude?: number;
+  longitude?: number;
+  photos?: string[];
+  coverImage?: string;
+  [key: string]: any;
+}
+
 import { PackageListing } from '@/lib/discoveryEngine';
 import ListingCard from './ListingCard';
 import { getDbInstance } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+
+// Helper to extract strictly valid image URLs from a listing (including day itineraries and places covered)
+function extractImagesFromListing(listing: any): string[] {
+  const urls: string[] = [];
+  const pushIfValid = (val: any) => {
+    if (typeof val === 'string' && val.trim().length > 10 && val.trim().startsWith('http')) {
+      const clean = val.trim();
+      if (!urls.includes(clean)) {
+        urls.push(clean);
+      }
+    }
+  };
+
+  if (Array.isArray(listing.images)) listing.images.forEach(pushIfValid);
+  if (Array.isArray(listing.imageUrls)) listing.imageUrls.forEach(pushIfValid);
+  if (Array.isArray(listing.photos)) listing.photos.forEach(pushIfValid);
+  pushIfValid(listing.image);
+  pushIfValid(listing.coverImage);
+  pushIfValid(listing.thumbnail);
+
+  if (Array.isArray(listing.itinerary)) {
+    listing.itinerary.forEach((day: any) => {
+      pushIfValid(day?.imageUrl);
+      if (Array.isArray(day?.imageUrls)) day.imageUrls.forEach(pushIfValid);
+      pushIfValid(day?.image);
+    });
+  }
+
+  if (Array.isArray(listing.placesCovered)) {
+    listing.placesCovered.forEach((place: any) => {
+      pushIfValid(place?.imageUrl);
+      if (Array.isArray(place?.imageUrls)) place.imageUrls.forEach(pushIfValid);
+      pushIfValid(place?.image);
+      pushIfValid(place?.thumbnail);
+    });
+  }
+
+  return urls;
+}
 
 interface AgencyProfileViewProps {
   agency: AgencyData;
@@ -78,6 +165,29 @@ export default function AgencyProfileView({
   const [activeTab, setActiveTab] = useState<'packages' | 'about' | 'reviews'>('packages');
   const [dbReviews, setDbReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [showWriteReviewModal, setShowWriteReviewModal] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [newReview, setNewReview] = useState({
+    name: '',
+    rating: 5,
+    tripType: 'Family',
+    comment: '',
+    photoUrl: '',
+  });
+
+  // Agency Business / Brand Name (Always prioritized over personal owner name)
+  const agencyDisplayName = useMemo(() => {
+    const company = (agency.companyName || agency.agencyName || '').trim();
+    const personal = (agency.name || agency.displayName || '').trim();
+    const isGeneric = (str: string) =>
+      ['admin', 'travel agency', 'verified agency', 'verified travel agency', 'unknown agency', 'unknown'].includes(
+        str.toLowerCase()
+      );
+
+    if (company && !isGeneric(company)) return company;
+    if (personal && !isGeneric(personal)) return personal;
+    return company || personal || 'Travel Agency';
+  }, [agency]);
 
   // 1. Resolve all packages strictly associated with this agency
   const agencyPackages = useMemo<PackageListing[]>(() => {
@@ -85,20 +195,34 @@ export default function AgencyProfileView({
       return agency.packages;
     }
     // Fallback: match from global listings
+    const targetNames = [
+      agencyDisplayName,
+      agency.companyName,
+      agency.agencyName,
+      agency.name,
+      agency.displayName,
+    ]
+      .filter((n): n is string => typeof n === 'string' && n.trim().length > 0)
+      .map((n) => n.trim().toLowerCase());
+
     return listings.filter((l: any) => {
       const lAgencyId = l.agencyId || l.userId;
-      const lAgencyName = l.agencyName || l.agencyData?.companyName;
-      if (lAgencyId && lAgencyId === agency.id) return true;
       if (
-        lAgencyName &&
-        (lAgencyName.trim().toLowerCase() === agency.name.trim().toLowerCase() ||
-          lAgencyName.trim().toLowerCase() === agency.companyName?.trim().toLowerCase())
+        lAgencyId &&
+        (String(lAgencyId).toLowerCase() === String(agency.id).toLowerCase() ||
+          (agency.userId && String(lAgencyId).toLowerCase() === String(agency.userId).toLowerCase()) ||
+          (agency.email && String(l.agencyEmail || l.email).toLowerCase() === String(agency.email).toLowerCase()))
       ) {
+        return true;
+      }
+
+      const lAgencyName = (l.agencyName || l.agencyData?.companyName || l.agencyData?.agencyName || '').trim().toLowerCase();
+      if (lAgencyName && targetNames.includes(lAgencyName)) {
         return true;
       }
       return false;
     });
-  }, [agency, listings]);
+  }, [agency, listings, agencyDisplayName]);
 
   // Primary destination for customized copy
   const primaryDestination = useMemo(() => {
@@ -245,6 +369,53 @@ export default function AgencyProfileView({
     };
   }, [agency.id, agencyPackages]);
 
+  // Handle Write Review Submission
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReview.comment.trim()) return;
+
+    setIsSubmittingReview(true);
+    try {
+      const reviewPayload = {
+        agencyId: agency.id,
+        agencyName: agencyDisplayName,
+        userName: newReview.name.trim() || 'Verified Traveler',
+        name: newReview.name.trim() || 'Verified Traveler',
+        rating: Number(newReview.rating) || 5,
+        tripType: newReview.tripType || 'Family',
+        comment: newReview.comment.trim(),
+        text: newReview.comment.trim(),
+        date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        verified: true,
+        createdAt: Date.now(),
+        photos: newReview.photoUrl.trim() ? [newReview.photoUrl.trim()] : [],
+      };
+
+      const db = getDbInstance();
+      if (db) {
+        const docRef = await addDoc(collection(db, 'reviews'), reviewPayload);
+        setDbReviews((prev) => [{ id: docRef.id, ...reviewPayload }, ...prev]);
+      } else {
+        setDbReviews((prev) => [{ id: `rev-${Date.now()}`, ...reviewPayload }, ...prev]);
+      }
+
+      setShowWriteReviewModal(false);
+      setNewReview({
+        name: '',
+        rating: 5,
+        tripType: 'Family',
+        comment: '',
+        photoUrl: '',
+      });
+      alert('Thank you! Your review has been submitted.');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review. Please try again.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   // Compute real review rating & breakdown ONLY from real review data
   const reviewStats = useMemo(() => {
     if (dbReviews.length > 0) {
@@ -289,28 +460,23 @@ export default function AgencyProfileView({
     if (agency.packageImages && agency.packageImages.length > 0) {
       photoList.push(...agency.packageImages);
     }
+    if (Array.isArray(agency.photos)) {
+      agency.photos.forEach((p: any) => {
+        if (typeof p === 'string' && p.startsWith('http') && !photoList.includes(p)) {
+          photoList.push(p);
+        }
+      });
+    }
+    if (agency.coverImage && typeof agency.coverImage === 'string' && agency.coverImage.startsWith('http') && !photoList.includes(agency.coverImage)) {
+      photoList.push(agency.coverImage);
+    }
     agencyPackages.forEach((pkg: any) => {
-      if (Array.isArray(pkg.images)) {
-        pkg.images.forEach((img: any) => {
-          if (typeof img === 'string' && img.startsWith('http') && !photoList.includes(img)) {
-            photoList.push(img);
-          }
-        });
-      }
-      if (Array.isArray(pkg.photos)) {
-        pkg.photos.forEach((img: any) => {
-          if (typeof img === 'string' && img.startsWith('http') && !photoList.includes(img)) {
-            photoList.push(img);
-          }
-        });
-      }
-      if (Array.isArray(pkg.placesCovered)) {
-        pkg.placesCovered.forEach((place: any) => {
-          if (place?.imageUrl && typeof place.imageUrl === 'string' && !photoList.includes(place.imageUrl)) {
-            photoList.push(place.imageUrl);
-          }
-        });
-      }
+      const pkgImgs = extractImagesFromListing(pkg);
+      pkgImgs.forEach((img) => {
+        if (!photoList.includes(img)) {
+          photoList.push(img);
+        }
+      });
     });
     return photoList;
   }, [agency, agencyPackages]);
@@ -354,12 +520,25 @@ export default function AgencyProfileView({
       return agency.specialties;
     }
     const derived = new Set<string>();
-    if (primaryDestination) derived.add(`${primaryDestination} Specialist`);
     agencyPackages.forEach((p: any) => {
+      if (Array.isArray(p.tourCategories)) {
+        p.tourCategories.forEach((cat: string) => {
+          if (
+            cat &&
+            !cat.toLowerCase().includes('fix departure') &&
+            !cat.toLowerCase().includes('fixed departure')
+          ) {
+            derived.add(cat);
+          }
+        });
+      }
       if (p.style) derived.add(p.style);
       if (p.tripType) derived.add(p.tripType);
     });
-    return Array.from(derived).slice(0, 5);
+    if (derived.size === 0 && primaryDestination) {
+      derived.add(`${primaryDestination} Specialist`);
+    }
+    return Array.from(derived);
   }, [agency.specialties, primaryDestination, agencyPackages]);
 
   // Scroll left/right handler for the packages rail
@@ -376,8 +555,8 @@ export default function AgencyProfileView({
   const handleShare = async () => {
     const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
     const shareData = {
-      title: `${agency.name} | Verified Travel Agency on TripDM`,
-      text: `Check out ${agency.name}, verified travel agency for customized tours on TripDM!`,
+      title: `${agencyDisplayName} | Verified Travel Agency on TripDM`,
+      text: `Check out ${agencyDisplayName}, verified travel agency for customized tours on TripDM!`,
       url: shareUrl,
     };
 
@@ -417,7 +596,7 @@ export default function AgencyProfileView({
     const firstPkg = agencyPackages[0];
     onInitiateChat({
       agencyId: agency.id,
-      agencyName: agency.name,
+      agencyName: agencyDisplayName,
       ...(firstPkg || {}),
       id: firstPkg?.id,
       title: firstPkg?.title,
@@ -486,7 +665,7 @@ export default function AgencyProfileView({
                   {agency.logoUrl ? (
                     <img
                       src={agency.logoUrl}
-                      alt={agency.name}
+                      alt={agencyDisplayName}
                       className="w-full h-full object-contain p-2 bg-white"
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = 'none';
@@ -494,7 +673,7 @@ export default function AgencyProfileView({
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-orange-400 to-amber-600 flex items-center justify-center text-white font-black text-3xl">
-                      {agency.name.charAt(0).toUpperCase()}
+                      {agencyDisplayName.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
@@ -514,7 +693,7 @@ export default function AgencyProfileView({
 
                   {/* Agency Name */}
                   <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
-                    {agency.name}
+                    {agencyDisplayName}
                   </h1>
 
                   {/* Metadata Row: Rating | Experience | Happy Travelers */}
@@ -623,7 +802,7 @@ export default function AgencyProfileView({
               <div className="flex items-center gap-2">
                 <Camera className="w-4 h-4 text-slate-800" />
                 <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
-                  {agency.name} Photos & Itinerary Highlights
+                  {agencyDisplayName} Photos & Itinerary Highlights
                 </h3>
               </div>
               <button
@@ -811,7 +990,7 @@ export default function AgencyProfileView({
               <div className="flex items-center gap-2 mb-3.5">
                 <FileText className="w-5 h-5 text-slate-800" />
                 <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                  About {agency.name}
+                  About {agencyDisplayName}
                 </h2>
               </div>
 
@@ -872,6 +1051,15 @@ export default function AgencyProfileView({
                     Customer Reviews
                   </h2>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowWriteReviewModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 shadow-2xs hover:border-amber-400 hover:text-orange-600 transition-all active:scale-95 cursor-pointer"
+                  style={{ borderRadius: '6px' }}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Write a Review</span>
+                </button>
               </div>
 
               {/* Reviews Summary Breakdown & List */}
@@ -996,15 +1184,16 @@ export default function AgencyProfileView({
                   <Star className="w-8 h-8 text-amber-400 mb-2" />
                   <h4 className="text-sm font-bold text-slate-900">No Reviews Published Yet</h4>
                   <p className="text-xs text-slate-500 max-w-sm mt-1 mb-3">
-                    Be among the first to book with {agency.name} and share your experience on TripDM.
+                    Be among the first to book with {agencyDisplayName} and share your experience on TripDM.
                   </p>
                   <button
                     type="button"
-                    onClick={handleChat}
-                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-1.5 px-4 text-xs cursor-pointer"
+                    onClick={() => setShowWriteReviewModal(true)}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2 px-5 text-xs cursor-pointer flex items-center gap-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all"
                     style={{ borderRadius: '6px' }}
                   >
-                    Chat with Agent
+                    <Star className="w-3.5 h-3.5 fill-white text-white" />
+                    <span>Write the First Review</span>
                   </button>
                 </div>
               )}
@@ -1019,7 +1208,7 @@ export default function AgencyProfileView({
             <div className="bg-transparent pb-6 border-b border-slate-200 space-y-3">
               <div>
                 <h3 className="text-sm sm:text-base font-black text-slate-900 leading-tight">
-                  Chat with {agency.name}
+                  Chat with {agencyDisplayName}
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
                   Discuss your requirements, get customized itineraries and best quotes directly from the agent.
@@ -1092,7 +1281,7 @@ export default function AgencyProfileView({
             {/* Item 3: Why Travel with this Agency */}
             <div id="section-why-us" className="bg-transparent pb-6 space-y-2.5">
               <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100">
-                Why Travel with {agency.name}?
+                Why Travel with {agencyDisplayName}?
               </h4>
 
               <div className="space-y-2 text-[11px] font-medium text-slate-700">
@@ -1145,7 +1334,7 @@ export default function AgencyProfileView({
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 leading-tight">Share Agency Profile</h3>
-                  <p className="text-xs text-slate-500">Share {agency.name} with friends & family</p>
+                  <p className="text-xs text-slate-500">Share {agencyDisplayName} with friends & family</p>
                 </div>
               </div>
               <button
@@ -1166,7 +1355,7 @@ export default function AgencyProfileView({
                 {/* WhatsApp */}
                 <a
                   href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                    `Check out ${agency.name} on TripDM: ${typeof window !== 'undefined' ? window.location.href : ''}`
+                    `Check out ${agencyDisplayName} on TripDM: ${typeof window !== 'undefined' ? window.location.href : ''}`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1181,7 +1370,7 @@ export default function AgencyProfileView({
                 {/* Twitter / X */}
                 <a
                   href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                    `Check out ${agency.name} on TripDM!`
+                    `Check out ${agencyDisplayName} on TripDM!`
                   )}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1215,9 +1404,9 @@ export default function AgencyProfileView({
                 {/* Email */}
                 <a
                   href={`mailto:?subject=${encodeURIComponent(
-                    `Check out ${agency.name} on TripDM`
+                    `Check out ${agencyDisplayName} on TripDM`
                   )}&body=${encodeURIComponent(
-                    `Hi,\n\nTake a look at ${agency.name} on TripDM:\n${typeof window !== 'undefined' ? window.location.href : ''}`
+                    `Hi,\n\nTake a look at ${agencyDisplayName} on TripDM:\n${typeof window !== 'undefined' ? window.location.href : ''}`
                   )}`}
                   className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition-all group cursor-pointer"
                 >
@@ -1285,7 +1474,7 @@ export default function AgencyProfileView({
               </button>
               <div>
                 <h2 className="text-sm sm:text-base lg:text-lg font-black text-slate-900 leading-tight">
-                  {agency.name} Photos & Itinerary Highlights
+                  {agencyDisplayName} Photos & Itinerary Highlights
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
                   {agencyPhotos.length} {agencyPhotos.length === 1 ? 'photo' : 'photos'} available
@@ -1329,7 +1518,7 @@ export default function AgencyProfileView({
                   >
                     <img
                       src={photo}
-                      alt={`${agency.name} photo ${idx + 1}`}
+                      alt={`${agencyDisplayName} photo ${idx + 1}`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
                     />
@@ -1444,6 +1633,131 @@ export default function AgencyProfileView({
               ))}
             </div>
           )}
+        </div>
+      )}
+      {/* ─── WRITE REVIEW MODAL ─────────────────────────────────── */}
+      {showWriteReviewModal && (
+        <div className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-200 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Write a Review</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{agencyDisplayName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWriteReviewModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              {/* Rating Star Selector */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Rating</label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewReview((prev) => ({ ...prev, rating: star }))}
+                      className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                    >
+                      <Star
+                        className={`h-7 w-7 ${
+                          newReview.rating >= star
+                            ? 'text-amber-400 fill-amber-400'
+                            : 'text-slate-200'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="text-xs font-bold text-amber-600 ml-2">
+                    {newReview.rating} out of 5
+                  </span>
+                </div>
+              </div>
+
+              {/* Name & Trip Type */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Your Name</label>
+                  <input
+                    type="text"
+                    value={newReview.name}
+                    onChange={(e) => setNewReview((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full text-xs px-3 py-2 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    style={{ borderRadius: '6px' }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Trip Type</label>
+                  <select
+                    value={newReview.tripType}
+                    onChange={(e) => setNewReview((prev) => ({ ...prev, tripType: e.target.value }))}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
+                    style={{ borderRadius: '6px' }}
+                  >
+                    <option value="Family">Family</option>
+                    <option value="Couple">Couple</option>
+                    <option value="Friends">Friends</option>
+                    <option value="Solo">Solo</option>
+                    <option value="Business">Business</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Optional Photo URL */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Trip Photo URL (Optional)</label>
+                <input
+                  type="url"
+                  value={newReview.photoUrl}
+                  onChange={(e) => setNewReview((prev) => ({ ...prev, photoUrl: e.target.value }))}
+                  placeholder="https://..."
+                  className="w-full text-xs px-3 py-2 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  style={{ borderRadius: '6px' }}
+                />
+              </div>
+
+              {/* Review Text */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Your Review</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={newReview.comment}
+                  onChange={(e) => setNewReview((prev) => ({ ...prev, comment: e.target.value }))}
+                  placeholder={`Share details about your trip, communication, pricing, and overall experience with ${agencyDisplayName}...`}
+                  className="w-full text-xs p-3 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none leading-relaxed"
+                  style={{ borderRadius: '6px' }}
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWriteReviewModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  style={{ borderRadius: '6px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReview || !newReview.comment.trim()}
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 text-white font-bold px-5 py-2 text-xs shadow-md shadow-amber-500/25 transition-all cursor-pointer"
+                  style={{ borderRadius: '6px' }}
+                >
+                  {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

@@ -340,6 +340,30 @@ const HERO_IMAGES = [
 ];
 
 
+const normalizeAgencyData = (raw: any) => {
+  if (!raw) return raw;
+  const company = (raw.companyName || raw.agencyName || '').trim();
+  const personal = (raw.name || raw.displayName || '').trim();
+  const isGeneric = (str: string) =>
+    ['admin', 'travel agency', 'verified agency', 'verified travel agency', 'unknown agency', 'unknown'].includes(
+      str.toLowerCase()
+    );
+
+  const resolvedName = (company && !isGeneric(company))
+    ? company
+    : (personal && !isGeneric(personal))
+    ? personal
+    : company || personal || 'Travel Agency';
+
+  return {
+    ...raw,
+    name: resolvedName,
+    companyName: raw.companyName || resolvedName,
+    agencyName: raw.agencyName || resolvedName,
+    ownerName: personal || raw.ownerName,
+  };
+};
+
 export default function HomeClient({
   initialListings = [],
   initialAgencies = [],
@@ -407,9 +431,14 @@ export default function HomeClient({
   });
   const [pendingListings, setPendingListings] = useState<any[]>([]);
   const [agencyActiveSection, setAgencyActiveSection] = useState('listings');
+  const searchParams = useSearchParams();
+  const sectionParam = searchParams.get('section');
+  const agencyIdParam = searchParams.get('agencyId');
+
   const [userActiveSection, setUserActiveSection] = useState(() => {
     if (defaultSection) return defaultSection;
-    if (defaultAgencyId) return 'agents';
+    if (defaultAgencyId || agencyIdParam) return 'agents';
+    if (sectionParam) return sectionParam;
     if (typeof window !== 'undefined') {
       const a = new URLSearchParams(window.location.search).get('agencyId');
       if (a) return 'agents';
@@ -425,11 +454,9 @@ export default function HomeClient({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [agencyMobileMenuOpen, setAgencyMobileMenuOpen] = useState(false);
   const [pricingConfig, setPricingConfig] = useState({ starterPrice: 2000, premiumPrice: 5000, vipPrice: 10000, addonCreditPrice: 1 });
-  const searchParams = useSearchParams();
-  const sectionParam = searchParams.get('section');
 
   const [selectedAgencyProfile, setSelectedAgencyProfile] = useState<any>(() => {
-    const targetAgencyId = defaultAgencyId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('agencyId') : null);
+    const targetAgencyId = defaultAgencyId || agencyIdParam || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('agencyId') : null);
     if (targetAgencyId) {
       let pool = initialAgencies && initialAgencies.length > 0 ? initialAgencies : [];
       if (pool.length === 0 && typeof window !== 'undefined') {
@@ -439,7 +466,7 @@ export default function HomeClient({
         } catch (_) {}
       }
       const found = pool?.find((a: any) => a.id === targetAgencyId || a.userId === targetAgencyId || a.email === targetAgencyId);
-      if (found) return found;
+      if (found) return normalizeAgencyData(found);
     }
     return null;
   });
@@ -462,7 +489,7 @@ export default function HomeClient({
     }
     const found = pool?.find((a: any) => a.id === urlAgencyId || a.userId === urlAgencyId || a.email === urlAgencyId);
     if (found) {
-      setSelectedAgencyProfile(found);
+      setSelectedAgencyProfile(normalizeAgencyData(found));
       setUserActiveSection('agents');
     } else {
       const dbInstance = getDbInstance();
@@ -470,7 +497,7 @@ export default function HomeClient({
       getDoc(doc(dbInstance, 'users', urlAgencyId)).then((snap) => {
         if (snap.exists()) {
           const data = { id: snap.id, ...snap.data() };
-          setSelectedAgencyProfile(data);
+          setSelectedAgencyProfile(normalizeAgencyData(data));
           setUserActiveSection('agents');
         }
       }).catch((err) => {
@@ -482,7 +509,7 @@ export default function HomeClient({
   const handleOpenAgencyProfile = (agency: any, originSection?: string) => {
     if (originSection) setFromSection(originSection);
     const rawAgency = allAgencies.find((a: any) => a.id === agency.id || a.email === agency.email) || {};
-    const fullAgency = { ...rawAgency, ...agency };
+    const fullAgency = normalizeAgencyData({ ...rawAgency, ...agency });
     setSelectedAgencyProfile(fullAgency);
     setUserActiveSection('agents');
     const agencyIdentifier = fullAgency.id || fullAgency.userId || fullAgency.email;
@@ -587,16 +614,17 @@ export default function HomeClient({
   // Pre-fetch & synchronize registered agency users on mount for instant zero-latency loading
   useEffect(() => {
     if (initialAgencies && initialAgencies.length > 0) {
-      setAllAgencies(initialAgencies);
+      const normalized = initialAgencies.map(normalizeAgencyData);
+      setAllAgencies(normalized);
       try {
-        sessionStorage.setItem('tripdm_agency_users_cache', JSON.stringify(initialAgencies));
+        sessionStorage.setItem('tripdm_agency_users_cache', JSON.stringify(normalized));
       } catch (_) {}
     } else {
       const dbInstance = getDbInstance();
       if (!dbInstance) return;
       const q = query(collection(dbInstance, 'users'), where('role', '==', 'agency'));
       getDocs(q).then((snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const list = snap.docs.map((d) => normalizeAgencyData({ id: d.id, ...d.data() }));
         if (list.length > 0) {
           setAllAgencies(list);
           try {
@@ -697,13 +725,13 @@ export default function HomeClient({
         }
         const found = pool?.find((a: any) => a.id === agencyIdParam || a.userId === agencyIdParam || a.email === agencyIdParam);
         if (found) {
-          setSelectedAgencyProfile(found);
+          setSelectedAgencyProfile(normalizeAgencyData(found));
         } else {
           const dbInstance = getDbInstance();
           if (dbInstance) {
             getDoc(doc(dbInstance, 'users', agencyIdParam)).then((snap) => {
               if (snap.exists()) {
-                setSelectedAgencyProfile({ id: snap.id, ...snap.data() });
+                setSelectedAgencyProfile(normalizeAgencyData({ id: snap.id, ...snap.data() }));
               }
             }).catch(() => {});
           }
@@ -6035,6 +6063,11 @@ export default function HomeClient({
                       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   />
+                ) : (agencyIdParam || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('agencyId'))) ? (
+                  <div className="w-full min-h-[60vh] flex flex-col items-center justify-center py-24 bg-white">
+                    <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-sm font-bold text-slate-700">Loading agency profile...</p>
+                  </div>
                 ) : (
                   <TravelAgentsView
                     listings={listings}
@@ -6113,8 +6146,8 @@ export default function HomeClient({
                           )}
                         </button>
 
-                        {/* Desktop View: Classic Category Nav Strip (Direct on Page - No Container Box) */}
-                        <div id="category-nav-strip" className="hidden sm:flex w-fit max-w-full mx-auto items-center justify-center gap-2 sm:gap-3 py-2.5 mb-2 sm:mb-3 sticky top-16 z-[90] relative transition-all duration-300 bg-transparent border-none shadow-none">
+                        {/* Desktop View: Classic Category Nav Strip (Cleanly placed at top of page) */}
+                        <div id="category-nav-strip" className="hidden sm:flex w-full items-center justify-center gap-2 sm:gap-3 py-3 mb-6 bg-white border-b border-slate-100">
                           <div className="flex gap-2 sm:gap-2.5 items-center justify-center px-1 overflow-x-auto horizontal-scroll-nav scrollbar-hide max-w-full">
                             {[
                               { id: 'all_categories', label: 'Categories', type: 'categories', filter: null },

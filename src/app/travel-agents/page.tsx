@@ -73,7 +73,26 @@ async function getInitialData() {
       }
     }
 
-    const agencies = Object.values(agencyMap).filter((u: any) => u.role === 'agency');
+    const agencies = Object.values(agencyMap)
+      .filter((u: any) => u.role === 'agency')
+      .map((u: any) => {
+        const company = (u.companyName || u.agencyName || '').trim();
+        const personal = (u.name || u.displayName || '').trim();
+        const isGeneric = (str: string) =>
+          ['admin', 'travel agency', 'verified agency', 'verified travel agency', 'unknown agency', 'unknown'].includes(str.toLowerCase());
+        const resolvedName = (company && !isGeneric(company))
+          ? company
+          : (personal && !isGeneric(personal))
+          ? personal
+          : company || personal || 'Travel Agency';
+        return {
+          ...u,
+          name: resolvedName,
+          companyName: u.companyName || resolvedName,
+          agencyName: u.agencyName || resolvedName,
+          ownerName: personal || u.ownerName,
+        };
+      });
 
     const listings = data
       .filter((item: any) => item.document)
@@ -111,14 +130,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function TravelAgentsPage({
-  searchParams
-}: {
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
-}) {
-  const resolvedParams = searchParams ? await Promise.resolve(searchParams) : {};
-  const defaultAgencyId = typeof resolvedParams.agencyId === 'string' ? resolvedParams.agencyId : undefined;
-
+export default async function TravelAgentsPage() {
   const { listings, agencies } = await getInitialData();
 
   return (
@@ -127,7 +139,6 @@ export default async function TravelAgentsPage({
         initialListings={listings}
         initialAgencies={agencies}
         defaultSection="agents"
-        defaultAgencyId={defaultAgencyId}
         routeMode="user"
       />
     </Suspense>

@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import HomeClient from './HomeClient';
 import { parseFirestoreDocument } from '@/lib/firestoreParser';
+import PageLoader from '@/components/PageLoader';
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'travel-agent-management-29c27';
 
@@ -73,7 +75,26 @@ async function getInitialData() {
       }
     }
 
-    const agencies = Object.values(agencyMap).filter((u: any) => u.role === 'agency');
+    const agencies = Object.values(agencyMap)
+      .filter((u: any) => u.role === 'agency')
+      .map((u: any) => {
+        const company = (u.companyName || u.agencyName || '').trim();
+        const personal = (u.name || u.displayName || '').trim();
+        const isGeneric = (str: string) =>
+          ['admin', 'travel agency', 'verified agency', 'verified travel agency', 'unknown agency', 'unknown'].includes(str.toLowerCase());
+        const resolvedName = (company && !isGeneric(company))
+          ? company
+          : (personal && !isGeneric(personal))
+          ? personal
+          : company || personal || 'Travel Agency';
+        return {
+          ...u,
+          name: resolvedName,
+          companyName: u.companyName || resolvedName,
+          agencyName: u.agencyName || resolvedName,
+          ownerName: personal || u.ownerName,
+        };
+      });
 
     // runQuery returns an array of { document: { name, fields, ... } }
     const listings = data
@@ -116,21 +137,7 @@ export const metadata: Metadata = {
     description: "TripDM connects travelers directly with trusted travel agents through instant messaging. Browse top travel packages.",
   },
 };
-
-import { Suspense } from 'react';
-import PageLoader from '@/components/PageLoader';
-
-export default async function HomePage({
-  searchParams
-}: {
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
-}) {
-  const resolvedParams = searchParams ? await Promise.resolve(searchParams) : {};
-  const defaultAgencyId = typeof resolvedParams.agencyId === 'string' ? resolvedParams.agencyId : undefined;
-  const defaultSection = typeof resolvedParams.section === 'string'
-    ? resolvedParams.section
-    : (defaultAgencyId ? 'agents' : undefined);
-
+export default async function HomePage() {
   // Fetch initial data on the server for pure HTML SSR
   const { listings, agencies } = await getInitialData();
 
@@ -140,8 +147,6 @@ export default async function HomePage({
       <HomeClient
         initialListings={listings}
         initialAgencies={agencies}
-        defaultSection={defaultSection}
-        defaultAgencyId={defaultAgencyId}
         routeMode="user"
       />
     </Suspense>

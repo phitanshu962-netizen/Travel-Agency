@@ -73,6 +73,12 @@ export interface AgencyData {
   featured?: boolean;
   latitude?: number;
   longitude?: number;
+  userId?: string;
+  displayName?: string;
+  ownerName?: string;
+  photos?: string[];
+  coverImage?: string;
+  [key: string]: any;
 }
 
 // In-memory module cache to persist verified agency users across route transitions with zero latency
