@@ -34,6 +34,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --region="${REGION}" \
   --platform=managed \
   --allow-unauthenticated \
+  --min-instances=1 \
   --set-env-vars="\
 FIREBASE_PROJECT_ID=travel-agent-management-29c27,\
 FIREBASE_PRIVATE_KEY_ID=378a6232878d58b0af992d313cd69b66255638ce,\

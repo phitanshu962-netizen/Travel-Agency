@@ -1,6 +1,9 @@
 # Firebase App Hosting Configuration
 # https://firebase.google.com/docs/app-hosting/configure
 
+runConfig:
+  minInstances: 1
+
 env:
   - variable: FIREBASE_PROJECT_ID
     value: travel-agent-management-29c27
