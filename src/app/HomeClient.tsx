@@ -344,11 +344,13 @@ export default function HomeClient({
   initialListings = [],
   initialAgencies = [],
   defaultSection,
+  defaultAgencyId,
   routeMode
 }: {
   initialListings?: any[];
   initialAgencies?: any[];
   defaultSection?: string;
+  defaultAgencyId?: string;
   routeMode?: string;
 }) {
   const { user, userData, loading, signIn, signInWithGoogle, signOut, register } = useAuth();
@@ -407,7 +409,10 @@ export default function HomeClient({
   const [agencyActiveSection, setAgencyActiveSection] = useState('listings');
   const [userActiveSection, setUserActiveSection] = useState(() => {
     if (defaultSection) return defaultSection;
+    if (defaultAgencyId) return 'agents';
     if (typeof window !== 'undefined') {
+      const a = new URLSearchParams(window.location.search).get('agencyId');
+      if (a) return 'agents';
       const s = new URLSearchParams(window.location.search).get('section');
       if (s) return s;
     }
@@ -422,6 +427,106 @@ export default function HomeClient({
   const [pricingConfig, setPricingConfig] = useState({ starterPrice: 2000, premiumPrice: 5000, vipPrice: 10000, addonCreditPrice: 1 });
   const searchParams = useSearchParams();
   const sectionParam = searchParams.get('section');
+
+  const [selectedAgencyProfile, setSelectedAgencyProfile] = useState<any>(() => {
+    const targetAgencyId = defaultAgencyId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('agencyId') : null);
+    if (targetAgencyId) {
+      let pool = initialAgencies && initialAgencies.length > 0 ? initialAgencies : [];
+      if (pool.length === 0 && typeof window !== 'undefined') {
+        try {
+          const cached = sessionStorage.getItem('tripdm_agency_users_cache');
+          if (cached) pool = JSON.parse(cached);
+        } catch (_) {}
+      }
+      const found = pool?.find((a: any) => a.id === targetAgencyId || a.userId === targetAgencyId || a.email === targetAgencyId);
+      if (found) return found;
+    }
+    return null;
+  });
+
+  // Deep-link / refresh persistence for Agency Profile
+  useEffect(() => {
+    const urlAgencyId = searchParams.get('agencyId') || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('agencyId') : null);
+    if (!urlAgencyId) return;
+
+    if (selectedAgencyProfile && (selectedAgencyProfile.id === urlAgencyId || selectedAgencyProfile.userId === urlAgencyId || selectedAgencyProfile.email === urlAgencyId)) {
+      return;
+    }
+
+    let pool = allAgencies.length > 0 ? allAgencies : initialAgencies;
+    if ((!pool || pool.length === 0) && typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('tripdm_agency_users_cache');
+        if (cached) pool = JSON.parse(cached);
+      } catch (_) {}
+    }
+    const found = pool?.find((a: any) => a.id === urlAgencyId || a.userId === urlAgencyId || a.email === urlAgencyId);
+    if (found) {
+      setSelectedAgencyProfile(found);
+      setUserActiveSection('agents');
+    } else {
+      const dbInstance = getDbInstance();
+      if (!dbInstance) return;
+      getDoc(doc(dbInstance, 'users', urlAgencyId)).then((snap) => {
+        if (snap.exists()) {
+          const data = { id: snap.id, ...snap.data() };
+          setSelectedAgencyProfile(data);
+          setUserActiveSection('agents');
+        }
+      }).catch((err) => {
+        console.warn('Error fetching agency by agencyId param:', err);
+      });
+    }
+  }, [searchParams, allAgencies, initialAgencies]);
+
+  const handleOpenAgencyProfile = (agency: any, originSection?: string) => {
+    if (originSection) setFromSection(originSection);
+    const rawAgency = allAgencies.find((a: any) => a.id === agency.id || a.email === agency.email) || {};
+    const fullAgency = { ...rawAgency, ...agency };
+    setSelectedAgencyProfile(fullAgency);
+    setUserActiveSection('agents');
+    const agencyIdentifier = fullAgency.id || fullAgency.userId || fullAgency.email;
+    if (typeof window !== 'undefined' && agencyIdentifier) {
+      const url = new URL(window.location.href);
+      if (url.pathname === '/travel-agents' || url.pathname.startsWith('/travel-agents/')) {
+        url.searchParams.set('agencyId', agencyIdentifier);
+      } else {
+        url.searchParams.set('section', 'agents');
+        url.searchParams.set('agencyId', agencyIdentifier);
+      }
+      window.history.pushState({ section: 'agents', agencyId: agencyIdentifier }, '', url.toString());
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleCloseAgencyProfile = () => {
+    if (typeof window !== 'undefined') {
+      if (window.history.state && window.history.state.agencyId) {
+        window.history.back();
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.delete('agencyId');
+      const targetSec = fromSection || 'agents';
+      if (url.pathname === '/travel-agents' || url.pathname.startsWith('/travel-agents/')) {
+        window.history.replaceState({ section: 'agents' }, '', url.toString());
+      } else if (targetSec !== 'home') {
+        url.searchParams.set('section', targetSec);
+        window.history.replaceState({ section: targetSec }, '', url.toString());
+      } else {
+        url.searchParams.delete('section');
+        window.history.replaceState({ section: 'home' }, '', url.pathname === '/' ? '/' : url.toString());
+      }
+      setSelectedAgencyProfile(null);
+      if (fromSection) {
+        setUserActiveSection(fromSection);
+        setFromSection('home');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setSelectedAgencyProfile(null);
+    }
+  };
 
   const handleSignOut = async () => {
     setUserActiveSection('home');
@@ -581,27 +686,51 @@ export default function HomeClient({
 
       isPopStateRef.current = true;
       const currentParam = new URLSearchParams(window.location.search).get('section');
-      if (currentParam) {
-        setUserActiveSection(currentParam);
-        setSelectedAgencyProfile(null);
-        setViewingListing(null);
-        setShowComparison(false);
-      } else if (routeMode === 'agency') {
-        setUserActiveSection('agencyDashboard');
-      } else if (routeMode === 'admin') {
-        setUserActiveSection('adminDashboard');
+      const agencyIdParam = new URLSearchParams(window.location.search).get('agencyId');
+      if (agencyIdParam) {
+        let pool = allAgencies.length > 0 ? allAgencies : initialAgencies;
+        if ((!pool || pool.length === 0) && typeof window !== 'undefined') {
+          try {
+            const cached = sessionStorage.getItem('tripdm_agency_users_cache');
+            if (cached) pool = JSON.parse(cached);
+          } catch (_) {}
+        }
+        const found = pool?.find((a: any) => a.id === agencyIdParam || a.userId === agencyIdParam || a.email === agencyIdParam);
+        if (found) {
+          setSelectedAgencyProfile(found);
+        } else {
+          const dbInstance = getDbInstance();
+          if (dbInstance) {
+            getDoc(doc(dbInstance, 'users', agencyIdParam)).then((snap) => {
+              if (snap.exists()) {
+                setSelectedAgencyProfile({ id: snap.id, ...snap.data() });
+              }
+            }).catch(() => {});
+          }
+        }
+        setUserActiveSection('agents');
       } else {
-        // Normal user route: return cleanly to home
-        setUserActiveSection('home');
         setSelectedAgencyProfile(null);
-        setViewingListing(null);
-        setShowComparison(false);
-        setSearchTerm('');
+        if (currentParam) {
+          setUserActiveSection(currentParam);
+          setViewingListing(null);
+          setShowComparison(false);
+        } else if (routeMode === 'agency') {
+          setUserActiveSection('agencyDashboard');
+        } else if (routeMode === 'admin') {
+          setUserActiveSection('adminDashboard');
+        } else {
+          // Normal user route: return cleanly to home
+          setUserActiveSection('home');
+          setViewingListing(null);
+          setShowComparison(false);
+          setSearchTerm('');
+        }
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [routeMode]);
+  }, [routeMode, allAgencies, initialAgencies]);
 
   // Push section changes into browser history so browser Back (and Google Chrome back arrow) goes back within TripDM instead of exiting to Google
   useEffect(() => {
@@ -614,13 +743,18 @@ export default function HomeClient({
       isPopStateRef.current = false;
       return;
     }
-    const currentParam = new URLSearchParams(window.location.search).get('section');
+    // Do not overwrite URL if user is viewing an agency profile
+    const currentParams = new URLSearchParams(window.location.search);
+    if (currentParams.get('agencyId') && selectedAgencyProfile) {
+      return;
+    }
+    const currentParam = currentParams.get('section');
     const targetParam = userActiveSection === 'home' ? null : userActiveSection;
     if (currentParam !== targetParam) {
       const newUrl = targetParam ? `/?section=${targetParam}` : '/';
       window.history.pushState({ section: userActiveSection }, '', newUrl);
     }
-  }, [userActiveSection]);
+  }, [userActiveSection, selectedAgencyProfile]);
 
   const fetchPricingConfig = async () => {
     try {
@@ -879,7 +1013,6 @@ export default function HomeClient({
     }
   };
 
-  const [selectedAgencyProfile, setSelectedAgencyProfile] = useState<any>(null);
   const [tempPhotoFiles, setTempPhotoFiles] = useState<File[]>([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingListing, setBookingListing] = useState<any>(null);
@@ -1417,10 +1550,6 @@ export default function HomeClient({
 
   // Pseudo-page views back handlers
   useModalBackHandler(Boolean(viewingListing), handleCloseListing, 'viewing_listing');
-  useModalBackHandler(Boolean(selectedAgencyProfile), () => {
-    setSelectedAgencyProfile(null);
-    if (fromSection) setUserActiveSection(fromSection);
-  }, 'selected_agency_profile');
   useModalBackHandler(Boolean(selectedStory), () => setSelectedStory(null), 'selected_story');
 
   const isMobileActiveChat = Boolean(
@@ -5484,7 +5613,17 @@ export default function HomeClient({
                     setShowBookingForm(false);
                     setShowComparison(false);
                     setSelectedStory(null);
-                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                    if (typeof window !== 'undefined') {
+                      const url = new URL(window.location.href);
+                      url.searchParams.delete('agencyId');
+                      if (url.pathname === '/travel-agents' || url.pathname.startsWith('/travel-agents/')) {
+                        window.history.pushState({ section: 'agents' }, '', url.toString());
+                      } else {
+                        url.searchParams.set('section', 'agents');
+                        window.history.pushState({ section: 'agents' }, '', url.toString());
+                      }
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
                   }}
                   className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
                 >
@@ -5865,14 +6004,7 @@ export default function HomeClient({
                     agency={selectedAgencyProfile}
                     listings={listings}
                     wishlist={wishlist}
-                    onBack={() => {
-                      setSelectedAgencyProfile(null);
-                      if (fromSection) {
-                        setUserActiveSection(fromSection);
-                        setFromSection('home');
-                      }
-                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
+                    onBack={handleCloseAgencyProfile}
                     onViewListing={handleOpenListing}
                     onInitiateChat={(data) => {
                       handleInitiateChat(data);
@@ -5880,8 +6012,8 @@ export default function HomeClient({
                     onBook={startBooking}
                     onWishlistToggle={handleWishlistToggle}
                     onNavigateToDestinations={(targetSearch) => {
+                      handleCloseAgencyProfile();
                       setUserActiveSection('destinations');
-                      setSelectedAgencyProfile(null);
                       setViewingListing(null);
                       setSelectedCategoryFilter(null);
                       if (targetSearch) {
@@ -5908,11 +6040,7 @@ export default function HomeClient({
                       handleInitiateChat(data);
                     }}
                     onViewAgencyProfile={(agency) => {
-                      setFromSection('agents');
-                      const rawAgency = allAgencies.find((a: any) => a.id === agency.id || a.email === agency.email) || {};
-                      setSelectedAgencyProfile({ ...rawAgency, ...agency });
-                      setUserActiveSection('agents');
-                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                      handleOpenAgencyProfile(agency, 'agents');
                     }}
                     onViewAgencyPackages={(agencyId, agencyName) => {
                       setUserActiveSection('destinations');
@@ -5938,11 +6066,7 @@ export default function HomeClient({
                       handleInitiateChat(data);
                     }}
                     onViewAgencyProfile={(agency) => {
-                      setFromSection(userActiveSection);
-                      const rawAgency = allAgencies.find((a: any) => a.id === agency.id || a.email === agency.email) || {};
-                      setSelectedAgencyProfile({ ...rawAgency, ...agency });
-                      setUserActiveSection('agents');
-                      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                      handleOpenAgencyProfile(agency, userActiveSection);
                     }}
                     onViewListing={handleOpenListing}
                     onNavigateHome={() => {
@@ -7673,9 +7797,7 @@ export default function HomeClient({
                   onWishlistToggle={handleWishlistToggle}
                   onInitiateChat={handleInitiateChat}
                   onViewAgencyProfile={(agency) => {
-                    setSelectedAgencyProfile(agency);
-                    setUserActiveSection('agents');
-                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                    handleOpenAgencyProfile(agency, 'profile');
                   }}
                   onViewAgencyPackages={(agencyId, agencyName) => {
                     setUserActiveSection('destinations');
@@ -7691,8 +7813,8 @@ export default function HomeClient({
                     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   onExploreAgents={() => {
+                    handleCloseAgencyProfile();
                     setUserActiveSection('agents');
-                    setSelectedAgencyProfile(null);
                     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   onNavigateToChat={() => {
@@ -8344,7 +8466,14 @@ export default function HomeClient({
                   setShowComparison(false);
                   setSelectedStory(null);
                   if (typeof window !== 'undefined') {
-                    window.history.pushState({ section: 'agents' }, '', '/?section=agents');
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('agencyId');
+                    if (url.pathname === '/travel-agents' || url.pathname.startsWith('/travel-agents/')) {
+                      window.history.pushState({ section: 'agents' }, '', url.toString());
+                    } else {
+                      url.searchParams.set('section', 'agents');
+                      window.history.pushState({ section: 'agents' }, '', url.toString());
+                    }
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }
                 } else if (tab === 'stories') {

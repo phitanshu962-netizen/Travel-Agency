@@ -14,6 +14,7 @@ import {
   Ticket,
   ChevronRight,
   X,
+  Check,
 } from 'lucide-react';
 import { PackageListing, splitDestinationTokens, normalizeDestinationName } from '@/lib/discoveryEngine';
 import { resolveDestinationWithAutocorrect, levenshteinDistance } from '@/lib/destinationResolver';
@@ -155,7 +156,7 @@ export default function LandingHome({
 
   // Click outside to close dropdowns
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    function handleClickOutside(e: MouseEvent | TouchEvent) {
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
         setShowDestDropdown(false);
       }
@@ -167,7 +168,11 @@ export default function LandingHome({
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
@@ -219,7 +224,7 @@ export default function LandingHome({
         </div>
 
         {/* ── BLOCK 2: SEARCH BAR & POPULAR TAGS ── */}
-        <div className="relative z-20 w-full md:mt-8 max-w-4xl mx-auto px-3 sm:px-6 text-center">
+        <div className="relative z-40 w-full md:mt-8 max-w-4xl mx-auto px-3 sm:px-6 text-center">
           {/* SEARCH BAR */}
           <form
             onSubmit={handleSearchSubmit}
@@ -317,29 +322,37 @@ export default function LandingHome({
 
                     {showDateDropdown && (
                       <div
-                        className="absolute left-0 sm:right-0 sm:left-auto top-[calc(100%+8px)] w-48 bg-white shadow-md border border-slate-200 rounded-xl py-1.5 z-[100] text-left"
+                        className="absolute left-0 sm:right-0 sm:left-auto top-[calc(100%+8px)] w-[215px] sm:w-52 bg-white shadow-2xl border border-slate-200 rounded-2xl py-1.5 z-[100] text-left animate-in fade-in-50 zoom-in-95 duration-150"
                       >
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
-                          Select Season / Month
-                        </p>
-                        {DATE_OPTIONS.map((opt, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            suppressHydrationWarning
-                            onClick={() => {
-                              setSelectedDates(opt.label);
-                              setShowDateDropdown(false);
-                            }}
-                            className={`w-full px-3 py-1.5 text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between ${
-                              selectedDates === opt.label
-                                ? 'bg-slate-100 text-slate-900 font-bold'
-                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                            }`}
-                          >
-                            <span>{opt.label}</span>
-                          </button>
-                        ))}
+                        <div className="px-3.5 pt-1 pb-1.5 border-b border-slate-100">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Select Season / Month
+                          </p>
+                        </div>
+                        <div className="py-1">
+                          {DATE_OPTIONS.map((opt, i) => {
+                            const isSelected = selectedDates === opt.label;
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                suppressHydrationWarning
+                                onClick={() => {
+                                  setSelectedDates(opt.label);
+                                  setShowDateDropdown(false);
+                                }}
+                                className={`w-full px-3.5 py-2 text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between ${
+                                  isSelected
+                                    ? 'bg-orange-50 text-[#FF5500] font-bold'
+                                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                                }`}
+                              >
+                                <span>{opt.label}</span>
+                                {isSelected && <Check className="h-3.5 w-3.5 text-[#FF5500] shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -371,28 +384,36 @@ export default function LandingHome({
 
                     {showTravelerDropdown && (
                       <div
-                        className="absolute right-0 top-[calc(100%+8px)] w-52 bg-white shadow-md border border-slate-200 rounded-xl py-1.5 z-[100] text-left"
+                        className="absolute right-0 top-[calc(100%+8px)] w-[215px] sm:w-56 bg-white shadow-2xl border border-slate-200 rounded-2xl py-1.5 z-[100] text-left animate-in fade-in-50 zoom-in-95 duration-150"
                       >
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
-                          Who is traveling?
-                        </p>
-                        {TRAVELER_OPTIONS.map((opt, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                              setSelectedTravelers(opt.label);
-                              setShowTravelerDropdown(false);
-                            }}
-                            className={`w-full px-3 py-1.5 text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between ${
-                              selectedTravelers === opt.label
-                                ? 'bg-slate-100 text-slate-900 font-bold'
-                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                            }`}
-                          >
-                            <span>{opt.label}</span>
-                          </button>
-                        ))}
+                        <div className="px-3.5 pt-1 pb-1.5 border-b border-slate-100">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Who is traveling?
+                          </p>
+                        </div>
+                        <div className="py-1">
+                          {TRAVELER_OPTIONS.map((opt, i) => {
+                            const isSelected = selectedTravelers === opt.label;
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTravelers(opt.label);
+                                  setShowTravelerDropdown(false);
+                                }}
+                                className={`w-full px-3.5 py-2 text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between ${
+                                  isSelected
+                                    ? 'bg-orange-50 text-[#FF5500] font-bold'
+                                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                                }`}
+                              >
+                                <span>{opt.label}</span>
+                                {isSelected && <Check className="h-3.5 w-3.5 text-[#FF5500] shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -427,7 +448,7 @@ export default function LandingHome({
           </div>
 
         {/* ── BLOCK 3: 4 VALUE PROPOSITIONS ── */}
-        <div className="relative z-20 w-full md:mt-auto md:mb-0 pt-1.5 sm:pt-3 pb-1 sm:pb-3 px-3 sm:px-6 bg-transparent md:bg-gradient-to-t md:from-white md:via-white/85 md:to-transparent">
+        <div className="relative z-10 w-full md:mt-auto md:mb-0 pt-1.5 sm:pt-3 pb-1 sm:pb-3 px-3 sm:px-6 bg-transparent md:bg-gradient-to-t md:from-white md:via-white/85 md:to-transparent">
           <div className="max-w-4xl mx-auto py-0.5">
             {/* Mobile: 2 on Left, 2 on Right (Strictly Phone Side: md:hidden) */}
             <div className="grid md:hidden grid-cols-2 gap-x-4 gap-y-3.5 w-full max-w-md mx-auto px-1 sm:px-2">

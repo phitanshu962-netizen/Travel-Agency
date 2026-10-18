@@ -126,7 +126,10 @@ export default async function HomePage({
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
 }) {
   const resolvedParams = searchParams ? await Promise.resolve(searchParams) : {};
-  const defaultSection = typeof resolvedParams.section === 'string' ? resolvedParams.section : undefined;
+  const defaultAgencyId = typeof resolvedParams.agencyId === 'string' ? resolvedParams.agencyId : undefined;
+  const defaultSection = typeof resolvedParams.section === 'string'
+    ? resolvedParams.section
+    : (defaultAgencyId ? 'agents' : undefined);
 
   // Fetch initial data on the server for pure HTML SSR
   const { listings, agencies } = await getInitialData();
@@ -138,6 +141,7 @@ export default async function HomePage({
         initialListings={listings}
         initialAgencies={agencies}
         defaultSection={defaultSection}
+        defaultAgencyId={defaultAgencyId}
         routeMode="user"
       />
     </Suspense>

@@ -382,6 +382,9 @@ export default function TravelAgentsView({
   // Handle hardware Back button for mobile filter bottom sheet drawer
   useModalBackHandler(mobileFilterOpen, () => setMobileFilterOpen(false), 'travel_agents_mobile_filter');
 
+  // Handle hardware Back button when mobile map view is open so user returns to list view
+  useModalBackHandler(mobileViewMode === 'map', () => setMobileViewMode('list'), 'travel_agents_mobile_map');
+
   // Prevent background scrolling when mobile filter drawer is open
   useEffect(() => {
     if (mobileFilterOpen) {

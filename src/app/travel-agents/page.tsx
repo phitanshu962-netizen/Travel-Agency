@@ -111,7 +111,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function TravelAgentsPage() {
+export default async function TravelAgentsPage({
+  searchParams
+}: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
+}) {
+  const resolvedParams = searchParams ? await Promise.resolve(searchParams) : {};
+  const defaultAgencyId = typeof resolvedParams.agencyId === 'string' ? resolvedParams.agencyId : undefined;
+
   const { listings, agencies } = await getInitialData();
 
   return (
@@ -120,6 +127,7 @@ export default async function TravelAgentsPage() {
         initialListings={listings}
         initialAgencies={agencies}
         defaultSection="agents"
+        defaultAgencyId={defaultAgencyId}
         routeMode="user"
       />
     </Suspense>
