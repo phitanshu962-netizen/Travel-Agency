@@ -167,6 +167,7 @@ export default function AgencyProfileView({
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [showWriteReviewModal, setShowWriteReviewModal] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [showAllSpecialties, setShowAllSpecialties] = useState(false);
   const [newReview, setNewReview] = useState({
     name: '',
     rating: 5,
@@ -514,31 +515,55 @@ export default function AgencyProfileView({
     };
   }, [showAllPhotosModal, activeLightboxIndex, agencyPhotos.length]);
 
-  // Derived specialties pills
+  // Derived specialties pills with smart deduplication
   const specialtiesList = useMemo<string[]>(() => {
+    let rawList: string[] = [];
     if (agency.specialties && agency.specialties.length > 0) {
-      return agency.specialties;
-    }
-    const derived = new Set<string>();
-    agencyPackages.forEach((p: any) => {
-      if (Array.isArray(p.tourCategories)) {
-        p.tourCategories.forEach((cat: string) => {
-          if (
-            cat &&
-            !cat.toLowerCase().includes('fix departure') &&
-            !cat.toLowerCase().includes('fixed departure')
-          ) {
-            derived.add(cat);
-          }
-        });
+      rawList = agency.specialties;
+    } else {
+      const derived = new Set<string>();
+      agencyPackages.forEach((p: any) => {
+        if (Array.isArray(p.tourCategories)) {
+          p.tourCategories.forEach((cat: string) => {
+            if (
+              cat &&
+              !cat.toLowerCase().includes('fix departure') &&
+              !cat.toLowerCase().includes('fixed departure')
+            ) {
+              derived.add(cat);
+            }
+          });
+        }
+        if (p.style) derived.add(p.style);
+        if (p.tripType) derived.add(p.tripType);
+      });
+      if (derived.size === 0 && primaryDestination) {
+        derived.add(`${primaryDestination} Specialist`);
       }
-      if (p.style) derived.add(p.style);
-      if (p.tripType) derived.add(p.tripType);
-    });
-    if (derived.size === 0 && primaryDestination) {
-      derived.add(`${primaryDestination} Specialist`);
+      rawList = Array.from(derived);
     }
-    return Array.from(derived);
+
+    // Smart deduplication (e.g. merge 'Culture' & 'Cultural', trim, remove duplicates)
+    const cleaned: string[] = [];
+    const seenRoots = new Set<string>();
+
+    for (const item of rawList) {
+      if (!item || typeof item !== 'string') continue;
+      const trimmed = item.trim();
+      if (!trimmed) continue;
+      if (trimmed.toLowerCase().includes('fix departure') || trimmed.toLowerCase().includes('fixed departure')) continue;
+
+      const lower = trimmed.toLowerCase();
+      // Handle known overlapping word variations like culture / cultural
+      const rootKey = lower.startsWith('cultur') ? 'culture' : lower;
+
+      if (!seenRoots.has(rootKey)) {
+        seenRoots.add(rootKey);
+        cleaned.push(trimmed);
+      }
+    }
+
+    return cleaned;
   }, [agency.specialties, primaryDestination, agencyPackages]);
 
   // Scroll left/right handler for the packages rail
@@ -736,17 +761,31 @@ export default function AgencyProfileView({
                   </div>
 
                   {/* Specialty Pills */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    {specialtiesList.map((spec) => (
-                      <span
-                        key={spec}
-                        className="bg-white/90 backdrop-blur-md border border-slate-200/90 text-slate-800 px-3 py-1 text-xs font-semibold shadow-2xs"
-                        style={{ borderRadius: '6px' }}
-                      >
-                        {spec}
-                      </span>
-                    ))}
-                  </div>
+                  {specialtiesList.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      {(showAllSpecialties ? specialtiesList : specialtiesList.slice(0, 5)).map((spec) => (
+                        <span
+                          key={spec}
+                          className="bg-white/90 backdrop-blur-md border border-slate-200/90 text-slate-800 px-3 py-1 text-xs font-semibold shadow-none"
+                          style={{ borderRadius: '6px' }}
+                        >
+                          {spec}
+                        </span>
+                      ))}
+
+                      {specialtiesList.length > 5 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllSpecialties(!showAllSpecialties)}
+                          className="bg-white/95 hover:bg-white text-[#FF5500] hover:text-[#E04B00] border border-orange-200/90 hover:border-orange-300 px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shadow-none active:scale-95 flex items-center gap-1 select-none"
+                          style={{ borderRadius: '6px' }}
+                        >
+                          <span>{showAllSpecialties ? 'Show less' : `+${specialtiesList.length - 5} more`}</span>
+                          <span className="text-[10px]">{showAllSpecialties ? '▴' : '▾'}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1235,7 +1274,7 @@ export default function AgencyProfileView({
                 </p>
               </div>
 
-              <div className="pt-1 space-y-2">
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={handleChat}
@@ -1244,15 +1283,6 @@ export default function AgencyProfileView({
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Chat with Agent</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowWriteReviewModal(true)}
-                  className="w-full bg-white hover:bg-slate-50 active:scale-95 text-slate-700 font-bold py-2 text-xs border border-slate-300 shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  style={{ borderRadius: '6px' }}
-                >
-                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  <span>Write a Review</span>
                 </button>
               </div>
             </div>

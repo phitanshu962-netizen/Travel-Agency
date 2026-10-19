@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import AgencyListingForm from '@/components/AgencyListingForm';
 import AdminChatViewer from '@/components/AdminChatViewer';
+import AdminTravelersViewer from '@/components/AdminTravelersViewer';
 import BulkUploadForm from '@/components/BulkUploadForm';
 import SearchFilters from '@/components/SearchFilters';
 import ListingCard from '@/components/ListingCard';
@@ -3938,6 +3939,15 @@ export default function HomeClient({
                   <Building className="h-4 w-4" /> Agencies
                 </button>
                 <button
+                  onClick={() => setActiveSection('travelers')}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeSection === 'travelers'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                >
+                  <Users className="h-4 w-4 text-emerald-600" /> Travelers
+                </button>
+                <button
                   onClick={() => setActiveSection('listings')}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeSection === 'listings'
                       ? 'bg-blue-50 text-blue-700'
@@ -4049,6 +4059,7 @@ export default function HomeClient({
                 {activeSection === 'listings' && 'Listing Approvals'}
 
                 {activeSection === 'agencies' && 'All Agencies'}
+                {activeSection === 'travelers' && 'Registered Travelers'}
                 {activeSection === 'manage_packages' && 'Manage Packages'}
                 {activeSection === 'settings' && 'Settings'}
                 {activeSection === 'chats' && 'All Chats'}
@@ -5071,6 +5082,7 @@ export default function HomeClient({
               );
             })()}
 
+              {activeSection === 'travelers' && <AdminTravelersViewer />}
               {activeSection === 'chats' && <AdminChatViewer />}
               {activeSection === 'itinerary_photos' && (
                 <AdminItineraryPhotoManager
@@ -5258,9 +5270,8 @@ export default function HomeClient({
 
   // User Dashboard — render ONLY when routeMode='user' or default public browsing (not on agency/admin portal routes)
   if (routeMode === 'user' || (!routeMode && userData?.role !== 'agency' && userData?.role !== 'admin')) {
-      const showHeaderSearch = isScrolled || (userActiveSection !== 'listings' || !!viewingListing || showBookingForm || showComparison);
       return (
-        <div className={`flex flex-col bg-white overflow-x-hidden w-full max-w-full ${userActiveSection === 'chat' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+        <div className={`flex flex-col bg-white w-full max-w-full ${userActiveSection === 'chat' ? 'h-screen overflow-hidden' : userActiveSection === 'agents' ? 'min-h-screen' : 'min-h-screen overflow-x-clip'}`}>
           {/* Mobile Slide-in Navigation Sidebar Drawer */}
           {mobileMenuOpen && (
             <div className="fixed inset-0 z-[150] md:hidden">
@@ -5967,8 +5978,12 @@ export default function HomeClient({
 
           {/* Main Dashboard Scroll Area */}
           <div
-            className={`flex-1 w-full min-w-0 overflow-x-hidden ${
-              userActiveSection === 'chat' ? 'overflow-hidden flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] min-h-0' : ''
+            className={`flex-1 w-full min-w-0 ${
+              userActiveSection === 'chat'
+                ? 'overflow-hidden flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] min-h-0'
+                : userActiveSection === 'agents'
+                ? ''
+                : 'overflow-x-clip'
             }`}
             id="user-dashboard-scroll-container"
           >

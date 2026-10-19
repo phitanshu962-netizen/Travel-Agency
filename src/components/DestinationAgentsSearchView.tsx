@@ -879,13 +879,14 @@ export default function DestinationAgentsSearchView({
 
       {/* ─── 2. MAIN 3-COLUMN LAYOUT (Single Window Compact Fit) ─── */}
       <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* ══════════════════════════════════════════════════════════════════
               LEFT SIDEBAR: FILTERS (Direct on Page - No Container Box)
              ══════════════════════════════════════════════════════════════════ */}
-          <aside
-            className="hidden lg:block lg:col-span-3 xl:col-span-2 bg-transparent p-0 lg:sticky lg:top-20 space-y-2 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none"
-          >
+          <div className="hidden lg:block lg:col-span-3 xl:col-span-2">
+            <aside
+              className="sticky top-[85px] bg-transparent p-0 space-y-2 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none"
+            >
             {/* Header: Filters + Reset */}
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
               <div className="flex items-center gap-1.5">
@@ -906,6 +907,7 @@ export default function DestinationAgentsSearchView({
 
             {renderFilterControls()}
           </aside>
+        </div>
 
           {/* Mobile Map View when Map toggle is selected */}
           {mobileViewMode === 'map' && (
@@ -1087,7 +1089,7 @@ export default function DestinationAgentsSearchView({
                   >
                     {/* Left: Real Package Photo for this agency OR Clean Verified Agency Badge */}
                     <div
-                      className="relative w-full md:w-64 xl:w-72 h-52 sm:h-56 md:h-[220px] max-h-[220px] overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center border border-slate-100 shadow-2xs"
+                      className="relative w-full md:w-64 xl:w-72 h-52 sm:h-56 md:h-[220px] max-h-[220px] overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center border border-slate-100 shadow-none hover:shadow-none"
                       style={{ borderRadius: '6px' }}
                     >
                       {hasImages && currentImg ? (
@@ -1150,15 +1152,16 @@ export default function DestinationAgentsSearchView({
                           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#FF5500_1px,transparent_1px)] [background-size:12px_12px]" />
                           <div className="relative z-10 flex flex-col items-center">
                             {agency.logoUrl ? (
-                              <img
-                                src={agency.logoUrl}
-                                alt={agency.name}
-                                className="max-h-12 max-w-[120px] object-contain mb-2 drop-shadow-2xs"
-                              />
+                              <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-2 overflow-hidden p-1 shadow-none">
+                                <img
+                                  src={agency.logoUrl}
+                                  alt={agency.name}
+                                  className="w-full h-full object-contain rounded-full"
+                                />
+                              </div>
                             ) : (
                               <div
-                                className="w-12 h-12 bg-[#FF5500]/10 text-[#FF5500] font-black text-lg flex items-center justify-center mb-2 shadow-2xs"
-                                style={{ borderRadius: '6px' }}
+                                className="w-12 h-12 rounded-full bg-[#FF5500]/10 text-[#FF5500] font-black text-lg flex items-center justify-center mb-2 border border-orange-200 shadow-none"
                               >
                                 {agency.name.charAt(0).toUpperCase()}
                               </div>
@@ -1194,22 +1197,20 @@ export default function DestinationAgentsSearchView({
                               if (onViewAgencyProfile) onViewAgencyProfile(agency);
                             }}
                           >
-                            {/* Agency Logo */}
+                            {/* Agency Logo (Circular format) */}
                             {agency.logoUrl ? (
                               <div
-                                className="h-10 min-w-[44px] max-w-[120px] px-2 py-0.5 bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs"
-                                style={{ borderRadius: '6px' }}
+                                className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-none hover:shadow-none"
                               >
                                 <img
                                   src={agency.logoUrl}
                                   alt={agency.name}
-                                  className="max-h-8 max-w-full object-contain"
+                                  className="w-full h-full object-contain rounded-full"
                                 />
                               </div>
                             ) : (
                               <div
-                                className="w-10 h-10 bg-orange-50 border border-orange-200 text-[#FF5500] font-black text-base flex items-center justify-center shrink-0 shadow-2xs"
-                                style={{ borderRadius: '6px' }}
+                                className="w-12 h-12 rounded-full bg-orange-50 border border-orange-200 text-[#FF5500] font-black text-lg flex items-center justify-center shrink-0 shadow-none hover:shadow-none"
                               >
                                 {agency.name.charAt(0).toUpperCase()}
                               </div>
@@ -1256,7 +1257,7 @@ export default function DestinationAgentsSearchView({
                               onClick={() => {
                                 if (onViewAgencyProfile) onViewAgencyProfile(agency);
                               }}
-                              className="bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 text-slate-700 font-bold py-2 px-4 text-xs transition-all cursor-pointer shadow-2xs"
+                              className="bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 text-slate-700 font-bold py-2 px-4 text-xs transition-all cursor-pointer shadow-none hover:shadow-none"
                               style={{ borderRadius: '6px' }}
                             >
                               <span>View Profile</span>
@@ -1431,7 +1432,8 @@ export default function DestinationAgentsSearchView({
           {/* ══════════════════════════════════════════════════════════════════
               RIGHT SIDEBAR: MAP & TOP DESTINATIONS (Single Page View - Compact & Sticky)
              ══════════════════════════════════════════════════════════════════ */}
-          <aside className="hidden lg:block lg:col-span-3 space-y-4 lg:sticky lg:top-20 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none">
+          <div className="hidden lg:block lg:col-span-3">
+            <aside className="sticky top-[85px] space-y-4 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide bg-transparent p-0 border-none shadow-none">
             {/* 1. REAL MAP WIDGET */}
             <div className="bg-transparent p-0">
               {/* Map Title & Toggle */}
@@ -1561,6 +1563,7 @@ export default function DestinationAgentsSearchView({
             </div>
           </aside>
         </div>
+      </div>
       </div>
 
       {/* ─── MOBILE FLOATING ACTION PILL (FILTERS & MAP/LIST) ─── */}

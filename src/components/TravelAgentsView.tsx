@@ -1321,13 +1321,14 @@ export default function TravelAgentsView({
 
       {/* ─── 2. MAIN 3-COLUMN CONTENT SECTION (Widescreen Full Layout) ─── */}
       <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ══════════════════════════════════════════════════════════════════
               LEFT SIDEBAR: FILTERS (Direct on Page - No Container Box)
              ══════════════════════════════════════════════════════════════════ */}
-          <aside
-            className="hidden lg:block lg:col-span-3 xl:col-span-2 bg-transparent p-0 lg:sticky lg:top-20 space-y-2 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none"
-          >
+          <div className="hidden lg:block lg:col-span-3 xl:col-span-2">
+            <aside
+              className="sticky top-[85px] bg-transparent p-0 space-y-2 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none"
+            >
             {/* Header: Filters + Reset */}
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
               <div className="flex items-center gap-1.5">
@@ -1348,6 +1349,7 @@ export default function TravelAgentsView({
 
             {renderFilterControls()}
           </aside>
+        </div>
 
           {/* ══════════════════════════════════════════════════════════════════
               CENTER COLUMN: TRAVEL AGENTS LIST (Larger, Spacious Focus)
@@ -1442,7 +1444,7 @@ export default function TravelAgentsView({
                   >
                     {/* Left: Real Package Photos from this Agency (Standardized uniform aspect ratio) */}
                     <div
-                      className="relative w-full md:w-64 xl:w-72 h-52 sm:h-56 md:h-[220px] max-h-[220px] overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center border border-slate-100 shadow-2xs"
+                      className="relative w-full md:w-64 xl:w-72 h-52 sm:h-56 md:h-[220px] max-h-[220px] overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center border border-slate-100 shadow-none hover:shadow-none"
                       style={{ borderRadius: '6px' }}
                     >
                       {hasImages && currentImg ? (
@@ -1505,15 +1507,16 @@ export default function TravelAgentsView({
                           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#FF5500_1px,transparent_1px)] [background-size:12px_12px]" />
                           <div className="relative z-10 flex flex-col items-center">
                             {agency.logoUrl ? (
-                              <img
-                                src={agency.logoUrl}
-                                alt={agency.name}
-                                className="max-h-12 max-w-[120px] object-contain mb-2 drop-shadow-2xs"
-                              />
+                              <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-2 overflow-hidden p-1 shadow-none">
+                                <img
+                                  src={agency.logoUrl}
+                                  alt={agency.name}
+                                  className="w-full h-full object-contain rounded-full"
+                                />
+                              </div>
                             ) : (
                               <div
-                                className="w-12 h-12 bg-[#FF5500]/10 text-[#FF5500] font-black text-lg flex items-center justify-center mb-2 shadow-2xs"
-                                style={{ borderRadius: '6px' }}
+                                className="w-12 h-12 rounded-full bg-[#FF5500]/10 text-[#FF5500] font-black text-lg flex items-center justify-center mb-2 border border-orange-200 shadow-none"
                               >
                                 {agency.name.charAt(0).toUpperCase()}
                               </div>
@@ -1536,22 +1539,20 @@ export default function TravelAgentsView({
                               if (onViewAgencyProfile) onViewAgencyProfile(agency);
                             }}
                           >
-                            {/* Company Logo Display (Properly sized container for wide & rectangular logos) */}
+                            {/* Company Logo Display (Circular format) */}
                             {agency.logoUrl ? (
                               <div
-                                className="h-12 min-w-[50px] max-w-[150px] px-2.5 py-1 bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs"
-                                style={{ borderRadius: '6px' }}
+                                className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-none hover:shadow-none"
                               >
                                 <img
                                   src={agency.logoUrl}
                                   alt={agency.name}
-                                  className="max-h-10 max-w-full object-contain"
+                                  className="w-full h-full object-contain rounded-full"
                                 />
                               </div>
                             ) : (
                               <div
-                                className="w-12 h-12 bg-orange-50 border border-orange-200 text-[#FF5500] font-black text-lg flex items-center justify-center shrink-0 shadow-2xs"
-                                style={{ borderRadius: '6px' }}
+                                className="w-12 h-12 rounded-full bg-orange-50 border border-orange-200 text-[#FF5500] font-black text-lg flex items-center justify-center shrink-0 shadow-none hover:shadow-none"
                               >
                                 {agency.name.charAt(0).toUpperCase()}
                               </div>
@@ -1572,7 +1573,7 @@ export default function TravelAgentsView({
                           {/* Real Rating Badge OR Verified Partner Badge (Zero fake ratings) */}
                           {agency.rating && agency.rating > 0 ? (
                             <div
-                              className="flex items-center gap-1.5 shrink-0 bg-amber-50 border border-amber-200 px-2.5 py-1 shadow-2xs"
+                              className="flex items-center gap-1.5 shrink-0 bg-amber-50 border border-amber-200 px-2.5 py-1 shadow-none"
                               style={{ borderRadius: '6px' }}
                             >
                               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -1587,7 +1588,7 @@ export default function TravelAgentsView({
                             </div>
                           ) : agency.verified ? (
                             <div
-                              className="flex items-center gap-1.5 shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold px-2.5 py-1 shadow-2xs"
+                              className="flex items-center gap-1.5 shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold px-2.5 py-1 shadow-none"
                               style={{ borderRadius: '6px' }}
                             >
                               <ShieldCheck className="h-4 w-4 text-emerald-600" />
@@ -1655,7 +1656,7 @@ export default function TravelAgentsView({
                                 if (wishlist.includes(pid)) onWishlistToggle(pid, e);
                               });
                             }}
-                            className={`p-2.5 transition-all cursor-pointer shadow-2xs flex items-center justify-center border ${
+                            className={`p-2.5 transition-all cursor-pointer shadow-none hover:shadow-none flex items-center justify-center border ${
                               wishlist.includes(agency.id) || agency.packages?.some((p: any) => wishlist.includes(p.id))
                                 ? 'bg-rose-50 border-rose-200 text-rose-600'
                                 : 'bg-white/80 border-slate-200/80 text-slate-500 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-700'
@@ -1701,7 +1702,7 @@ export default function TravelAgentsView({
                               onViewListing(agency.packages[0]);
                             }
                           }}
-                          className="bg-white/80 border border-slate-200/80 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 text-slate-700 font-bold py-2.5 px-6 text-xs sm:text-sm transition-all cursor-pointer shadow-2xs"
+                          className="bg-white/80 border border-slate-200/80 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 text-slate-700 font-bold py-2.5 px-6 text-xs sm:text-sm transition-all cursor-pointer shadow-none hover:shadow-none"
                           style={{ borderRadius: '6px' }}
                         >
                           <span>View Profile</span>
@@ -1718,7 +1719,8 @@ export default function TravelAgentsView({
           {/* ══════════════════════════════════════════════════════════════════
               RIGHT SIDEBAR: MAP & TOP DESTINATIONS (Single Page View - Compact & Sticky)
              ══════════════════════════════════════════════════════════════════ */}
-          <aside className="hidden lg:block lg:col-span-3 space-y-4 lg:sticky lg:top-20 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide border-none shadow-none">
+          <div className="hidden lg:block lg:col-span-3">
+            <aside className="sticky top-[85px] space-y-4 max-h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide bg-transparent p-0 border-none shadow-none">
             {/* 1. REAL DYNAMIC TRAVEL AGENTS MAP WIDGET */}
             <div className="bg-transparent p-0">
               {/* Map Title & Toggle */}
@@ -1847,6 +1849,7 @@ export default function TravelAgentsView({
               </div>
             </div>
           </aside>
+        </div>
         </div>
       </div>
 

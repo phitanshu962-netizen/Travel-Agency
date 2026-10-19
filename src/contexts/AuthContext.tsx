@@ -38,6 +38,8 @@ interface UserData {
     description: string;
     timestamp: number;
   }>;
+  createdAt?: number | string | any;
+  lastLoginAt?: number | string | any;
 }
 
 interface AuthContextType {
@@ -159,10 +161,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!data.approved) {
               throw new Error('Account not approved yet. Please wait for admin approval.');
             }
-            // Update online status and authEmail on redirect login
+            // Update online status, authEmail, and login timestamp on redirect login
             updateDoc(userDocRef, { 
               isOnline: true,
-              authEmail: redirectResult.user.email || data.email || ''
+              authEmail: redirectResult.user.email || data.email || '',
+              lastLoginAt: Date.now(),
+              ...(!data.createdAt ? { createdAt: Date.now() } : {})
             }).catch(console.error);
             setUserData(data);
           } else {
@@ -176,6 +180,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: redirectResult.user.email || '',
               authEmail: redirectResult.user.email || '',
               isOnline: true,
+              createdAt: Date.now(),
+              lastLoginAt: Date.now(),
               ...(isAdmin ? {} : {}), // Removed companyName
             };
             await setDoc(userDocRef, userDataToSave);
@@ -266,9 +272,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userDoc.exists()) {
         const data = userDoc.data() as UserData;
         
-        // Ensure authEmail is updated
+        // Ensure authEmail and login timestamp are updated
         await updateDoc(userDocRef, { 
-          authEmail: userCredential.user.email || data.email || '' 
+          authEmail: userCredential.user.email || data.email || '',
+          lastLoginAt: Date.now(),
+          ...(!data.createdAt ? { createdAt: Date.now() } : {})
         }).catch(console.error);
 
         console.log('👤 User data retrieved:', { role: data.role, approved: data.approved, name: data.name });
@@ -367,9 +375,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userDoc.exists()) {
         const data = userDoc.data() as UserData;
         
-        // Ensure authEmail is updated
+        // Ensure authEmail and login timestamp are updated
         await updateDoc(userDocRef, { 
-          authEmail: userCredential.user.email || data.email || '' 
+          authEmail: userCredential.user.email || data.email || '',
+          lastLoginAt: Date.now(),
+          ...(!data.createdAt ? { createdAt: Date.now() } : {})
         }).catch(console.error);
 
         console.log('User data:', data);
@@ -387,6 +397,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: userCredential.user.displayName || 'User',
           email: userCredential.user.email || '',
           authEmail: userCredential.user.email || '',
+          isOnline: true,
+          createdAt: Date.now(),
+          lastLoginAt: Date.now(),
           ...(isAdmin ? {} : {}), // Removed companyName for normal users
         };
         await setDoc(userDocRef, userDataToSave);

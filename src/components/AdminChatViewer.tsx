@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, getDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, getDoc, doc, where } from 'firebase/firestore';
 import { getDbInstance } from '@/lib/firebase';
 import { User, Users, MessageSquare, Clock, ArrowLeft, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -96,25 +96,105 @@ export default function AdminChatViewer() {
       // Fetch user details for both participants
       const userCache = new Map();
       const getUserDetails = async (userId: string) => {
+        if (!userId) return { name: 'Traveler', role: 'user' };
         if (userCache.has(userId)) return userCache.get(userId);
+
         try {
+          // 1. Try fetching directly by document ID in 'users'
           const userDoc = await getDoc(doc(dbInstance, 'users', userId));
-          const userData = userDoc.exists() ? userDoc.data() : { displayName: 'Unknown User', companyName: 'Unknown Agency' };
-          const name = userData.role === 'agency' ? userData.companyName : (userData.displayName || 'Unknown User');
-          const details = { name, role: userData.role || 'user' };
-          userCache.set(userId, details);
-          return details;
+          let userData: any = userDoc.exists() ? userDoc.data() : null;
+
+          // 2. Fallback: Query 'users' by uid or id or email if document ID was different
+          if (!userData) {
+            try {
+              const qUid = query(collection(dbInstance, 'users'), where('uid', '==', userId));
+              const snapUid = await getDocs(qUid);
+              if (!snapUid.empty) {
+                userData = snapUid.docs[0].data();
+              }
+            } catch {}
+          }
+
+          if (!userData) {
+            try {
+              const qId = query(collection(dbInstance, 'users'), where('id', '==', userId));
+              const snapId = await getDocs(qId);
+              if (!snapId.empty) {
+                userData = snapId.docs[0].data();
+              }
+            } catch {}
+          }
+
+          // 3. Fallback: Check 'chat_users' collection (for mobile app users)
+          if (!userData) {
+            try {
+              const chatUserDoc = await getDoc(doc(dbInstance, 'chat_users', userId));
+              if (chatUserDoc.exists()) {
+                const cud = chatUserDoc.data();
+                userData = {
+                  name: cud.display_name || cud.displayName || cud.name,
+                  email: cud.email,
+                  role: 'user'
+                };
+              }
+            } catch {}
+          }
+
+          if (userData) {
+            const role = userData.role || 'user';
+            let name = '';
+
+            if (role === 'agency') {
+              name = userData.companyName || 
+                     userData.agencyName || 
+                     userData.name || 
+                     userData.displayName || 
+                     userData.email || 
+                     'Agency';
+            } else {
+              // Traveler / User: check name first, then displayName, then display_name, email, phone
+              name = userData.name || 
+                     userData.displayName || 
+                     userData.display_name || 
+                     userData.fullName || 
+                     userData.userName || 
+                     (userData.email ? userData.email.split('@')[0] : '') || 
+                     userData.phone || 
+                     userData.contactNumber || 
+                     'Traveler';
+            }
+
+            const details = { 
+              name: name.trim() || 'Traveler', 
+              role: role,
+              email: userData.email || userData.authEmail || '',
+              phone: userData.phone || userData.contactNumber || ''
+            };
+            userCache.set(userId, details);
+            return details;
+          }
+
+          // Fallback if no user document exists at all
+          const fallbackName = userId.includes('@') 
+            ? userId.split('@')[0] 
+            : (userId.length > 8 ? `Traveler (${userId.slice(0, 5)})` : 'Traveler');
+
+          const fallbackDetails = { name: fallbackName, role: 'user' };
+          userCache.set(userId, fallbackDetails);
+          return fallbackDetails;
         } catch (e) {
-          return { name: 'Unknown', role: 'unknown' };
+          return { name: 'Traveler', role: 'unknown' };
         }
       };
 
-      for (let conv of conversationsArray) {
-        conv.user1 = await getUserDetails(conv.user1Id);
-        conv.user2 = await getUserDetails(conv.user2Id);
-        // Sort messages by timestamp asc
-        conv.messages.sort((a: any, b: any) => a.timestamp - b.timestamp);
-      }
+      await Promise.all(
+        conversationsArray.map(async (conv) => {
+          conv.user1 = await getUserDetails(conv.user1Id);
+          conv.user2 = await getUserDetails(conv.user2Id);
+          // Sort messages by timestamp asc
+          conv.messages.sort((a: any, b: any) => a.timestamp - b.timestamp);
+        })
+      );
       
       // Sort conversations by last message time desc
       conversationsArray.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
