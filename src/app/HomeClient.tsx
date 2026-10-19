@@ -5981,8 +5981,8 @@ export default function HomeClient({
             className={`flex-1 w-full min-w-0 ${
               userActiveSection === 'chat'
                 ? 'overflow-hidden flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] min-h-0'
-                : userActiveSection === 'agents'
-                ? ''
+                : userActiveSection === 'agents' && !selectedAgencyProfile
+                ? 'overflow-x-clip lg:overflow-x-visible'
                 : 'overflow-x-clip'
             }`}
             id="user-dashboard-scroll-container"

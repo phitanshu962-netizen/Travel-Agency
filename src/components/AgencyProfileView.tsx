@@ -436,24 +436,8 @@ export default function AgencyProfileView({
       return { total, avg, breakdown };
     }
 
-    if (agency.rating && agency.rating > 0) {
-      const total = agency.reviewCount || 1;
-      const avg = Number(agency.rating);
-      return {
-        total,
-        avg,
-        breakdown: [
-          { star: 5, count: total, percentage: 80 },
-          { star: 4, count: 0, percentage: 20 },
-          { star: 3, count: 0, percentage: 0 },
-          { star: 2, count: 0, percentage: 0 },
-          { star: 1, count: 0, percentage: 0 },
-        ],
-      };
-    }
-
     return null;
-  }, [dbReviews, agency.rating, agency.reviewCount]);
+  }, [dbReviews]);
 
   // 3. Aggregate real photos from agency listings
   const agencyPhotos = useMemo<string[]>(() => {
@@ -641,10 +625,10 @@ export default function AgencyProfileView({
   };
 
   return (
-    <div className="w-full bg-white min-h-screen text-slate-900 pb-28 sm:pb-16">
-      <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
+    <div className="w-full max-w-full overflow-x-hidden min-w-0 bg-white min-h-screen text-slate-900 pb-28 sm:pb-16">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5 min-w-0">
         {/* ─── 1. HERO PANORAMIC BANNER (Direct on Page - No Container Box) ─── */}
-        <div className="w-full relative overflow-hidden bg-white border-b border-slate-200 pb-2">
+        <div className="w-full max-w-full relative overflow-hidden bg-white border-b border-slate-200 pb-2">
           {/* Panoramic Mountain Lake Backdrop with Soft Left Gradient Wash */}
           <div
             className="w-full bg-cover bg-center relative p-5 sm:p-7 lg:p-9"
@@ -836,7 +820,7 @@ export default function AgencyProfileView({
 
         {/* ─── 2. SEPARATE AGENCY PHOTO PREVIEW STRIP (Direct on Page) ─── */}
         {agencyPhotos.length > 0 && (
-          <div className="w-full bg-transparent py-4 border-b border-slate-200">
+          <div className="w-full max-w-full min-w-0 bg-transparent py-4 border-b border-slate-200">
             <div className="flex items-center justify-between gap-4 mb-3 px-0.5">
               <div className="flex items-center gap-2">
                 <Camera className="w-4 h-4 text-slate-800" />
@@ -883,7 +867,7 @@ export default function AgencyProfileView({
         )}
 
         {/* ─── 3. SUB-NAVIGATION TABS BAR (Direct on Page - No Container Box) ─── */}
-        <div className="w-full bg-white border-b border-slate-200 px-2 overflow-x-auto scrollbar-hide sticky top-16 z-20">
+        <div className="w-full max-w-full bg-white border-b border-slate-200 px-2 overflow-x-auto scrollbar-hide sticky top-16 z-20">
           <div className="flex items-center gap-6 sm:gap-8 min-w-max text-xs sm:text-sm font-bold">
             <button
               type="button"
@@ -932,13 +916,13 @@ export default function AgencyProfileView({
         </div>
 
         {/* ─── 4. MAIN 2-COLUMN BODY (Direct on Page - No Container Boxes) ─── */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start pt-2">
+        <div className="w-full max-w-full min-w-0 flex flex-col lg:flex-row gap-6 items-start pt-2">
           {/* ══════════════════════════════════════════════════════════════════
               LEFT MAIN COLUMN (Direct on Page - No Container Box)
              ══════════════════════════════════════════════════════════════════ */}
-          <div className="flex-1 min-w-0 space-y-6">
+          <div className="flex-1 min-w-0 space-y-6 w-full max-w-full">
             {/* SECTION 1: POPULAR TOUR PACKAGES */}
-            <div id="section-packages" className="bg-transparent pb-6 border-b border-slate-200">
+            <div id="section-packages" className="bg-transparent pb-6 border-b border-slate-200 w-full max-w-full min-w-0">
               <div className="flex items-center justify-between gap-4 mb-4 pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <PackageIcon className="w-5 h-5 text-[#FF5500]" />
@@ -976,12 +960,12 @@ export default function AgencyProfileView({
               {agencyPackages.length > 0 ? (
                 <div
                   ref={scrollContainerRef}
-                  className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 scrollbar-hide snap-x snap-mandatory scroll-smooth w-full"
+                  className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 scrollbar-hide snap-x snap-mandatory scroll-smooth w-full max-w-full"
                 >
                   {agencyPackages.map((pkg) => (
                     <div
                       key={pkg.id}
-                      className="w-[320px] min-w-[320px] sm:w-[360px] sm:min-w-[360px] md:w-[380px] md:min-w-[380px] lg:w-[400px] lg:min-w-[400px] snap-start shrink-0 flex flex-col h-full self-stretch"
+                      className="w-[85vw] max-w-[320px] min-w-[260px] sm:w-[360px] sm:min-w-[360px] md:w-[380px] md:min-w-[380px] lg:w-[400px] lg:min-w-[400px] snap-start shrink-0 flex flex-col h-full self-stretch"
                     >
                       <ListingCard
                         listing={pkg}
@@ -1082,9 +1066,9 @@ export default function AgencyProfileView({
             </div>
 
             {/* SECTION 3: CUSTOMER REVIEWS */}
-            <div id="section-reviews" className="bg-transparent py-6">
-              <div className="flex items-center justify-between gap-2 mb-4 pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2 min-w-0">
+            <div id="section-reviews" className="bg-transparent py-6 w-full max-w-full min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-4 pb-2 border-b border-slate-100 w-full max-w-full">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Star className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0" />
                   <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight truncate">
                     Customer Reviews
@@ -1103,11 +1087,11 @@ export default function AgencyProfileView({
 
               {/* Reviews Summary Breakdown & List */}
               {reviewStats && reviewStats.total > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-4 w-full max-w-full min-w-0">
                   {/* Rating Breakdown Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center p-4 bg-slate-50 border border-slate-200/80 rounded-lg">
+                  <div className="w-full max-w-full min-w-0 grid grid-cols-1 md:grid-cols-12 gap-5 items-center p-4 bg-slate-50 border border-slate-200/80 rounded-lg overflow-hidden">
                     {/* Left Score */}
-                    <div className="md:col-span-4 text-center md:text-left flex flex-col items-center md:items-start">
+                    <div className="w-full md:col-span-4 text-center md:text-left flex flex-col items-center md:items-start min-w-0">
                       <div className="text-4xl sm:text-5xl font-black text-slate-900">
                         {reviewStats.avg.toFixed(1)}
                       </div>
@@ -1129,17 +1113,17 @@ export default function AgencyProfileView({
                     </div>
 
                     {/* Right Bars */}
-                    <div className="md:col-span-8 space-y-1.5 text-xs font-medium">
+                    <div className="w-full md:col-span-8 space-y-1.5 text-xs font-medium min-w-0">
                       {reviewStats.breakdown.map((row) => (
-                        <div key={row.star} className="flex items-center gap-2.5">
-                          <span className="w-6 text-slate-600 text-right">{row.star}★</span>
-                          <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div key={row.star} className="flex items-center gap-2.5 w-full min-w-0">
+                          <span className="w-6 text-slate-600 text-right shrink-0">{row.star}★</span>
+                          <div className="flex-1 min-w-0 h-2 bg-slate-200 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-amber-400 rounded-full transition-all"
                               style={{ width: `${row.percentage}%` }}
                             />
                           </div>
-                          <span className="w-10 text-slate-400 text-right text-[11px]">
+                          <span className="w-10 text-slate-400 text-right text-[11px] shrink-0">
                             {row.percentage}%
                           </span>
                         </div>
@@ -1149,11 +1133,11 @@ export default function AgencyProfileView({
 
                   {/* Real Reviews Cards List */}
                   {dbReviews.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1 w-full max-w-full">
                       {dbReviews.map((rev) => (
                         <div
                           key={rev.id}
-                          className="bg-white border border-slate-200 p-4 shadow-2xs flex flex-col justify-between"
+                          className="bg-white border border-slate-200 p-4 shadow-none flex flex-col justify-between w-full min-w-0"
                           style={{ borderRadius: '6px' }}
                         >
                           <div>
@@ -1215,7 +1199,7 @@ export default function AgencyProfileView({
                     </div>
                   ) : (
                     <div
-                      className="bg-slate-50 border border-slate-200/80 p-5 text-center flex flex-col items-center justify-center my-2"
+                      className="w-full max-w-full min-w-0 bg-slate-50 border border-slate-200/80 p-5 text-center flex flex-col items-center justify-center my-2"
                       style={{ borderRadius: '6px' }}
                     >
                       <Star className="w-6 h-6 text-amber-400 mb-1.5" />
@@ -1237,7 +1221,7 @@ export default function AgencyProfileView({
                 </div>
               ) : (
                 <div
-                  className="bg-slate-50 border border-slate-200/80 p-6 text-center flex flex-col items-center justify-center my-2"
+                  className="w-full max-w-full min-w-0 bg-slate-50 border border-slate-200/80 p-6 text-center flex flex-col items-center justify-center my-2"
                   style={{ borderRadius: '6px' }}
                 >
                   <Star className="w-8 h-8 text-amber-400 mb-2" />
@@ -1262,7 +1246,7 @@ export default function AgencyProfileView({
           {/* ══════════════════════════════════════════════════════════════════
               RIGHT SIDEBAR: COMPACT STICKY CONTACT & INFO (Direct on Page - No Container Boxes)
              ══════════════════════════════════════════════════════════════════ */}
-          <div className="w-full lg:w-[275px] xl:w-[290px] shrink-0 space-y-6 lg:sticky lg:top-28">
+          <div className="w-full lg:w-[275px] xl:w-[290px] shrink-0 space-y-6 lg:sticky lg:top-28 min-w-0 max-w-full">
             {/* Item 1: Chat with Agency */}
             <div className="bg-transparent pb-6 border-b border-slate-200 space-y-3">
               <div>
