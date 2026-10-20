@@ -24,7 +24,7 @@ const FAQS_DATA = [
     id: 'faq-1',
     question: 'Is TripDM a travel agency?',
     answer:
-      'No. TripDM is a platform that connects you with multiple verified travel agencies. You chat, compare and book directly with them.',
+      'No. TripDM is a platform that connects you with multiple verified travel agencies. You chat and book directly with them.',
   },
   {
     id: 'faq-2',
@@ -81,7 +81,7 @@ export default function HowItWorksView({
   return (
     <div className="w-full bg-white text-slate-900 min-h-screen">
       {/* ─── 1. TOP HERO SECTION (Full-Width with Pure White Background) ─── */}
-      <div className="relative w-full bg-white pt-6 sm:pt-10 pb-6 sm:pb-8 overflow-hidden">
+      <div className="relative w-full bg-white pt-3 sm:pt-10 pb-2 sm:pb-8 overflow-hidden">
         {/* Scenic Background Photo on Right Side with smooth alpha mask fade to pure white - Hidden on phone */}
         <div
           className="hidden sm:block absolute inset-y-0 right-0 w-full sm:w-[85%] md:w-[70%] lg:w-[58%] bg-cover bg-no-repeat bg-right pointer-events-none"
@@ -100,18 +100,18 @@ export default function HowItWorksView({
             {/* Left Hero Text Block with custom left spacing */}
             <div className="max-w-xl pl-0 sm:pl-8 md:pl-12 lg:pl-16 xl:pl-20 z-10">
               {/* Orange Eyebrow Tag */}
-              <span className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-[#FF5500]">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-[#FF5500]">
                 HOW IT WORKS
               </span>
 
               {/* Main Headline */}
-              <h1 className="text-3xl sm:text-4xl md:text-[44px] font-black text-slate-900 tracking-tight leading-[1.14] mt-2">
+              <h1 className="text-2xl sm:text-4xl md:text-[44px] font-black text-slate-900 tracking-tight leading-tight sm:leading-[1.14] mt-1 sm:mt-2">
                 Your Next Trip <br className="hidden sm:inline" />
                 in <span className="text-[#FF5500]">3 Simple Steps</span>
               </h1>
 
               {/* Description */}
-              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed mt-3 max-w-lg">
+              <p className="text-[11.5px] sm:text-sm text-slate-600 font-normal leading-snug sm:leading-relaxed mt-1.5 sm:mt-3 max-w-lg">
                 TripDM connects you with multiple verified travel agencies so you can compare, chat, customize and book directly — with no commission on package price.
               </p>
             </div>
@@ -136,22 +136,22 @@ export default function HowItWorksView({
       </div>
 
       {/* ─── 2. 3 SIMPLE STEPS WORKFLOW SECTION (Direct on Page - No Container Boxes) ─── */}
-      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 bg-white">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-6 sm:py-14 bg-white">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-8 lg:gap-12 relative">
           {/* STEP 1: Search Destinations */}
           <div className="flex flex-col relative group p-0 bg-transparent border-none shadow-none">
-            <div className="flex items-center gap-3 mb-2.5">
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-1 sm:mb-2.5">
               <span
-                className="w-8 h-8 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-sm shrink-0"
+                className="w-6 h-6 sm:w-8 sm:h-8 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-xs sm:text-sm shrink-0"
                 style={{ borderRadius: '6px' }}
               >
                 1
               </span>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              <h3 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight">
                 Search Destinations
               </h3>
             </div>
-            <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+            <p className="text-[11.5px] sm:text-sm text-slate-600 font-normal leading-snug sm:leading-relaxed">
               Enter your destination, travel dates and preferences to find multiple travel agents.
             </p>
 
@@ -163,18 +163,18 @@ export default function HowItWorksView({
 
           {/* STEP 2: Compare & Chat with Agents */}
           <div className="flex flex-col relative group p-0 bg-transparent border-none shadow-none">
-            <div className="flex items-center gap-3 mb-2.5">
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-1 sm:mb-2.5">
               <span
-                className="w-8 h-8 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-sm shrink-0"
+                className="w-6 h-6 sm:w-8 sm:h-8 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-xs sm:text-sm shrink-0"
                 style={{ borderRadius: '6px' }}
               >
                 2
               </span>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              <h3 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight">
                 Compare & Chat with Agents
               </h3>
             </div>
-            <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+            <p className="text-[11.5px] sm:text-sm text-slate-600 font-normal leading-snug sm:leading-relaxed">
               View multiple verified travel agents offering packages for your destination. Chat directly, ask questions and customize your trip.
             </p>
 
@@ -186,18 +186,18 @@ export default function HowItWorksView({
 
           {/* STEP 3: Customize & Book Directly */}
           <div className="flex flex-col relative group p-0 bg-transparent border-none shadow-none">
-            <div className="flex items-center gap-3 mb-2.5">
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-1 sm:mb-2.5">
               <span
-                className="w-8 h-8 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-sm shrink-0"
+                className="w-6 h-6 sm:w-8 sm:h-8 bg-slate-100 text-black border border-slate-200 font-black flex items-center justify-center text-xs sm:text-sm shrink-0"
                 style={{ borderRadius: '6px' }}
               >
                 3
               </span>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              <h3 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight">
                 Customize & Book Directly
               </h3>
             </div>
-            <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+            <p className="text-[11.5px] sm:text-sm text-slate-600 font-normal leading-snug sm:leading-relaxed">
               Discuss your requirements, negotiate, finalize the itinerary and book directly with the travel agency.
             </p>
           </div>
@@ -207,7 +207,7 @@ export default function HowItWorksView({
       {/* ─── 3. WHY CHOOSE TRIPDM SECTION (Direct on Page - No Container Boxes) ─── */}
       <div className="w-full bg-white py-10 sm:py-14 border-t border-slate-100">
         <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
+          <div className="text-center max-w-2xl mx-auto mb-24 sm:mb-12">
             <span className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-[#FF5500]">
               WHY CHOOSE TRIPDM
             </span>
@@ -388,15 +388,13 @@ export default function HowItWorksView({
                     onClick={() => toggleFaq(faq.id)}
                     className="w-full py-3.5 flex items-center justify-between gap-3 text-left cursor-pointer group"
                   >
-                    <h3 className={`text-xs sm:text-sm font-bold leading-snug transition-colors ${
-                      isOpen ? 'text-black' : 'text-slate-900 group-hover:text-black'
-                    }`}>
+                    <h3 className={`text-xs sm:text-sm font-bold leading-snug transition-colors ${isOpen ? 'text-black' : 'text-slate-900 group-hover:text-black'
+                      }`}>
                       {faq.question}
                     </h3>
                     <ChevronDown
-                      className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                        isOpen ? 'transform rotate-180 text-black' : 'group-hover:text-slate-700'
-                      }`}
+                      className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'transform rotate-180 text-black' : 'group-hover:text-slate-700'
+                        }`}
                     />
                   </button>
 
@@ -413,7 +411,7 @@ export default function HowItWorksView({
       </div>
 
       {/* ─── 6. BOTTOM CALL-TO-ACTION (CTA) BANNER (Full-Width) ─── */}
-      <div className="w-full py-12 sm:py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="w-full pt-8 pb-20 sm:py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div
           className="max-w-[1720px] mx-auto relative overflow-hidden p-8 sm:p-12 lg:p-16 shadow-xl bg-slate-900"
           style={{ borderRadius: '8px' }}
