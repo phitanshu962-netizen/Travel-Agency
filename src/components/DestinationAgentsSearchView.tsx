@@ -1238,6 +1238,7 @@ export default function DestinationAgentsSearchView({
                                 onInitiateChat({
                                   agencyId: agency.id,
                                   agencyName: agency.name,
+                                  agencyLogo: agency.logoUrl || (agency as any).agencyLogo || (agency as any).avatarUrl || firstPkg?.agencyLogo || firstPkg?.logoUrl || null,
                                   ...(firstPkg || {}),
                                   id: firstPkg?.id,
                                   title: firstPkg?.title,

@@ -606,6 +606,7 @@ export default function AgencyProfileView({
     onInitiateChat({
       agencyId: agency.id,
       agencyName: agencyDisplayName,
+      agencyLogo: agency.logoUrl || agency.agencyLogo || agency.avatarUrl || firstPkg?.agencyLogo || firstPkg?.logoUrl || null,
       ...(firstPkg || {}),
       id: firstPkg?.id,
       title: firstPkg?.title,
@@ -975,6 +976,7 @@ export default function AgencyProfileView({
                           onInitiateChat({
                             agencyId: agency.id,
                             agencyName: agency.name,
+                            agencyLogo: agency.logoUrl || agency.agencyLogo || agency.avatarUrl || l?.agencyLogo || l?.logoUrl || null,
                             ...(l || {}),
                           })
                         }

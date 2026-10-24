@@ -905,7 +905,14 @@ export default function HomeClient({
     return '';
   });
   const [currentChatAgencyIsOnline, setCurrentChatAgencyIsOnline] = useState<boolean>(false);
-  const [currentChatAgencyLogo, setCurrentChatAgencyLogo] = useState<string | null>(null);
+  const [currentChatAgencyLogo, setCurrentChatAgencyLogo] = useState<string | null>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        return sessionStorage.getItem('user_current_chat_agency_logo') || null;
+      }
+    } catch {}
+    return null;
+  });
   const [selectedChatPackageId, setSelectedChatPackageId] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const [chatSearchQuery, setChatSearchQuery] = useState<string>('');
@@ -1253,12 +1260,18 @@ export default function HomeClient({
       if (currentChatAgency) {
         sessionStorage.setItem('user_current_chat_agency', currentChatAgency);
         sessionStorage.setItem('user_current_chat_agency_name', currentChatAgencyName);
+        if (currentChatAgencyLogo) {
+          sessionStorage.setItem('user_current_chat_agency_logo', currentChatAgencyLogo);
+        } else {
+          sessionStorage.removeItem('user_current_chat_agency_logo');
+        }
       } else {
         sessionStorage.removeItem('user_current_chat_agency');
         sessionStorage.removeItem('user_current_chat_agency_name');
+        sessionStorage.removeItem('user_current_chat_agency_logo');
       }
     } catch {}
-  }, [currentChatAgency, currentChatAgencyName]);
+  }, [currentChatAgency, currentChatAgencyName, currentChatAgencyLogo]);
 
   // Auto-mark incoming messages as 'read' (double blue tick) when traveler is actively viewing the conversation
   useEffect(() => {
@@ -1290,23 +1303,99 @@ export default function HomeClient({
     }
   }, [agencyChatMessages, selectedConversation?.userId]);
 
-  // Synchronize current chat agency details when conversations change
+  // Synchronize current chat agency details whenever currentChatAgency changes, or conversations/listings update
   useEffect(() => {
-    if (currentChatAgency && userConversations.length > 0) {
-      const matched = userConversations.find(c => c.agencyId === currentChatAgency);
-      if (matched) {
-        if (matched.agencyName && matched.agencyName !== 'Unknown Agency' && currentChatAgencyName !== matched.agencyName) {
-          setCurrentChatAgencyName(matched.agencyName);
-        }
-        if (matched.logoUrl && matched.logoUrl !== currentChatAgencyLogo) {
-          setCurrentChatAgencyLogo(matched.logoUrl || null);
-        }
-        if (typeof matched.isOnline === 'boolean' && matched.isOnline !== currentChatAgencyIsOnline) {
-          setCurrentChatAgencyIsOnline(matched.isOnline);
-        }
+    if (!currentChatAgency) {
+      setCurrentChatAgencyLogo(null);
+      setCurrentChatAgencyIsOnline(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    // 1. Check userConversations first
+    const matchedConv = userConversations.find(c => c.agencyId === currentChatAgency);
+    if (matchedConv) {
+      if (matchedConv.agencyName && matchedConv.agencyName !== 'Unknown Agency' && currentChatAgencyName !== matchedConv.agencyName) {
+        setCurrentChatAgencyName(matchedConv.agencyName);
+      }
+      if (matchedConv.logoUrl !== undefined && matchedConv.logoUrl !== currentChatAgencyLogo) {
+        setCurrentChatAgencyLogo(matchedConv.logoUrl || null);
+      }
+      if (typeof matchedConv.isOnline === 'boolean' && matchedConv.isOnline !== currentChatAgencyIsOnline) {
+        setCurrentChatAgencyIsOnline(matchedConv.isOnline);
+      }
+      if (matchedConv.logoUrl) {
+        return;
       }
     }
-  }, [userConversations, currentChatAgency]);
+
+    // 2. Check profile cache ref
+    const cachedProfile = userAgencyProfileCacheRef.current.get(currentChatAgency);
+    if (cachedProfile) {
+      if (cachedProfile.name && cachedProfile.name !== 'Unknown Agency' && currentChatAgencyName !== cachedProfile.name) {
+        setCurrentChatAgencyName(cachedProfile.name);
+      }
+      if (cachedProfile.logoUrl !== undefined && cachedProfile.logoUrl !== currentChatAgencyLogo) {
+        setCurrentChatAgencyLogo(cachedProfile.logoUrl || null);
+      }
+      if (typeof cachedProfile.isOnline === 'boolean' && cachedProfile.isOnline !== currentChatAgencyIsOnline) {
+        setCurrentChatAgencyIsOnline(cachedProfile.isOnline);
+      }
+      if (cachedProfile.logoUrl) {
+        return;
+      }
+    }
+
+    // 3. Check listings fallback
+    const matchedListing = listings.find(l => l.agencyId === currentChatAgency || l.userId === currentChatAgency);
+    const listingLogo = matchedListing?.agencyLogo || matchedListing?.logoUrl || matchedListing?.agencyData?.logoUrl || matchedListing?.agencyData?.agencyLogo || matchedListing?.agencyData?.avatarUrl || null;
+    const listingAgencyName = matchedListing?.agencyName || matchedListing?.agencyData?.companyName || matchedListing?.agencyData?.name;
+    if (listingLogo && listingLogo !== currentChatAgencyLogo) {
+      setCurrentChatAgencyLogo(listingLogo);
+    }
+    if (listingAgencyName && listingAgencyName !== 'Unknown Agency' && currentChatAgencyName !== listingAgencyName) {
+      setCurrentChatAgencyName(listingAgencyName);
+    }
+
+    // 4. Fetch directly from Firestore users collection
+    async function fetchAgencyProfile() {
+      try {
+        const dbInstance = getDbInstance();
+        if (!dbInstance) return;
+        const agencyDoc = await getDoc(doc(dbInstance, 'users', currentChatAgency));
+        if (agencyDoc.exists() && isMounted) {
+          const d = agencyDoc.data() as any;
+          const name = d?.companyName || d?.name || d?.agencyName || d?.displayName || listingAgencyName || currentChatAgencyName || 'Travel Agency';
+          const isOnline = Boolean(d?.isOnline || d?.is_online);
+          const logoUrl = d?.logoUrl || d?.agencyLogo || d?.avatarUrl || d?.photoURL || d?.logo || listingLogo || null;
+
+          userAgencyProfileCacheRef.current.set(currentChatAgency, {
+            name,
+            isOnline,
+            logoUrl,
+          });
+
+          if (name && name !== 'Unknown Agency') {
+            setCurrentChatAgencyName(name);
+          }
+          setCurrentChatAgencyIsOnline(isOnline);
+          setCurrentChatAgencyLogo(logoUrl);
+        } else if (isMounted && !listingLogo && !matchedConv?.logoUrl && !cachedProfile?.logoUrl) {
+          // If agency has no logo in database or listings, make sure we show initials and not a stale logo
+          setCurrentChatAgencyLogo(null);
+        }
+      } catch (err) {
+        console.warn('Error fetching agency details for chat header:', err);
+      }
+    }
+
+    fetchAgencyProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userConversations, currentChatAgency, listings]);
 
   // Deep linking for Chat, Book, and Wishlist from SEO routes & Push Notifications
   useEffect(() => {
@@ -1365,9 +1454,12 @@ export default function HomeClient({
         const hasCachedAuth = typeof window !== 'undefined' && localStorage.getItem('tripdm_auth_uid');
         if (!user && !hasCachedAuth) {
           if (targetAgencyId) {
+            const fallbackListing = listings.find(l => l.agencyId === targetAgencyId || l.userId === targetAgencyId);
+            const fallbackLogo = fallbackListing?.agencyLogo || fallbackListing?.logoUrl || fallbackListing?.agencyData?.logoUrl || null;
             sessionStorage.setItem('pending_chat_target', JSON.stringify({
               agencyId: targetAgencyId,
               agencyName: targetAgencyName,
+              agencyLogo: fallbackLogo,
               packageId: chatPackageId || null
             }));
           }
@@ -1376,9 +1468,14 @@ export default function HomeClient({
         } else {
           setUserActiveSection('chat');
           if (targetAgencyId) {
+            const fallbackListing = listings.find(l => l.agencyId === targetAgencyId || l.userId === targetAgencyId);
+            const fallbackLogo = fallbackListing?.agencyLogo || fallbackListing?.logoUrl || fallbackListing?.agencyData?.logoUrl || userAgencyProfileCacheRef.current.get(targetAgencyId)?.logoUrl || null;
             setCurrentChatAgency(targetAgencyId);
             if (agencyNameParam) {
               setCurrentChatAgencyName(agencyNameParam);
+            }
+            if (fallbackLogo) {
+              setCurrentChatAgencyLogo(fallbackLogo);
             }
           }
         }
@@ -1484,10 +1581,13 @@ export default function HomeClient({
         if (packageId) {
           setSelectedChatPackageId(packageId);
         }
+        const fallbackListing = listings.find(l => l.agencyId === agencyId || l.userId === agencyId);
+        const resolvedLogo = fallbackListing?.agencyLogo || fallbackListing?.logoUrl || fallbackListing?.agencyData?.logoUrl || userAgencyProfileCacheRef.current.get(agencyId || '')?.logoUrl || null;
         if (!user) {
           sessionStorage.setItem('pending_chat_target', JSON.stringify({
             agencyId,
             agencyName: agencyName || 'Travel Agency',
+            agencyLogo: resolvedLogo,
             packageId: packageId || null,
             packageTitle: packageTitle || '',
             packageDuration: packageDuration || '',
@@ -1497,8 +1597,11 @@ export default function HomeClient({
           setShowAuthModal(true);
         } else {
           setUserActiveSection('chat');
-          setCurrentChatAgency(agencyId);
-          setCurrentChatAgencyName(agencyName || 'Travel Agency');
+          if (agencyId) {
+            setCurrentChatAgency(agencyId);
+            setCurrentChatAgencyName(agencyName || 'Travel Agency');
+            setCurrentChatAgencyLogo(resolvedLogo);
+          }
           if (packageTitle) {
             const durText = packageDuration ? ` (${packageDuration})` : '';
             const priceText = packagePrice ? ` at ${packagePrice.startsWith('₹') || packagePrice.startsWith('$') ? packagePrice : `₹${packagePrice}`}` : '';
@@ -2109,6 +2212,7 @@ export default function HomeClient({
           if (target.agencyId) {
             setCurrentChatAgency(target.agencyId);
             setCurrentChatAgencyName(target.agencyName || 'Travel Agency');
+            setCurrentChatAgencyLogo(target.agencyLogo || null);
             const matchedConv = userConversations.find(c => c.agencyId === target.agencyId);
             setCurrentChatAgencyIsOnline(matchedConv ? matchedConv.isOnline : false);
             if (target.packageTitle) {
@@ -2134,6 +2238,7 @@ export default function HomeClient({
     const agencyId = listingData?.agencyId || listingData?.userId;
     const agencyName = listingData?.agencyName || 'Travel Agency';
     const packageId = listingData?.id || null;
+    const resolvedAgencyLogo = listingData?.agencyLogo || listingData?.logoUrl || listingData?.agencyData?.logoUrl || listingData?.agencyData?.agencyLogo || listingData?.agencyData?.avatarUrl || listingData?.agencyData?.logo || null;
 
     // Calculate duration
     let duration = '';
@@ -2176,6 +2281,7 @@ export default function HomeClient({
         sessionStorage.setItem('pending_chat_target', JSON.stringify({
           agencyId,
           agencyName,
+          agencyLogo: resolvedAgencyLogo,
           packageId: packageId || null,
           packageTitle: listingData?.title || '',
           packageDuration: duration,
@@ -2202,9 +2308,15 @@ export default function HomeClient({
     // Direct redirect
     setCurrentChatAgency(agencyId);
     setCurrentChatAgencyName(agencyName);
+    setCurrentChatAgencyLogo(resolvedAgencyLogo);
     try {
       sessionStorage.setItem('user_current_chat_agency', agencyId);
       sessionStorage.setItem('user_current_chat_agency_name', agencyName);
+      if (resolvedAgencyLogo) {
+        sessionStorage.setItem('user_current_chat_agency_logo', resolvedAgencyLogo);
+      } else {
+        sessionStorage.removeItem('user_current_chat_agency_logo');
+      }
       sessionStorage.setItem('tripdm_user_active_section', 'chat');
     } catch (_) {}
     const matchedConv = userConversations.find(c => c.agencyId === agencyId);
@@ -2858,19 +2970,22 @@ export default function HomeClient({
         const missingIds = [...otherAgencyIds].filter(id => !userAgencyProfileCacheRef.current.has(id));
         if (missingIds.length > 0) {
           await Promise.all(missingIds.map(async (id) => {
+            const fallbackListing = listings.find(l => l.agencyId === id || l.userId === id);
+            const fallbackLogo = fallbackListing?.agencyLogo || fallbackListing?.logoUrl || fallbackListing?.agencyData?.logoUrl || fallbackListing?.agencyData?.agencyLogo || fallbackListing?.agencyData?.avatarUrl || null;
+            const fallbackName = fallbackListing?.agencyName || fallbackListing?.agencyData?.companyName || fallbackListing?.agencyData?.name;
             try {
               const agencyDoc = await getDoc(doc(getDbInstance()!, 'users', id));
               const d = agencyDoc.exists() ? agencyDoc.data() as any : null;
               userAgencyProfileCacheRef.current.set(id, {
-                name: d?.companyName || d?.name || d?.agencyName || 'Travel Agency',
+                name: d?.companyName || d?.name || d?.agencyName || fallbackName || 'Travel Agency',
                 isOnline: Boolean(d?.isOnline || d?.is_online),
-                logoUrl: d?.logoUrl || d?.agencyLogo || d?.avatarUrl || d?.photoURL || null,
+                logoUrl: d?.logoUrl || d?.agencyLogo || d?.avatarUrl || d?.photoURL || fallbackLogo || null,
               });
             } catch {
               userAgencyProfileCacheRef.current.set(id, {
-                name: 'Travel Agency',
+                name: fallbackName || 'Travel Agency',
                 isOnline: false,
-                logoUrl: null,
+                logoUrl: fallbackLogo || null,
               });
             }
           }));
@@ -2882,10 +2997,15 @@ export default function HomeClient({
           const otherUserId = msg.sender === user.uid ? msg.receiverId : msg.sender;
           if (!otherUserId || typeof otherUserId !== 'string' || !otherUserId.trim()) continue;
 
-          const profile = userAgencyProfileCacheRef.current.get(otherUserId) || {
-            name: 'Travel Agency',
-            isOnline: false,
-            logoUrl: null,
+          const cachedProfile = userAgencyProfileCacheRef.current.get(otherUserId);
+          const fallbackListing = listings.find(l => l.agencyId === otherUserId || l.userId === otherUserId);
+          const fallbackLogo = fallbackListing?.agencyLogo || fallbackListing?.logoUrl || fallbackListing?.agencyData?.logoUrl || fallbackListing?.agencyData?.agencyLogo || fallbackListing?.agencyData?.avatarUrl || null;
+          const fallbackName = fallbackListing?.agencyName || fallbackListing?.agencyData?.companyName || fallbackListing?.agencyData?.name;
+
+          const profile = {
+            name: cachedProfile?.name && cachedProfile.name !== 'Travel Agency' ? cachedProfile.name : (fallbackName || cachedProfile?.name || 'Travel Agency'),
+            isOnline: cachedProfile?.isOnline || false,
+            logoUrl: cachedProfile?.logoUrl || fallbackLogo || null,
           };
 
           if (!conversationsMap.has(otherUserId)) {
@@ -6976,10 +7096,14 @@ export default function HomeClient({
                     setSelectedCategoryFilter(null);
                   }}
                   onChat={(agencyId: string, agencyName: string) => {
+                    const matchedConv = userConversations.find(c => c.agencyId === agencyId);
+                    const matchedListing = listings.find((l: any) => l.agencyId === agencyId || l.userId === agencyId);
+                    const agencyLogo = matchedConv?.logoUrl || matchedListing?.agencyLogo || matchedListing?.logoUrl || userAgencyProfileCacheRef.current.get(agencyId)?.logoUrl || null;
                     if (!user) {
                       sessionStorage.setItem('pending_chat_target', JSON.stringify({
                         agencyId,
                         agencyName,
+                        agencyLogo,
                       }));
                       setAuthModalTab('login');
                       setShowAuthModal(true);
@@ -6988,7 +7112,7 @@ export default function HomeClient({
                     setShowComparison(false);
                     setCurrentChatAgency(agencyId);
                     setCurrentChatAgencyName(agencyName);
-                    const matchedConv = userConversations.find(c => c.agencyId === agencyId);
+                    setCurrentChatAgencyLogo(agencyLogo);
                     setCurrentChatAgencyIsOnline(matchedConv ? matchedConv.isOnline : false);
                     setUserActiveSection('chat');
                   }}

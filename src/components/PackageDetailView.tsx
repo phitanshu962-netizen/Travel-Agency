@@ -1495,6 +1495,7 @@ export default function PackageDetailView({
                         agencyName: activeAgencyName,
                         agencyData: activeAgencyData,
                         agencyId: listing.agencyId || listing.userId,
+                        agencyLogo: activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl || null,
                       });
                     }}
                     className="btn-wavy-chat w-full flex items-center justify-center gap-2.5 text-white font-bold py-3 text-sm cursor-pointer border border-amber-300/40 shadow-lg"
@@ -1927,6 +1928,7 @@ export default function PackageDetailView({
                   agencyName: activeAgencyName,
                   agencyData: activeAgencyData,
                   agencyId: listing.agencyId || listing.userId,
+                  agencyLogo: activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl || null,
                 });
               } else {
                 window.location.href = `/?action=chat&agencyId=${listing.agencyId || listing.userId}&agencyName=${encodeURIComponent(activeAgencyName)}`;
@@ -1963,6 +1965,7 @@ export default function PackageDetailView({
                 agencyName: activeAgencyName,
                 agencyData: activeAgencyData,
                 agencyId: listing.agencyId || listing.userId,
+                agencyLogo: activeAgencyData?.logoUrl || activeAgencyData?.agencyLogo || activeAgencyData?.avatarUrl || listing.agencyLogo || listing.logoUrl || null,
               });
             }}
             className="btn-wavy-chat group flex items-center gap-3 text-white p-2 pr-5 border border-amber-300/50 shadow-[0_10px_30px_rgba(234,88,12,0.45)] backdrop-blur-xl cursor-pointer rounded-lg"
