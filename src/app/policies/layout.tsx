@@ -1,9 +1,8 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { User, Scale, Heart, MessageSquare, Shield, Search, Menu, X, Palmtree, ChevronRight, LogOut, FileText, Briefcase } from 'lucide-react';
+import { User, Scale, Heart, MessageSquare, Shield, Menu, X, Palmtree, ChevronRight, LogOut, FileText, Briefcase, Building2, Compass, MapPin, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Footer from '@/components/Footer';
 import AuthModal from '@/components/AuthModal';
@@ -148,9 +147,9 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
 
             {/* Navigation Links Scrollable Area */}
             <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1 sidebar-scroll">
-              <p className="text-[10px] uppercase font-bold text-slate-400 px-3 pt-1 pb-1 tracking-wider">Navigation</p>
+              <p className="text-[10px] uppercase font-bold text-slate-400 px-3 pt-1 pb-1 tracking-wider">Main Navigation</p>
 
-              {/* Explore Packages */}
+              {/* Home */}
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -159,26 +158,69 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Palmtree className="h-4 w-4 text-slate-700" />
-                  <span>Explore Packages</span>
+                  <Compass className="h-4 w-4 text-slate-700" />
+                  <span>Home</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-300" />
               </button>
 
-              {/* Compare Packages */}
+              {/* Destinations */}
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  router.push('/?section=compare');
+                  router.push('/destinations');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Scale className="h-4 w-4 text-slate-700" />
-                  <span>Compare Packages</span>
+                  <MapPin className="h-4 w-4 text-slate-700" />
+                  <span>Destinations</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-300" />
               </button>
+
+              {/* Travel Agents */}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  router.push('/travel-agents');
+                }}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-4 w-4 text-slate-700" />
+                  <span>Travel Agents</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300" />
+              </button>
+
+              {/* How It Works */}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  router.push('/how-it-works');
+                }}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-4 w-4 text-slate-700" />
+                  <span>How It Works</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300" />
+              </button>
+
+              {/* Travel Stories */}
+              <a
+                href="/blog"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText className="h-4 w-4 text-slate-700" />
+                  <span>Travel Stories</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300" />
+              </a>
 
               {/* Wishlist */}
               <button
@@ -205,6 +247,11 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
+                    if (!user) {
+                      setAuthModalTab('login');
+                      setShowAuthModal(true);
+                      return;
+                    }
                     router.push('/?section=chat');
                   }}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
@@ -222,6 +269,7 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                 onClick={() => {
                   setMobileMenuOpen(false);
                   if (!user) {
+                    setAuthModalTab('login');
                     setShowAuthModal(true);
                   } else {
                     router.push('/?section=profile');
@@ -280,81 +328,99 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
       {/* Global Header */}
       <header className="header-transition bg-white/95 backdrop-blur-md text-gray-900 z-[100] sticky top-0 shadow-sm border-b border-gray-200">
         {/* Desktop Header Layout */}
-        <div className="hidden md:flex max-w-7xl mx-auto items-center justify-between gap-4 lg:gap-6 px-4 h-16 w-full">
+        <div className="hidden md:flex relative max-w-7xl mx-auto items-center justify-between gap-4 lg:gap-8 px-4 sm:px-6 h-16 md:h-[70px] w-full">
           {/* Logo */}
           <div 
-            className="flex items-center gap-1 sm:gap-2 font-black tracking-tight cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+            className="flex items-center cursor-pointer shrink-0 py-1 z-10"
             onClick={() => router.push('/')}
           >
-            <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-16 md:h-20 w-auto object-contain py-1" />
+            <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-12 sm:h-[54px] md:h-[60px] w-auto object-contain" />
           </div>
-          
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl mx-2 lg:mx-6">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search your Holiday Destination" 
-                className="w-full pl-10 pr-4 py-1.5 rounded-full text-slate-900 bg-slate-50 border border-slate-200 text-sm h-10 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    router.push('/');
-                  }
-                }}
-              />
-            </div>
-          </div>
+
+          {/* Center Navigation Links - Dead Centered */}
+          <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-4 lg:gap-6 xl:gap-8 shrink-0 z-10">
+            <button
+              type="button"
+              onClick={() => router.push('/destinations')}
+              className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+            >
+              Destinations
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push('/travel-agents')}
+              className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+            >
+              Travel Agents
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push('/how-it-works')}
+              className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+            >
+              How It Works
+            </button>
+
+            <a
+              href="/blog"
+              className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+            >
+              Travel Stories
+            </a>
+          </nav>
 
           {/* Right Links */}
-          <div className="flex items-center gap-4 lg:gap-6 shrink-0">
-            {/* Compare */}
-            <span
-              className="cursor-pointer text-[15px] font-medium text-slate-800 flex items-center gap-1.5 select-none"
-              onClick={() => router.push('/?section=compare')}
-            >
-              <Scale className="h-4 w-4 text-slate-600" /> Compare
-            </span>
-
-            {/* Wishlist */}
-            <span
-              className="cursor-pointer text-[15px] font-medium text-slate-800 flex items-center gap-1.5 select-none"
-              onClick={() => {
-                if (!user) {
-                  setAuthModalTab('login');
-                  setShowAuthModal(true);
-                  return;
-                }
-                router.push('/?section=wishlist');
-              }}
-            >
-              <Heart className="h-4 w-4 text-slate-600" /> Wishlist
-            </span>
-
+          <div className="flex items-center gap-4 lg:gap-5 shrink-0 z-10 ml-auto">
             {/* Messages (Only for non-agency users / travelers) */}
             {(!userData || userData.role !== 'agency') && (
-              <span
-                className="cursor-pointer text-[15px] font-medium text-slate-800 flex items-center gap-1.5 select-none"
-                onClick={() => router.push('/?section=chat')}
+              <button
+                type="button"
+                className="cursor-pointer text-slate-700 hover:text-slate-950 relative p-1.5 transition-colors"
+                style={{ borderRadius: '6px' }}
+                onClick={() => {
+                  if (!user) {
+                    setAuthModalTab('login');
+                    setShowAuthModal(true);
+                    return;
+                  }
+                  router.push('/?section=chat');
+                }}
+                aria-label="Messages"
               >
-                <MessageSquare className="h-4 w-4 text-slate-600" /> Messages
-              </span>
+                <MessageSquare className="h-5 w-5" />
+              </button>
             )}
 
             {/* Profile / Sign In */}
             {user ? (
-              <div className="flex items-center gap-3 ml-2 border-l border-gray-200 pl-4">
+              <div className="flex items-center gap-3 ml-1 border-l border-gray-200 pl-4">
+                {/* ONLY VISIBLE TO LOGGED-IN AGENCIES */}
                 {userData?.role === 'agency' && (
                   <Link
                     href="/agencytripdm"
-                    className="cursor-pointer text-[15px] font-medium flex items-center gap-1.5 text-slate-800 shrink-0"
+                    className="cursor-pointer text-[14px] font-semibold flex items-center gap-1.5 text-slate-800 hover:text-slate-950 shrink-0"
+                    title="Go to Agency Portal"
                   >
-                    <Briefcase className="h-4 w-4 text-slate-600" />
+                    <Building2 className="h-4 w-4 text-slate-600" />
                     <span>Agency Portal</span>
                   </Link>
                 )}
+                {userData?.role === 'admin' && (
+                  <a
+                    href="/admin"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-slate-800 text-white shadow-sm shrink-0"
+                    style={{ borderRadius: '6px' }}
+                    title="Go to Admin Dashboard"
+                  >
+                    <Shield className="h-3.5 w-3.5" />
+                    <span>Admin Portal</span>
+                  </a>
+                )}
+
                 <div
-                  className="flex items-center gap-2 cursor-pointer text-[15px] font-medium text-slate-800"
+                  className="flex items-center gap-2 cursor-pointer text-[14px] font-semibold text-slate-800"
                   onClick={() => router.push('/?section=profile')}
                 >
                   {userAvatar ? (
@@ -365,15 +431,15 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   ) : (
-                    <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-slate-600 border border-gray-200">
-                      <User className="h-4 w-4" />
+                    <div className="w-7 h-7 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center border border-slate-200">
+                      <User className="w-4 h-4 text-slate-600" />
                     </div>
                   )}
                   <span>Hi, {userFirstName}</span>
                 </div>
                 
                 <span
-                  className="text-[13px] text-slate-600 cursor-pointer"
+                  className="text-[13px] text-slate-600 hover:text-rose-600 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     signOut?.();
@@ -383,12 +449,16 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
                 </span>
               </div>
             ) : (
-              <span
-                onClick={() => { setAuthModalTab('login'); setShowAuthModal(true); }}
-                className="cursor-pointer text-[15px] font-medium text-slate-800 flex items-center gap-1.5 ml-2 border-l border-gray-200 pl-4"
-              >
-                <User className="h-4 w-4 text-slate-600" /> Login
-              </span>
+              <div className="flex items-center pl-3 sm:pl-4 border-l border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => { setAuthModalTab('login'); setShowAuthModal(true); }}
+                  className="cursor-pointer text-[15px] font-semibold text-slate-800 hover:text-slate-950 flex items-center gap-1.5 select-none transition-colors"
+                >
+                  <User className="h-4 w-4 text-slate-700" />
+                  <span>Login</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -399,7 +469,7 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 -ml-1 text-slate-700 hover:text-orange-500 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors"
+              className="p-2 -ml-1 text-slate-700 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
               aria-label="Open navigation menu"
             >
               <Menu className="h-6 w-6" />
@@ -408,37 +478,70 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
               className="cursor-pointer flex items-center"
               onClick={() => router.push('/')}
             >
-              <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-10 sm:h-12 w-auto object-contain py-1" />
+              <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-11 sm:h-[50px] w-auto object-contain py-0.5" />
             </div>
           </div>
 
           {/* Right: Quick Action Links */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push('/')}
-              className="text-xs font-bold text-slate-600 hover:text-orange-500 px-2.5 py-1 rounded-lg bg-slate-100"
-            >
-              Explore
-            </button>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            {/* Messages Icon (Only for non-agency users / travelers) */}
+            {(!userData || userData.role !== 'agency') && (
+              <button
+                onClick={() => {
+                  if (!user) {
+                    setAuthModalTab('login');
+                    setShowAuthModal(true);
+                    return;
+                  }
+                  router.push('/?section=chat');
+                }}
+                className="p-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                aria-label="View messages"
+              >
+                <MessageSquare className="h-5 w-5" />
+              </button>
+            )}
 
             {user ? (
-              <button
-                onClick={() => router.push('/?section=profile')}
-                className="p-0.5 rounded-full ring-2 ring-orange-400"
-                aria-label="User profile"
-              >
-                {userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-7 h-7 rounded-full object-cover" />
-                ) : (
-                  <div className="w-7 h-7 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                    {userInitial}
-                  </div>
+              <div className="flex items-center gap-1.5">
+                {userData?.role === 'agency' && (
+                  <Link
+                    href="/agencytripdm"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200 transition-all shrink-0"
+                    title="Go to Agency Portal"
+                  >
+                    <Building2 className="h-3.5 w-3.5 text-gray-600" />
+                    <span>Portal</span>
+                  </Link>
                 )}
-              </button>
+                {userData?.role === 'admin' && (
+                  <a
+                    href="/admin"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-sm transition-all shrink-0"
+                    title="Go to Admin Dashboard"
+                  >
+                    <Shield className="h-3.5 w-3.5" />
+                    <span>Admin</span>
+                  </a>
+                )}
+                <button
+                  onClick={() => router.push('/?section=profile')}
+                  className="ml-0.5 p-0.5 rounded-full ring-2 ring-slate-300 focus:outline-none"
+                  aria-label="User profile"
+                >
+                  {userAvatar ? (
+                    <img src={userAvatar} alt="Profile" className="w-7 h-7 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-7 h-7 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center border border-slate-200 text-xs font-bold">
+                      {userInitial}
+                    </div>
+                  )}
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => { setAuthModalTab('login'); setShowAuthModal(true); }}
-                className="px-3 py-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-300 shadow-2xs transition-colors"
+                className="ml-1 px-3 py-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-300 shadow-2xs transition-colors"
                 style={{ borderRadius: '6px' }}
               >
                 Login
@@ -447,8 +550,9 @@ export default function PoliciesLayout({ children }: { children: React.ReactNode
           </div>
         </div>
       </header>
+
       {/* Top Policy Navigation Tabs Bar */}
-      <div className="border-b border-slate-200 bg-white sticky top-16 z-10">
+      <div className="border-b border-slate-200 bg-white sticky top-16 md:top-[70px] z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-10 overflow-x-auto hide-scrollbar" aria-label="Tabs">
             {tabs.map((tab) => {

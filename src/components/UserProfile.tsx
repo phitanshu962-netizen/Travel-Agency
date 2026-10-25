@@ -280,21 +280,13 @@ export default function UserProfile({
                 <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight truncate max-w-full">
                   {displayName}
                 </h1>
-                {isAgency ? (
+                {isAgency && (
                   <span 
                     className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 px-2 py-0.5 shrink-0"
                     style={{ borderRadius: '4px' }}
                   >
                     <CheckCircle className="w-3 h-3 text-amber-600" />
                     Verified Agency Partner
-                  </span>
-                ) : (
-                  <span 
-                    className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2 py-0.5 shrink-0"
-                    style={{ borderRadius: '4px' }}
-                  >
-                    <CheckCircle className="w-3 h-3 text-emerald-600" />
-                    TripDM Traveler
                   </span>
                 )}
               </div>
@@ -367,15 +359,10 @@ export default function UserProfile({
             style={{ borderRadius: '6px' }}
           >
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div 
-                className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center shrink-0 transition-transform ${
-                  activeTab === 'profile'
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                }`}
-                style={{ borderRadius: '6px' }}
-              >
-                <User className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
+                <User className={`w-5 h-5 transition-colors ${
+                  activeTab === 'profile' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-700'
+                }`} />
               </div>
               <div className="min-w-0 truncate">
                 <h4 className={`text-xs sm:text-sm font-bold truncate ${activeTab === 'profile' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
@@ -401,15 +388,10 @@ export default function UserProfile({
             style={{ borderRadius: '6px' }}
           >
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div 
-                className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center shrink-0 transition-transform ${
-                  activeTab === 'wishlist'
-                    ? 'bg-rose-500 text-white'
-                    : 'bg-rose-50 border border-rose-100 text-rose-600 group-hover:scale-105'
-                }`}
-                style={{ borderRadius: '6px' }}
-              >
-                <Heart className={`w-4.5 h-4.5 sm:w-5 sm:h-5 ${activeTab === 'wishlist' ? 'fill-white text-white' : 'fill-rose-100 text-rose-600'}`} />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
+                <Heart className={`w-5 h-5 transition-colors ${
+                  activeTab === 'wishlist' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-700'
+                }`} />
               </div>
               <div className="min-w-0 truncate">
                 <h4 className={`text-xs sm:text-sm font-bold truncate ${activeTab === 'wishlist' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>
@@ -439,11 +421,8 @@ export default function UserProfile({
               style={{ borderRadius: '6px' }}
             >
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <div 
-                  className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 group-hover:scale-105 transition-transform"
-                  style={{ borderRadius: '6px' }}
-                >
-                  <MessageSquare className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-blue-600" />
+                <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
+                  <MessageSquare className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
                 </div>
                 <div className="min-w-0 truncate">
                   <h4 className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-slate-900 truncate">
@@ -463,11 +442,8 @@ export default function UserProfile({
               style={{ borderRadius: '6px' }}
             >
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <div 
-                  className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform"
-                  style={{ borderRadius: '6px' }}
-                >
-                  <Building2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-orange-600" />
+                <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
                 </div>
                 <div className="min-w-0 truncate">
                   <h4 className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-orange-600 truncate">
@@ -498,11 +474,8 @@ export default function UserProfile({
             >
               <div className="border-b border-slate-100 pb-4 flex items-center justify-between min-w-0">
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div 
-                    className="w-8 h-8 sm:w-9 sm:h-9 bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold shrink-0"
-                    style={{ borderRadius: '6px' }}
-                  >
-                    <User className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-orange-600" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center shrink-0 text-slate-700">
+                    <User className="w-5 h-5 text-slate-700" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">Personal Information</h3>
@@ -618,11 +591,8 @@ export default function UserProfile({
                 style={{ borderRadius: '8px' }}
               >
                 <div className="flex items-center gap-3">
-                  <div 
-                    className="w-9 h-9 bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 font-bold"
-                    style={{ borderRadius: '6px' }}
-                  >
-                    <Heart className="w-4.5 h-4.5 fill-rose-100 text-rose-600" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center shrink-0 text-slate-700">
+                    <Heart className="w-5 h-5 text-slate-700" />
                   </div>
                   <div>
                     <h3 className="text-sm sm:text-base font-bold text-slate-900">Saved Travel Agencies</h3>

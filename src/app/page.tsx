@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
-import { Suspense } from 'react';
 import HomeClient from './HomeClient';
 import { parseFirestoreDocument } from '@/lib/firestoreParser';
-import PageLoader from '@/components/PageLoader';
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'travel-agent-management-29c27';
 
@@ -141,14 +139,11 @@ export default async function HomePage() {
   // Fetch initial data on the server for pure HTML SSR
   const { listings, agencies } = await getInitialData();
 
-  // Render the client component monolith, passing the server-fetched data as initial state
   return (
-    <Suspense fallback={<PageLoader text="Fetching details..." />}>
-      <HomeClient
-        initialListings={listings}
-        initialAgencies={agencies}
-        routeMode="user"
-      />
-    </Suspense>
+    <HomeClient
+      initialListings={listings}
+      initialAgencies={agencies}
+      routeMode="user"
+    />
   );
 }

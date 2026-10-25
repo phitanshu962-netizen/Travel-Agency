@@ -4010,10 +4010,6 @@ export default function HomeClient({
     }
   }
 
-  // For user routes (landing page), only show centered loader if authenticated user is waiting for profile data
-  if (user && !userData && loading) {
-    return <PageLoader text="Fetching details..." />;
-  }
 
   if (user && userData) {
     if (userData.role === 'admin') {
@@ -5778,17 +5774,17 @@ export default function HomeClient({
           {/* Top Navigation Bar */}
           <header suppressHydrationWarning className="header-transition text-gray-900 z-[100] sticky top-0 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200">
             {/* Desktop Header Layout */}
-            <div className="hidden md:flex max-w-7xl mx-auto items-center justify-between gap-4 lg:gap-8 px-4 sm:px-6 h-16 md:h-[70px] w-full">
+            <div className="hidden md:flex relative max-w-7xl mx-auto items-center justify-between gap-4 lg:gap-8 px-4 sm:px-6 h-16 md:h-[70px] w-full">
               {/* Logo */}
               <div
-                className="flex items-center cursor-pointer shrink-0 py-1"
+                className="flex items-center cursor-pointer shrink-0 py-1 z-10"
                 onClick={handleNavigateToLanding}
               >
                 <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-12 sm:h-[54px] md:h-[60px] w-auto object-contain" />
               </div>
 
-              {/* Center Navigation Links */}
-              <nav className="flex items-center gap-5 lg:gap-8 shrink-0">
+              {/* Center Navigation Links - Dead Centered */}
+              <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-4 lg:gap-6 xl:gap-8 shrink-0 z-10">
                 <button
                   type="button"
                   onClick={() => {
@@ -5805,7 +5801,7 @@ export default function HomeClient({
                     setShowComparison(false);
                     setSelectedStory(null);
                   }}
-                  className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+                  className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
                 >
                   Destinations
                 </button>
@@ -5831,7 +5827,7 @@ export default function HomeClient({
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
                   }}
-                  className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+                  className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
                 >
                   Travel Agents
                 </button>
@@ -5846,21 +5842,21 @@ export default function HomeClient({
                     setSelectedStory(null);
                     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+                  className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
                 >
                   How It Works
                 </button>
 
                 <a
                   href="/blog"
-                  className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+                  className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
                 >
                   Travel Stories
                 </a>
               </nav>
 
               {/* Right Links */}
-              <div className="flex items-center gap-4 lg:gap-5 shrink-0">
+              <div className="flex items-center gap-4 lg:gap-5 shrink-0 z-10 ml-auto">
                 {/* Messages (Only for non-agency users / travelers) */}
                 {(!userData || userData.role !== 'agency') && (
                   <button
@@ -5883,10 +5879,10 @@ export default function HomeClient({
                 )}
 
                 {/* Profile / Sign In */}
-                {user && userData ? (
+                {user ? (
                   <div className="flex items-center gap-3 ml-1 border-l border-gray-200 pl-4">
                     {/* ONLY VISIBLE TO LOGGED-IN AGENCIES */}
-                    {userData.role === 'agency' && (
+                    {userData?.role === 'agency' && (
                       <Link
                         href="/agencytripdm"
                         className="cursor-pointer text-[14px] font-semibold flex items-center gap-1.5 text-slate-800 hover:text-slate-950 shrink-0"
@@ -5896,7 +5892,7 @@ export default function HomeClient({
                         <span>Agency Portal</span>
                       </Link>
                     )}
-                    {userData.role === 'admin' && (
+                    {userData?.role === 'admin' && (
                       <a
                         href="/admin"
                         className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-slate-800 text-white shadow-sm shrink-0"
@@ -6008,9 +6004,9 @@ export default function HomeClient({
                 )}
 
                 {/* Profile / Login Avatar */}
-                {user && userData ? (
+                {user ? (
                   <div className="flex items-center gap-1.5">
-                    {userData.role === 'agency' && (
+                    {userData?.role === 'agency' && (
                       <Link
                         href="/agencytripdm"
                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200 transition-all shrink-0"
@@ -6020,7 +6016,7 @@ export default function HomeClient({
                         <span>Portal</span>
                       </Link>
                     )}
-                    {userData.role === 'admin' && (
+                    {userData?.role === 'admin' && (
                       <a
                         href="/admin"
                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-sm transition-all shrink-0"

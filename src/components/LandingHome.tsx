@@ -429,7 +429,8 @@ export default function LandingHome({
               </div>
             </form>
 
-            {/* Popular Destination Tags */}
+            {/* Popular Destination Tags (Hidden for now, preserved for future use) */}
+            {/*
             <div className="mt-2 sm:mt-2.5 relative z-10 flex items-center justify-start sm:justify-center gap-1 sm:gap-1.5 px-1 overflow-x-auto no-scrollbar sm:flex-wrap max-w-full py-0.5">
               <span className="text-[10.5px] sm:text-[11.5px] font-bold text-slate-900 mr-1 shrink-0">
                 Popular:
@@ -445,6 +446,7 @@ export default function LandingHome({
                 </button>
               ))}
             </div>
+            */}
           </div>
 
         {/* ── BLOCK 3: 4 VALUE PROPOSITIONS ── */}

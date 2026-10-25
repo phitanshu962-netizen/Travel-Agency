@@ -489,21 +489,21 @@ export default function PackageClientView({ listing }: { listing: any }) {
       {/* Top Header */}
       <header className="header-transition text-gray-900 z-[100] sticky top-0 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200">
         {/* Desktop Header Layout */}
-        <div className="hidden md:flex max-w-7xl mx-auto items-center justify-between gap-4 lg:gap-8 px-4 sm:px-6 h-16 md:h-[70px] w-full">
+        <div className="hidden md:flex relative max-w-7xl mx-auto items-center justify-between gap-4 lg:gap-8 px-4 sm:px-6 h-16 md:h-[70px] w-full">
           {/* Logo */}
           <div
-            className="flex items-center cursor-pointer shrink-0 py-1"
+            className="flex items-center cursor-pointer shrink-0 py-1 z-10"
             onClick={() => router.push('/')}
           >
             <img src="/tripdm-logo.png" alt="TripDM Logo" className="h-12 sm:h-[54px] md:h-[60px] w-auto object-contain" />
           </div>
 
-          {/* Center Navigation Links */}
-          <nav className="flex items-center gap-5 lg:gap-8 shrink-0">
+          {/* Center Navigation Links - Dead Centered */}
+          <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-4 lg:gap-6 xl:gap-8 shrink-0 z-10">
             <button
               type="button"
               onClick={() => router.push('/?section=destinations')}
-              className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+              className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
             >
               Destinations
             </button>
@@ -511,7 +511,7 @@ export default function PackageClientView({ listing }: { listing: any }) {
             <button
               type="button"
               onClick={() => router.push('/?section=agents')}
-              className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+              className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
             >
               Travel Agents
             </button>
@@ -519,21 +519,21 @@ export default function PackageClientView({ listing }: { listing: any }) {
             <button
               type="button"
               onClick={() => router.push('/?section=how-it-works')}
-              className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+              className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
             >
               How It Works
             </button>
 
             <a
               href="/blog"
-              className="text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
+              className="text-sm lg:text-[15px] font-semibold whitespace-nowrap text-slate-800 hover:text-slate-950 transition-colors cursor-pointer"
             >
               Travel Stories
             </a>
           </nav>
 
           {/* Right Action Icons & Profile / Login */}
-          <div className="flex items-center gap-4 lg:gap-5 shrink-0">
+          <div className="flex items-center gap-4 lg:gap-5 shrink-0 z-10 ml-auto">
             {/* Messages (Only for non-agency users / travelers) */}
             {(!userData || userData.role !== 'agency') && (
               <button
