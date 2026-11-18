@@ -46,6 +46,20 @@ async function getPublishedBlogs(): Promise<Blog[]> {
     const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
     const query = {
       structuredQuery: {
+        select: {
+          fields: [
+            { fieldPath: 'title' },
+            { fieldPath: 'slug' },
+            { fieldPath: 'excerpt' },
+            { fieldPath: 'coverImage' },
+            { fieldPath: 'category' },
+            { fieldPath: 'tags' },
+            { fieldPath: 'author' },
+            { fieldPath: 'publishedAt' },
+            { fieldPath: 'readTime' },
+            { fieldPath: 'published' },
+          ],
+        },
         from: [{ collectionId: 'blogs' }],
         where: {
           fieldFilter: {
@@ -54,14 +68,14 @@ async function getPublishedBlogs(): Promise<Blog[]> {
             value: { booleanValue: true },
           },
         },
-        limit: 10000,
+        limit: 100,
       },
     };
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(query),
-      cache: 'no-store',
+      next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
     const data = await res.json();

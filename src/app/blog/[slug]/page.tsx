@@ -9,13 +9,13 @@ import { getBlogCoverImage, getDestinationHeaderBg } from '@/lib/blogImages';
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'travel-agent-management-29c27';
 
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
+export const dynamic = 'auto';
 
 export async function generateStaticParams() {
   try {
     const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/blogs?pageSize=10000`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(url, { next: { revalidate: 3600 } });
     if (!res.ok) return [{ slug: 'default' }];
     const data = await res.json();
     if (!data.documents || !Array.isArray(data.documents) || data.documents.length === 0) {
@@ -98,7 +98,7 @@ async function getBlogBySlug(slug: string): Promise<Blog | null> {
     // 1. Try direct ID fetch
     for (const cand of slugCandidates) {
       const directUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/blogs/${encodeURIComponent(cand)}`;
-      const directRes = await fetch(directUrl, { cache: 'no-store' });
+      const directRes = await fetch(directUrl, { next: { revalidate: 3600 } });
       if (directRes.ok) {
         const doc = await directRes.json();
         if (doc && doc.fields) return parseBlogDoc(doc);
@@ -119,7 +119,7 @@ async function getBlogBySlug(slug: string): Promise<Blog | null> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(query),
-        cache: 'no-store',
+        next: { revalidate: 3600 },
       });
       if (res.ok) {
         const data = await res.json();
@@ -130,7 +130,7 @@ async function getBlogBySlug(slug: string): Promise<Blog | null> {
 
     // 3. Fallback: Search by title matching decoded slug
     const allBlogsUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/blogs?pageSize=100`;
-    const allRes = await fetch(allBlogsUrl, { cache: 'no-store' });
+    const allRes = await fetch(allBlogsUrl, { next: { revalidate: 3600 } });
     if (allRes.ok) {
       const allData = await allRes.json();
       if (allData.documents && Array.isArray(allData.documents)) {

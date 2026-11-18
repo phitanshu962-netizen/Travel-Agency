@@ -20,14 +20,14 @@ async function getInitialData() {
             value: { booleanValue: true }
           }
         },
-        limit: 1000
+        limit: 48
       }
     };
 
     const usersQuery = {
       structuredQuery: {
         from: [{ collectionId: "users" }],
-        limit: 1000
+        limit: 100
       }
     };
 

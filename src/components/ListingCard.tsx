@@ -223,7 +223,8 @@ export default function ListingCard({
 
   // Generate optimized image URL with caching parameters
   const optimizedImageUrl = mainImage ? optimizeImageUrl(mainImage, {
-    quality: 85,
+    width: 600,
+    quality: 80,
     format: 'auto',
     cacheBust: false
   }) : null;
@@ -242,21 +243,18 @@ export default function ListingCard({
     setImageLoaded(true); // Stop showing loading state
   };
 
-  // Preload all listing images on mount for instant navigation
-  useEffect(() => {
-    if (allImages.length > 0) {
-      allImages.forEach((imgUrl) => {
-        const optimized = optimizeImageUrl(imgUrl, {
-          quality: 85,
-          format: 'auto',
-          cacheBust: false
-        });
-        preloadImage(optimized).catch(() => {
-          // Ignore preload errors
-        });
+  // Preload only the next image in the carousel on demand, rather than all images across all cards
+  const preloadNextImage = () => {
+    if (allImages.length > currentImageIndex + 1) {
+      const nextImg = optimizeImageUrl(allImages[currentImageIndex + 1], {
+        width: 600,
+        quality: 80,
+        format: 'auto',
+        cacheBust: false,
       });
+      preloadImage(nextImg).catch(() => {});
     }
-  }, [allImages]);
+  };
 
   // Generate a blur placeholder SVG
   const blurPlaceholder = generateBlurPlaceholder(400, 300, '#f3f4f6');
@@ -412,6 +410,7 @@ export default function ListingCard({
 
   return (
     <div
+      onMouseEnter={preloadNextImage}
       className="bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group flex flex-col h-full w-full max-w-[420px] mx-auto border border-slate-100/90 min-w-0"
       style={{ borderRadius: '6px' }}
     >
@@ -526,7 +525,8 @@ export default function ListingCard({
                 <div key={idx} className="w-full h-full shrink-0 relative overflow-hidden">
                   <img
                     src={optimizeImageUrl(imgUrl, {
-                      quality: 85,
+                      width: 600,
+                      quality: 80,
                       format: 'auto',
                       cacheBust: false
                     })}
