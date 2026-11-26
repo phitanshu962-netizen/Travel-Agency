@@ -29,7 +29,33 @@ export function optimizeImageUrl(
 
   try {
     const urlObj = new URL(url);
-    
+
+    // 1. Wikimedia Commons special optimization
+    // Automatically convert full-resolution multi-megabyte originals into lightweight 960px/1280px web thumbnails
+    if (urlObj.hostname === 'upload.wikimedia.org' && urlObj.pathname.includes('/wikipedia/commons/')) {
+      if (!urlObj.pathname.includes('/thumb/')) {
+        const parts = urlObj.pathname.split('/').filter(Boolean);
+        // ['wikipedia', 'commons', 'h1', 'h2', 'filename']
+        if (parts.length >= 5) {
+          const filename = parts[parts.length - 1];
+          const h2 = parts[parts.length - 2];
+          const h1 = parts[parts.length - 3];
+          const targetW = width && width > 1000 ? 1280 : 960;
+          return `https://upload.wikimedia.org/wikipedia/commons/thumb/${h1}/${h2}/${filename}/${targetW}px-${filename}`;
+        }
+      }
+    }
+
+    // 2. Flickr special optimization
+    if (urlObj.hostname.includes('staticflickr.com')) {
+      const targetSize = width && width <= 400 ? '_w.jpg' : (width && width <= 700 ? '_z.jpg' : '_b.jpg');
+      const newPath = urlObj.pathname.replace(/_[a-z]\.jpg$/i, targetSize);
+      if (newPath !== urlObj.pathname) {
+        urlObj.pathname = newPath;
+        return urlObj.toString();
+      }
+    }
+
     // Add optimization parameters
     urlObj.searchParams.set('auto', format === 'auto' ? 'format,compress' : format);
     urlObj.searchParams.set('q', quality.toString());

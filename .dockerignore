@@ -11,6 +11,7 @@ README.md
 .env.production.local
 .nyc_output
 coverage
-.next
+# .next
+
 .vercel
 *.log

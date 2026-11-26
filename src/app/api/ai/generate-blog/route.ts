@@ -4,6 +4,108 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export const dynamic = 'force-static';
 
 /**
+ * Robust JSON parser for LLM outputs.
+ * Handles markdown fences, invalid escape sequences (\', \*, \$), unescaped newlines/tabs inside strings,
+ * trailing commas, and truncated braces/brackets.
+ */
+function cleanAndParseJson(raw: string): any {
+  // 1. Direct parse attempt
+  try {
+    return JSON.parse(raw);
+  } catch (_) {}
+
+  // 2. Strip code fences and find outer object boundaries
+  let text = raw.trim();
+  text = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    text = text.substring(firstBrace, lastBrace + 1);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (_) {}
+
+  // 3. Fix invalid backslash escapes (JSON only allows: " \ / b f n r t u)
+  let sanitized = text.replace(/\\([^"\\\/bfnrtu])/g, (match, char) => {
+    if (char === "'") return "'";
+    return `\\\\${char}`;
+  });
+
+  try {
+    return JSON.parse(sanitized);
+  } catch (_) {}
+
+  // 4. Fix raw/unescaped control characters (newlines, carriage returns, tabs) inside string values
+  let insideString = false;
+  let isEscaped = false;
+  const out: string[] = [];
+
+  for (let i = 0; i < sanitized.length; i++) {
+    const c = sanitized[i];
+    if (c === '"' && !isEscaped) {
+      insideString = !insideString;
+      out.push(c);
+    } else if (insideString) {
+      if (c === '\n') {
+        out.push('\\n');
+      } else if (c === '\r') {
+        // drop CR
+      } else if (c === '\t') {
+        out.push('\\t');
+      } else if (c.charCodeAt(0) < 32) {
+        // drop invalid ASCII control characters
+      } else {
+        out.push(c);
+      }
+    } else {
+      out.push(c);
+    }
+    isEscaped = (c === '\\' && !isEscaped);
+  }
+  sanitized = out.join('');
+
+  try {
+    return JSON.parse(sanitized);
+  } catch (_) {}
+
+  // 5. Remove trailing commas before } and ]
+  sanitized = sanitized.replace(/,\s*([}\]])/g, '$1');
+
+  try {
+    return JSON.parse(sanitized);
+  } catch (_) {}
+
+  // 6. Auto-close truncated JSON if the response ended abruptly
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = 0; i < sanitized.length; i++) {
+    const c = sanitized[i];
+    if (c === '"' && !esc) inStr = !inStr;
+    else if (!inStr) {
+      if (c === '{') openBraces++;
+      else if (c === '}') openBraces = Math.max(0, openBraces - 1);
+      else if (c === '[') openBrackets++;
+      else if (c === ']') openBrackets = Math.max(0, openBrackets - 1);
+    }
+    esc = (c === '\\' && !esc);
+  }
+  if (inStr) sanitized += '"';
+  while (openBrackets > 0) { sanitized += ']'; openBrackets--; }
+  while (openBraces > 0) { sanitized += '}'; openBraces--; }
+
+  try {
+    return JSON.parse(sanitized);
+  } catch (finalError: any) {
+    throw new Error(`JSON parse failed: ${finalError.message}`);
+  }
+}
+
+/**
  * Server-side helper to fetch and clean text from competitor URLs.
  */
 async function fetchCompetitorContent(url: string): Promise<string | null> {
@@ -330,7 +432,13 @@ Return ONLY a valid JSON object matching this schema:
 NOW GENERATE THE COMPLETE, ULTRA-HIGH-QUALITY JSON FOR: "${topic}"
 `;
 
-    const tryModels = ['gemini-pro-latest', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
+    // Verified active & working models for this project (HTTP 200 verified)
+    const tryModels = [
+      'gemini-2.5-flash',       // Primary: high quality, fast
+      'gemini-3.5-flash',       // Active fallback 1
+      'gemini-3.5-flash-lite',  // Active fallback 2: lightweight, high rate-limit ceiling
+      'gemini-3.6-flash',       // Active fallback 3
+    ];
     let result = null;
     let lastError = null;
 
@@ -342,7 +450,7 @@ NOW GENERATE THE COMPLETE, ULTRA-HIGH-QUALITY JSON FOR: "${topic}"
             temperature: 0.6,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 65536,
+            maxOutputTokens: 16384,
             responseMimeType: 'application/json',
           },
         });
@@ -363,22 +471,8 @@ NOW GENERATE THE COMPLETE, ULTRA-HIGH-QUALITY JSON FOR: "${topic}"
     const response = await result.response;
     let text = response.text();
 
-    // Aggressively clean AI output
-    text = text
-      .replace(/^```json\s*/m, '')
-      .replace(/^```\s*/m, '')
-      .replace(/```\s*$/m, '')
-      .trim();
-
-    // Find the JSON object boundaries
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      text = text.substring(firstBrace, lastBrace + 1);
-    }
-
     try {
-      const fullData = JSON.parse(text);
+      const fullData = cleanAndParseJson(text);
 
       // Map the rich structure to what the blog form expects
       const blogFormData = {

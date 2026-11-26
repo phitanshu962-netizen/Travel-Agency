@@ -6,7 +6,7 @@ import PageLoader from '@/components/PageLoader';
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'travel-agent-management-29c27';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 async function getApprovedListings() {
   try {
@@ -22,14 +22,34 @@ async function getApprovedListings() {
             value: { booleanValue: true }
           }
         },
-        limit: 1000
+        select: {
+          fields: [
+            { fieldPath: "title" }, { fieldPath: "approved" }, { fieldPath: "packageType" },
+            { fieldPath: "stateName" }, { fieldPath: "countryName" }, { fieldPath: "cost" },
+            { fieldPath: "price" }, { fieldPath: "itinerary" }, { fieldPath: "photos" },
+            { fieldPath: "placesCovered" }, { fieldPath: "imageUrls" }, { fieldPath: "imageUrl" },
+            { fieldPath: "agencyId" }, { fieldPath: "userId" }, { fieldPath: "agencyName" },
+            { fieldPath: "agencyLogo" }, { fieldPath: "logoUrl" }, { fieldPath: "rating" },
+            { fieldPath: "reviewsCount" }, { fieldPath: "reviews" }, { fieldPath: "tourCategories" },
+            { fieldPath: "pickUpLocation" }, { fieldPath: "dropLocation" }, { fieldPath: "duration" },
+            { fieldPath: "description" },
+          ]
+        },
+        limit: 48
       }
     };
 
     const usersQuery = {
       structuredQuery: {
         from: [{ collectionId: "users" }],
-        limit: 1000
+        select: {
+          fields: [
+            { fieldPath: "companyName" }, { fieldPath: "name" }, { fieldPath: "displayName" },
+            { fieldPath: "agencyName" }, { fieldPath: "logoUrl" }, { fieldPath: "agencyLogo" },
+            { fieldPath: "avatarUrl" }, { fieldPath: "role" }, { fieldPath: "approved" },
+          ]
+        },
+        limit: 100
       }
     };
 
@@ -38,13 +58,13 @@ async function getApprovedListings() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(query),
-        next: { revalidate: 30 }
+        next: { revalidate: 300 }
       }),
       fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(usersQuery),
-        next: { revalidate: 60 }
+        next: { revalidate: 300 }
       }).catch(() => null)
     ]);
 

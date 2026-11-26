@@ -6,12 +6,13 @@ import PageLoader from '@/components/PageLoader';
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'travel-agent-management-29c27';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 async function getInitialData() {
   try {
     const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
-    
+
+    // For the travel-agents page we only need images + agency linkage from listings
     const query = {
       structuredQuery: {
         from: [{ collectionId: "listings" }],
@@ -22,14 +23,49 @@ async function getInitialData() {
             value: { booleanValue: true }
           }
         },
-        limit: 1000
+        select: {
+          fields: [
+            { fieldPath: "title" }, { fieldPath: "approved" }, { fieldPath: "packageType" },
+            { fieldPath: "stateName" }, { fieldPath: "countryName" }, { fieldPath: "cost" },
+            { fieldPath: "price" }, { fieldPath: "itinerary" }, { fieldPath: "photos" },
+            { fieldPath: "placesCovered" }, { fieldPath: "imageUrls" }, { fieldPath: "imageUrl" },
+            { fieldPath: "agencyId" }, { fieldPath: "userId" }, { fieldPath: "agencyName" },
+            { fieldPath: "agencyLogo" }, { fieldPath: "logoUrl" }, { fieldPath: "rating" },
+            { fieldPath: "reviewsCount" }, { fieldPath: "tourCategories" },
+            { fieldPath: "pickUpLocation" }, { fieldPath: "dropLocation" }, { fieldPath: "duration" },
+          ]
+        },
+        limit: 48
       }
     };
 
+    // For agencies, fetch all with key profile fields only
     const usersQuery = {
       structuredQuery: {
         from: [{ collectionId: "users" }],
-        limit: 1000
+        where: {
+          fieldFilter: {
+            field: { fieldPath: "role" },
+            op: "EQUAL",
+            value: { stringValue: "agency" }
+          }
+        },
+        select: {
+          fields: [
+            { fieldPath: "companyName" }, { fieldPath: "name" }, { fieldPath: "displayName" },
+            { fieldPath: "agencyName" }, { fieldPath: "logoUrl" }, { fieldPath: "agencyLogo" },
+            { fieldPath: "avatarUrl" }, { fieldPath: "role" }, { fieldPath: "approved" },
+            { fieldPath: "verified" }, { fieldPath: "rating" }, { fieldPath: "reviewCount" },
+            { fieldPath: "experienceYears" }, { fieldPath: "happyTravelersCount" },
+            { fieldPath: "description" }, { fieldPath: "bio" }, { fieldPath: "specialties" },
+            { fieldPath: "destinations" }, { fieldPath: "tripTypes" }, { fieldPath: "languages" },
+            { fieldPath: "photos" }, { fieldPath: "packageImages" }, { fieldPath: "coverImage" },
+            { fieldPath: "businessLocation" }, { fieldPath: "officeAddress" }, { fieldPath: "city" },
+            { fieldPath: "state" }, { fieldPath: "country" }, { fieldPath: "pincode" },
+            { fieldPath: "featured" }, { fieldPath: "latitude" }, { fieldPath: "longitude" },
+          ]
+        },
+        limit: 200
       }
     };
 
@@ -38,13 +74,13 @@ async function getInitialData() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(query),
-        next: { revalidate: 30 }
+        next: { revalidate: 300 }
       }),
       fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(usersQuery),
-        next: { revalidate: 60 }
+        next: { revalidate: 300 }
       }).catch(() => null)
     ]);
 
